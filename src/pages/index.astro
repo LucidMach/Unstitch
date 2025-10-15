@@ -1,21 +1,20 @@
 ---
+import { Suspense } from "react";
 import TexTile from "../components/tex-tile";
 import Layout from "../layouts/Layout.astro";
 import { Canvas, useFrame } from "@react-three/fiber";
+import R3F from "../components/R3F";
 
 // Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
 // Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
 <Layout>
-  <div class="h-full flex flex-col justify-center items-center bg-pink-100">
+  <div class="h-full flex flex-col justify-center items-center">
     <!-- <h1 class="text-4xl">UnStitched</h1> -->
     <!-- <h2 class="text-xl">Tex-Tiles</h2> -->
-
-    <Canvas>
-      <ambientLight intensity={Math.PI / 2}></ambientLight>
-      <directionalLight position={[10, 10, 5]} intensity={1}></directionalLight>
-      <TexTile />
-    </Canvas>
+    <Suspense>
+      <R3F client:visible />
+    </Suspense>
   </div>
 </Layout>
