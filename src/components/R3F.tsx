@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import Rig from "./Rig";
-import { OrbitControls } from "@react-three/drei";
 import TexTile from "./tex-tile";
 
 const R3F = () => {
@@ -20,7 +19,7 @@ const R3F = () => {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col">
       <Canvas
         style={{
           position: "fixed",
@@ -30,16 +29,12 @@ const R3F = () => {
           width: w,
         }}
         camera={{ position: [0, -200, 0] }}
-        // onClick={() =>
-        // setColor((color) => (color < colors.length - 1 ? color + 1 : 0))
-        // (window.location.href = "/blog")
-        // }
       >
         <directionalLight color={"blue"} position={[0, 0, 0]} intensity={10} />
         <Rig />
         <TexTile position={[0, 0, 0]} />
       </Canvas>
-    </>
+    </div>
   );
 };
 
