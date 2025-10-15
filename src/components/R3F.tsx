@@ -16,10 +16,14 @@ const R3F = () => {
       setW(window.innerWidth);
       setH(window.innerHeight);
     });
+
+    setInterval(() => {
+      setColor((prev) => (prev >= 360 ? 0 : prev + 1));
+    }, 3000);
   }, []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col justify-center items-center">
       <Canvas
         style={{
           position: "fixed",
@@ -34,6 +38,10 @@ const R3F = () => {
         <Rig />
         <TexTile position={[0, 0, 0]} />
       </Canvas>
+      <h1 className="absolute bottom-14">assets loading...</h1>
+      <button className="absolute bottom-10 text-gray-400">
+        ps: this square follows your mouse
+      </button>
     </div>
   );
 };
