@@ -1,20 +1,17 @@
 ---
-import { Suspense } from "react";
-import TexTile from "../components/tex-tile";
 import Layout from "../layouts/Layout.astro";
-import { Canvas, useFrame } from "@react-three/fiber";
-import R3F from "../components/R3F";
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Loading from "../components/loading";
+import NavBar from "../components/navbar";
 ---
 
 <Layout>
   <div class="h-full flex flex-col justify-center items-center">
     <!-- <h1 class="text-4xl">UnStitched</h1> -->
     <!-- <h2 class="text-xl">Tex-Tiles</h2> -->
-    <Suspense>
-      <R3F client:visible />
-    </Suspense>
+    <Loading client:visible>
+      <div class="h-full w-full">
+        <NavBar client:visible />
+      </div>
+    </Loading>
   </div>
 </Layout>

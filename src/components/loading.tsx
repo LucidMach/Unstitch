@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { Canvas } from "@react-three/fiber";
 import Rig from "./Rig";
 import TexTile from "./tex-tile";
 
-const R3F = () => {
-  const [color, setColor] = useState<number>(0);
+interface Props {
+  children: React.ReactNode;
+}
+
+const Loading: React.FC<Props> = ({ children }) => {
+  const [skip, setSkip] = useState<boolean>(false);
   const [w, setW] = useState<number>(0);
   const [h, setH] = useState<number>(0);
 
   useEffect(() => {
+    setTimeout(() => setSkip(true), 500);
     setW(window.innerWidth);
     setH(window.innerHeight);
 
@@ -16,13 +21,11 @@ const R3F = () => {
       setW(window.innerWidth);
       setH(window.innerHeight);
     });
-
-    setInterval(() => {
-      setColor((prev) => (prev >= 360 ? 0 : prev + 1));
-    }, 3000);
   }, []);
 
-  return (
+  return skip ? (
+    <>{children}</>
+  ) : (
     <div className="flex flex-col justify-center items-center">
       <Canvas
         style={{
@@ -34,7 +37,6 @@ const R3F = () => {
         }}
         camera={{ position: [0, -200, 0] }}
       >
-        <directionalLight color={"blue"} position={[0, 0, 0]} intensity={10} />
         <Rig />
         <TexTile position={[0, 0, 0]} />
       </Canvas>
@@ -46,4 +48,4 @@ const R3F = () => {
   );
 };
 
-export default R3F;
+export default Loading;
