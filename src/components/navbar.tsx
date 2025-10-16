@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import { sections, selectAtom } from "../atoms/navAtom";
 
 const NavBar: React.FC = () => {
-  let sections = ["Home", "PlayGround", "WorkShop", "Journey", "Community"];
-  const [selected, setSelected] = useState<number>(0);
+  // let sections = ["Home", "PlayGround", "WorkShop", "Journey", "Community"];
+  const [selected, setSelected] = useAtom(selectAtom);
   const [open, setOpen] = useState<boolean>(false);
 
+  useEffect(() => {
+    // console.log(window.location.href);
+  }, []);
+
   return (
-    <div className="flex sticky h-full top-0 flex-col justify-between">
+    <div className="fixed flex w-full h-full top-0 flex-col justify-between">
       <div className="border-b border-gray-300">
         <div className="flex flex-row items-center justify-between p-3">
           <img
@@ -64,6 +70,7 @@ const NavBar: React.FC = () => {
                   index === selected ? "text-black" : "text-gray-400"
                 }`}
                 onClick={() => {
+                  // window.location.href = `${section.toLowerCase()}`;
                   setSelected(index);
                   setOpen(false);
                 }}

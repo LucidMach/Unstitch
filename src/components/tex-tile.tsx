@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { type JSX } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { GLTF } from "three-stdlib";
-import { useThree } from "@react-three/fiber";
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -15,7 +14,6 @@ type GLTFResult = GLTF & {
 
 export function TexTile(props: JSX.IntrinsicElements["group"]) {
   const { nodes, materials } = useGLTF("/Textile.glb");
-  const { camera, mouse } = useThree();
 
   return (
     <group {...props} dispose={null}>
