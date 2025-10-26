@@ -10,6 +10,7 @@ import { type CarouselApi } from "@/components/ui/carousel";
 import SpinFlatForm from "./spinFlatform";
 import TexTile from "./tex-tile";
 import { useEffect, useState } from "react";
+import Autoplay from "embla-carousel-autoplay";
 
 const CarouselUI: React.FC = () => {
   const [api, setApi] = useState<CarouselApi>();
@@ -37,6 +38,11 @@ const CarouselUI: React.FC = () => {
           align: "start",
           loop: true,
         }}
+        plugins={[
+          Autoplay({
+            delay: 5000,
+          }),
+        ]}
       >
         <CarouselContent>
           {Array.from({ length: 5 }).map((_, index) => (
