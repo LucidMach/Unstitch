@@ -41,12 +41,12 @@ const Loading: React.FC<Props> = ({ children }) => {
         <Rig />
         <TexTile position={[0, 0, 0]} />
       </Canvas>
-      <h1 className="absolute bottom-14">assets loading...</h1>
-      <div className="absolute bottom-10 text-gray-400">
-        ps: this square follows your mouse
+      <div className="absolute top-14 text-gray-400">
+        ps: this square follows your {w > 600 ? "cursor" : "finger"}
       </div>
+      <h1 className="absolute top-10">assets loading...</h1>
       <Button
-        className="mt-4 z-10 cursor-pointer"
+        className="z-10 absolute bottom-7 cursor-pointer"
         onClick={() => setSkip(true)}
       >
         skip
