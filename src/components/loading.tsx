@@ -111,8 +111,8 @@ const Loading: React.FC<Props> = ({ children }) => {
       {/* <div className="absolute top-14 text-gray-400">
         ps: this square follows your {w > 600 ? "cursor" : "finger"}
       </div> */}
-      <h1 className="absolute md:text-2xl top-14">what can you make with {n} more of these in <span className="text-pink-400">{timeLeft}</span>s?</h1>
-      <h1 className="absolute md:text-xl top-21 text-gray-400">click anywhere on the screen to spawn another tile</h1>
+      <h1 className="absolute text-sm md:text-2xl top-14">what can you make with {n} more of these in <span className="text-pink-400">{timeLeft}</span>s?</h1>
+      <h1 className="absolute text-xs md:text-xl top-21 text-gray-400">click anywhere on the screen to spawn another tile</h1>
       <div className="z-10 absolute bottom-7 flex gap-4">
         <Button
           variant="secondary"
