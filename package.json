@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^4.4.0",
+    "@gsap/react": "^2.1.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
@@ -22,6 +23,7 @@
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "gsap": "^3.14.2",
     "jotai": "^2.15.0",
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
