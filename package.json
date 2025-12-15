@@ -23,6 +23,7 @@
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.26",
     "gsap": "^3.14.2",
     "jotai": "^2.15.0",
     "lucide-react": "^0.545.0",

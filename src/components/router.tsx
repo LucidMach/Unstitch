@@ -1,8 +1,8 @@
 import { selectAtom, sections } from "@/atoms/navAtom";
 import { useAtom } from "jotai";
 
-import CarouselUI from "@/components/carousel";
 import ComingSoon from "./comingSoon";
+import VertCarousel from "./vertCarousel";
 
 const Router: React.FC = () => {
   const [selected, setSelected] = useAtom(selectAtom);
@@ -10,7 +10,7 @@ const Router: React.FC = () => {
   if (sections[selected] === "Home")
     return (
       <>
-        {/* <CarouselUI /> */}
+        <VertCarousel />
       </>
     );
   else if (sections[selected] === "PlayGround")
