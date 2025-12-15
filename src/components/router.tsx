@@ -10,7 +10,7 @@ const Router: React.FC = () => {
   if (sections[selected] === "Home")
     return (
       <>
-        <CarouselUI />
+        {/* <CarouselUI /> */}
       </>
     );
   else if (sections[selected] === "PlayGround")
