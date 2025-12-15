@@ -31,4 +31,5 @@ export function TexTile(props: JSX.IntrinsicElements["group"]) {
 }
 
 useGLTF.preload("/Textile.glb");
+useGLTF.preload("/Bag1.glb");
 export default TexTile;

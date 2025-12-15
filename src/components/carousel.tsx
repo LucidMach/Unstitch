@@ -1,37 +1,47 @@
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { type CarouselApi } from "@/components/ui/carousel";
-import SpinFlatForm from "./spinFlatform";
-import TexTile from "./tex-tile";
-import { useEffect, useState } from "react";
-import Autoplay from "embla-carousel-autoplay";
+// import { Card, CardContent } from "@/components/ui/card";
+// import {
+// Carousel,
+// CarouselContent,
+// CarouselItem,
+// CarouselNext,
+// CarouselPrevious,
+// } from "@/components/ui/carousel";
+// import { type CarouselApi } from "@/components/ui/carousel";
+// import SpinFlatForm from "./spinFlatform";
+// import TexTile from "./tex-tile";
+// import { useEffect, useState } from "react";
+// import Autoplay from "embla-carousel-autoplay";
+import { Canvas } from "@react-three/fiber";
+// import Rig from "./Rig";
+import { Showcase } from "./showcase";
+import SpinFlatform from "./spinFlatform";
 
 const CarouselUI: React.FC = () => {
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
+  // const [api, setApi] = useState<CarouselApi>();
+  // const [current, setCurrent] = useState(0);
+  // const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    if (!api) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!api) {
+  //     return;
+  //   }
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
-  }, [api]);
+  //   setCount(api.scrollSnapList().length);
+  //   setCurrent(api.selectedScrollSnap() + 1);
+  //   api.on("select", () => {
+  //     setCurrent(api.selectedScrollSnap() + 1);
+  //   });
+  // }, [api]);
 
   return (
     <>
-      <Carousel
+      <div className="w-full h-full flex flex-col justify-center items-center">
+        <Canvas className="w-full h-full" camera={{ position: [0, 5, 0] }}>
+          {/* <SpinFlatform Model={Showcase} /> */}
+          <Showcase />
+        </Canvas>
+      </div>
+      {/* <Carousel
         setApi={setApi}
         className="w-full max-w-xs md:max-w-4xl"
         opts={{
@@ -63,7 +73,7 @@ const CarouselUI: React.FC = () => {
       </Carousel>
       <div className="text-muted-foreground py-2 text-center text-sm">
         {current} of {count}
-      </div>
+      </div> */}
     </>
   );
 };

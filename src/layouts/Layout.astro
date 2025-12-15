@@ -14,8 +14,8 @@ import NavBar from "../components/navbar";
     <title>Unstitched</title>
   </head>
   <body>
-    <Loading client:visible>
-      <NavBar client:visible />
+    <Loading client:idle>
+      <NavBar client:idle />
       <slot />
     </Loading>
   </body>
