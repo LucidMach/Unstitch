@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
 const products = [
-    {name: "Tote", image: "/Hero.png", color: "bg-orange-300"},
-  { name: "Big Tote", image: "/BigTote.png", color: "bg-orange-300" },
-  { name: "Bucket", image: "/Bucket.png", color: "bg-blue-300" },
+  {name: "Tote", image: "/Tote.png", color: "bg-orange-300"},
+  { name: "Bucket", image: "/BucketFlip.png", color: "bg-blue-300" },
   { name: "Clutch", image: "/Clutch.png", color: "bg-pink-300" },
   { name: "Moon", image: "/Moon.png", color: "bg-purple-300" },
   { name: "Semi", image: "/Semi.png", color: "bg-yellow-300" },
   { name: "Square", image: "/Square.png", color: "bg-green-300" },
+  { name: "Big Tote", image: "/BigTote.png", color: "bg-orange-300" },
 ];
 
 const VertCarousel: React.FC = () => {
