@@ -12,36 +12,30 @@ const Loading: React.FC<Props> = ({ children }) => {
   const [skip, setSkip] = useState<boolean>(false);
   const [w, setW] = useState<number>(0);
   const [h, setH] = useState<number>(0);
+  const [n, setN] = useState<number>(45);
   const [tiles, setTiles] = useState<[number, number, number][]>([[0, 0, 0]]);
 
   useEffect(() => {
     const interval = setInterval(() => {
+      setN((prev) => prev - 1);
       setTiles((prev) => {
-        let newTile: [number, number, number] | null = null;
-        // Try up to 50 times to find a non-overlapping position
-        for (let i = 0; i < 50; i++) {
-          const candidate: [number, number, number] = [
-            (Math.random() - 0.5) * 100,
-            (Math.random() - 0.5) * 20,
-            (Math.random() - 0.5) * 100,
-          ];
-          
-          const hasOverlap = prev.some((p) => {
-            const dx = Math.abs(p[0] - candidate[0]);
-            const dy = Math.abs(p[1] - candidate[1]);
-            const dz = Math.abs(p[2] - candidate[2]);
-            // Bounds check: ~40 units width/depth (rotated tile), ~1 unit height
-            return dx < 40 && dz < 40 && dy < 1.5;
-          });
-
-          if (!hasOverlap) {
-            newTile = candidate;
-            break;
-          }
-        }
-        return newTile ? [...prev, newTile] : prev;
+        if (prev.length === 0) return prev;
+        
+        const lastTile = prev[prev.length - 1];
+        // Calculate a sequential direction. We spiral out.
+        // Calculate a sequential direction with slight variation.
+        // Change angle by a fixed amount + random variation.
+        const angleStep = 0.5 + (Math.random() - 0.5) * 0.2; 
+        const currentAngle = prev.length * angleStep;
+        const stepSize = 45; // Must be larger than tile size (~35)
+        
+        const nextX = lastTile[0] + Math.cos(currentAngle) * stepSize;
+        const nextZ = lastTile[2] + Math.sin(currentAngle) * stepSize;
+        
+        const newTile: [number, number, number] = [nextX, 0, nextZ];
+        return [...prev, newTile];
       });
-    }, 740);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -70,7 +64,7 @@ const Loading: React.FC<Props> = ({ children }) => {
         }}
         camera={{ position: [0, -200, 0] }}
       >
-        <Rig />
+        <Rig distance={200 * 1.2} />
         {tiles.map((pos, i) => (
           <TexTile key={i} position={pos} />
         ))}
@@ -78,7 +72,7 @@ const Loading: React.FC<Props> = ({ children }) => {
       {/* <div className="absolute top-14 text-gray-400">
         ps: this square follows your {w > 600 ? "cursor" : "finger"}
       </div> */}
-      <h1 className="absolute md:text-2xl top-20">what can you make with 45 more of these?</h1>
+      <h1 className="absolute md:text-2xl top-20">what can you make with {n} more of these?</h1>
       <Button
         className="z-10 absolute bottom-7 cursor-pointer"
         onClick={() => setSkip(true)}
