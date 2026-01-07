@@ -75,19 +75,26 @@ const NavBar: React.FC = () => {
 
   return (
     <>
-        {/* Restored Header */}
+        {/* Header */}
         <div className="fixed top-0 left-0 w-full border-b border-gray-300 pointer-events-auto bg-white/80 backdrop-blur-md z-50">
-            <div className="flex flex-row items-center justify-between p-3">
+            <div className="flex flex-row items-center justify-between px-3">
+            {/* <h1 className="text-2xl font-light tracking-wide">
+                UnStitch
+            </h1> */}
             <img
-                src="/Mascot.png"
-                className="m-2 md:w-16 md:h-16 w-10 h-10"
+                src="/title.png"
+                className="m-2 h-10"
                 decoding="async"
                 loading="lazy"
                 alt="the logo of unstitched"
             />
-            <h1 className="text-2xl md:text-4xl font-light tracking-wide mr-16 md:mr-0">
-                UnStitch
-            </h1>
+            <img
+                src="/Mascot.png"
+                className="m-2 h-10"
+                decoding="async"
+                loading="lazy"
+                alt="the logo of unstitched"
+            />
             </div>
         </div>
 
@@ -157,10 +164,10 @@ const NavBar: React.FC = () => {
             ref={homeRef}
             onClick={(e) => { e.stopPropagation(); handleNav(0); }}
             className="absolute cursor-pointer
-                    w-48 h-48 md:w-80 md:h-80 bg-[#dbeafe] 
+                    w-52 h-52 md:w-80 md:h-80 bg-[#dbeafe] 
                     flex items-center justify-center 
                     shadow-xl
-                    top-[-5%] left-[-5%] md:top-[10%] md:left-[25%]"
+                    top-[24%] left-[-5%] md:top-[20%] md:left-[25%]"
             style={{ 
                 transform: 'rotate(-15deg)',
                 backgroundColor: '#Dddddd' 
@@ -180,7 +187,7 @@ const NavBar: React.FC = () => {
                     w-48 h-48 md:w-96 md:h-96 
                     flex items-center justify-center 
                     shadow-xl z-10
-                    top-[-2%] right-[-5%] md:top-[5%] md:right-[25%]"
+                    top-[27%] right-[-5%] md:top-[10%] md:right-[25%]"
             style={{ 
                 transform: 'rotate(10deg)',
                 backgroundColor: '#e6dabb' 
@@ -216,10 +223,10 @@ const NavBar: React.FC = () => {
             ref={playRef}
             onClick={(e) => { e.stopPropagation(); handleNav(1, '/playground'); }} 
             className="absolute cursor-pointer
-                    w-56 h-64 md:w-80 md:h-96 
+                    w-56 h-56 md:w-80 md:h-80 
                     flex items-center justify-center 
                     shadow-xl z-20
-                    bottom-[-10%] left-1/2 -translate-x-1/2 md:bottom-[5%] md:left-[35%] md:translate-x-0"
+                    bottom-[20%] md:bottom-[10%] md:left-[40%]"
             style={{ 
                 transform: 'rotate(-5deg)',
                 backgroundColor: '#a6a6a6' 

@@ -1,6 +1,12 @@
 ---
 import "../styles/global.css";
 import NavBar from "../components/navbar";
+
+interface Props {
+  showNavbar?: boolean;
+}
+
+const { showNavbar = true } = Astro.props;
 ---
 
 <!doctype html>
@@ -13,7 +19,7 @@ import NavBar from "../components/navbar";
     <title>Unstitched</title>
   </head>
   <body>
-    <NavBar client:visible />
+    {showNavbar && <NavBar client:visible />}
     <slot />
   </body>
 
