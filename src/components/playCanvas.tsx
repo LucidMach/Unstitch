@@ -1,6 +1,6 @@
 import { useState, useRef, type JSX } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Grid } from "@react-three/drei";
+import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import * as THREE from "three";
 import TexTile, { ITEM_SCALE } from "./tex-tile";
 import { Button } from "./ui/button";
@@ -142,6 +142,10 @@ const PlayCanvas: React.FC = () => {
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial visible={false} />
         </mesh>
+
+        <GizmoHelper alignment="top-right" margin={[80, 80]}>
+          <GizmoViewcube />
+        </GizmoHelper>
 
         {tiles.map((pos, i) => (
           <TexTile 
