@@ -1,9 +1,10 @@
 ---
+import PlayCanvas from "@/components/playCanvas";
 import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout>
   <div class="h-full w-full flex flex-col justify-center items-center">
-    <!-- <CarouselUI client:visible /> -->
+    <PlayCanvas client:idle />
   </div>
 </Layout>

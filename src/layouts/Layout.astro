@@ -1,6 +1,5 @@
 ---
 import "../styles/global.css";
-import Loading from "../components/loading";
 import NavBar from "../components/navbar";
 ---
 
@@ -14,10 +13,8 @@ import NavBar from "../components/navbar";
     <title>Unstitched</title>
   </head>
   <body>
-    <Loading client:visible>
-      <NavBar client:visible />
-      <slot />
-    </Loading>
+    <NavBar client:visible />
+    <slot />
   </body>
 
   <style>
