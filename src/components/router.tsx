@@ -3,7 +3,6 @@ import { useAtom } from "jotai";
 
 import ComingSoon from "./comingSoon";
 import VertCarousel from "./vertCarousel";
-import PlayCanvas from "./playCanvas";
 
 const Router: React.FC = () => {
   const [selected, setSelected] = useAtom(selectAtom);
@@ -12,12 +11,6 @@ const Router: React.FC = () => {
     return (
       <>
         <VertCarousel />
-      </>
-    );
-  else if (sections[selected] === "PlayGround")
-    return (
-      <>
-        <PlayCanvas />
       </>
     );
   else if (sections[selected] === "WorkShop")

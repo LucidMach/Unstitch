@@ -1,4 +1,4 @@
-import { useState, useRef, type JSX } from "react";
+import { useState, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import * as THREE from "three";
@@ -123,8 +123,8 @@ const PlayCanvas: React.FC = () => {
         
         <Grid 
           infiniteGrid 
-          cellSize={ITEM_SCALE[0]} 
-          sectionSize={ITEM_SCALE[0] * 5} 
+          cellSize={ITEM_SCALE[0]/10} 
+          sectionSize={ITEM_SCALE[0]} 
           fadeDistance={1000} 
           sectionColor="#d1d5db" 
           cellColor="#e5e7eb"
@@ -160,11 +160,27 @@ const PlayCanvas: React.FC = () => {
              <TexTile position={hoverPos} ghost />
         )}
       </Canvas>
+
       
-      <div className="z-10 absolute bottom-7 flex gap-4">
+      <Button onClick={
+        ()=>window.history.back()
+      } className="absolute top-7 hover:bg-pink-100 left-7 bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
+      <div className="absolute bottom-7 flex gap-4">
         <Button
           variant="secondary"
-          className="cursor-pointer"
+          className="cursor-pointer hover:bg-pink-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            setTiles([[0, 0, 0]]);
+            setN(45);
+          }}
+        >
+          reset
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6 16.538l-4.592-4.548 4.546-4.587-1.416-1.403-4.545 4.589-4.588-4.543-1.405 1.405 4.593 4.552-4.547 4.592 1.405 1.405 4.555-4.596 4.591 4.55 1.403-1.416z"/></svg>
+        </Button>
+        <Button
+          variant="secondary"
+          className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
             setTiles((prev) => {
@@ -174,18 +190,7 @@ const PlayCanvas: React.FC = () => {
             setN((prev) => (prev < 45 ? prev + 1 : prev));
           }}
         >
-          undo
-        </Button>
-        <Button
-          variant="secondary"
-          className="cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            setTiles([[0, 0, 0]]);
-            setN(45);
-          }}
-        >
-          reset
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
         </Button>
       </div>
     </div>

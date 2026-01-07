@@ -131,6 +131,10 @@ const NavBar: React.FC = () => {
                 }`}
                 onClick={() => {
                   setSelected(index);
+                  if(index === 1){
+                    // 1 is PlayGround
+                    window.location.href = "/playground";
+                  }
                   setOpen(false);
                 }}
               >
