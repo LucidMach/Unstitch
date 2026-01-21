@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { type JSX } from "react";
-import { useGLTF } from "@react-three/drei";
+import { useGLTF, Outlines } from "@react-three/drei";
 import type { GLTF } from "three-stdlib";
 
 type GLTFResult = GLTF & {
@@ -14,7 +14,7 @@ type GLTFResult = GLTF & {
 
 export const ITEM_SCALE: [number, number, number] = [34.623, 0.49, 34.623];
 
-export function TexTile({ ghost = false, ...props }: JSX.IntrinsicElements["group"] & { ghost?: boolean }) {
+export function TexTile({ ghost = false, selected = false, ...props }: JSX.IntrinsicElements["group"] & { ghost?: boolean; selected?: boolean }) {
   const { nodes, materials } = useGLTF("/Textile.glb");
 
   const ghostMaterial = new THREE.MeshStandardMaterial({
@@ -33,7 +33,9 @@ export function TexTile({ ghost = false, ...props }: JSX.IntrinsicElements["grou
         position={[0, 0, 0]}
         rotation={[0, Math.PI / 8, Math.PI]}
         scale={[34.623, 0.49, 34.623]}
-      />
+      >
+        {selected && <Outlines thickness={3.0} color="hotpink" />}
+      </mesh>
     </group>
   );
 }

@@ -1,52 +1,118 @@
 import { useState, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
-import * as THREE from "three";
 import TexTile, { ITEM_SCALE } from "./tex-tile";
+import GhostArrow from "./ghost-arrow";
 import { Button } from "./ui/button";
 
+
 const PlayCanvas: React.FC = () => {
-  const [n, setN] = useState<number>(45);
-  const [tiles, setTiles] = useState<[number, number, number][]>([[0, 0, 0]]);
-  const [hoverPos, setHoverPos] = useState<[number, number, number] | null>(null);
-
-  // Helper to calculate snapped position from an intersection
-  const getSnappedPosition = (
-    point: THREE.Vector3,
-    face: THREE.Face | null,
-    object: THREE.Object3D | null
-  ): [number, number, number] | null => {
-    const [w, h, d] = ITEM_SCALE;
-
-    // Case 1: Intersecting existing tile (needs face normal logic)
-    if (object && face) {
-        const normal = face.normal.clone();
-        // Transform normal to world space
-        const worldNormal = normal.transformDirection(object.matrixWorld).round();
-        
-        const position = object.parent?.position || new THREE.Vector3(0,0,0);
-        let newPos: [number, number, number] = [position.x, position.y, position.z];
-        
-        if (Math.abs(worldNormal.y) > 0.5) {
-           newPos[1] += Math.sign(worldNormal.y) * h;
-        } else if (Math.abs(worldNormal.x) > 0.5) {
-           newPos[0] += Math.sign(worldNormal.x) * w;
-        } else if (Math.abs(worldNormal.z) > 0.5) {
-           newPos[2] += Math.sign(worldNormal.z) * d;
-        }
-        return newPos;
-    }
-
-    // Case 2: Ground plane (finer snap)
-    // Snap X and Z to nearest multiple of W/1000
-    const snapW = w / 1000;
-    const snapD = d / 1000;
-    const x = Math.round(point.x / snapW) * snapW;
-    const z = Math.round(point.z / snapD) * snapD;
-    return [x, 0, z];
+  // Store tiles as objects with id, position, and rotation
+  type TileData = {
+    id: string;
+    position: [number, number, number];
+    rotation: [number, number, number];
+    arrowRotation?: [number, number, number]; // Extra rotation for the arrow visual
   };
 
-  // Robust drag detection using refs to avoid async state issues
+  const [tiles, setTiles] = useState<TileData[]>([
+    { id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0] },
+  ]);
+  const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  
+  // Debug State
+  const [overlap, setOverlap] = useState<number>(0.61);
+
+  // Constants
+  const ITEM_WIDTH = ITEM_SCALE[0]; 
+  
+  // Major offset (Primary axis direction) - almost full width (touching or small overlap)
+  // Let's use 5% overlap for the "non-overlapping" side to keep it tight? Or 0?
+  // User said "along X ONLY for...".
+  // Let's stick effectively to touching (distance ~ width).
+  // Dynamic calculation based on state
+  const OFFSET_MAJOR = ITEM_WIDTH * (1 - overlap / 10); 
+  // Minor offset (Secondary axis overlap) - dynamic overlap
+  const OFFSET_MINOR = ITEM_WIDTH * (1 - overlap);
+
+  // Helper to generate ghost tiles for a selected tile
+  const getGhostTiles = (parent: TileData): TileData[] => {
+    const { position: p, rotation: r } = parent;
+    
+    // Pinwheel / Woven Pattern
+    // North/South neighbors have specific X overlap
+    // East/West neighbors have specific Z overlap
+    
+    // For arrows: We need to point AWAY from the parent center.
+    // The visual rotation of the arrow should align with the offset vector? 
+    // Or just consistent cardinal directions relative to parent?
+    // Let's calculate the angle of the offset.
+    
+    const offsets = [
+        // 1. East-ish (+X major, -Z minor) -> Rot -90
+        { x: OFFSET_MAJOR, z: -OFFSET_MINOR, rot: -Math.PI / 2 }, 
+        
+        // 2. North-ish (+Z major, +X minor) -> Rot +90
+        { x: OFFSET_MINOR, z: OFFSET_MAJOR, rot: Math.PI / 2 },
+        
+        // 3. West-ish (-X major, +Z minor) -> Rot -90
+        { x: -OFFSET_MAJOR, z: OFFSET_MINOR, rot: -Math.PI / 2 },
+        
+        // 4. South-ish (-Z major, -X minor) -> Rot +90
+        { x: -OFFSET_MINOR, z: -OFFSET_MAJOR, rot: Math.PI / 2 },
+    ];
+
+    const ghosts: TileData[] = [];
+
+    // Parent rotation around Y axis
+    const parentRotY = r[1]; 
+
+    offsets.forEach((offset, index) => {
+        // Rotate the offset vector by the parent's rotation to get world offset
+        const cos = Math.cos(parentRotY);
+        const sin = Math.sin(parentRotY);
+        
+        const dx = offset.x * cos - offset.z * sin;
+        const dz = offset.x * sin + offset.z * cos;
+
+        const newPos: [number, number, number] = [
+            p[0] + dx,
+            p[1], // Keep same Y
+            p[2] + dz
+        ];
+
+        // New rotation is parent rotation + offset rotation
+        const newRot: [number, number, number] = [
+            r[0],
+            parentRotY + offset.rot,
+            r[2]
+        ];
+        
+        // Calculate Arrow Rotation
+        const arrowAngle = Math.atan2(dx, dz);
+        const arrowRot: [number, number, number] = [0, arrowAngle, 0];
+
+        // Check if a tile already exists roughly at this position to avoid duplicates
+        const exists = tiles.some(t => {
+            const dx = t.position[0] - newPos[0];
+            const dz = t.position[2] - newPos[2];
+            return (dx * dx + dz * dz) < 1;
+        });
+
+        if (!exists) {
+             ghosts.push({
+                 id: `ghost-${parent.id}-${index}`,
+                 position: newPos,
+                 rotation: newRot,
+                 arrowRotation: arrowRot
+             });
+        }
+    });
+
+    return ghosts;
+  };
+
+  // Robust drag detection
   const dragStart = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
 
@@ -62,50 +128,55 @@ const PlayCanvas: React.FC = () => {
       }
   }
 
-  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+  const handleTileClick = (e: ThreeEvent<MouseEvent>, tileId: string) => {
       e.stopPropagation();
-      if (n <= 0) {
-          setHoverPos(null);
-          return;
-      }
-      
-      // Determine if we hit a tile or ground
-      // "e.object" will be the mesh.
-      // We can differentiate by checking if it has a parent that is a TexTile?
-      // Or just check if the click handler was passed?
-      // Actually, R3F events bubble. We can put the handler on the helper components or locally.
-      // Let's rely on the arguments passed to this function or check the event target.
-      // But wait, "e" in onPointerMove is the intersction.
-      
-      const pos = getSnappedPosition(e.point, e.face || null, e.object.userData.isGround ? null : e.object);
-      setHoverPos(pos);
-  }
-
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    if (isDragging.current || n <= 0 || !hoverPos) return;
-    
-    // We can just use the already calculated hoverPos if it's valid and matches the cursor
-    // But to be safe and atomic, we can recalculate or just trust hoverPos which updates on move.
-    // However, on mobile or fast clicks, hoverPos might lag? 
-    // Let's recalculate based on the click event to be robust.
-    const pos = getSnappedPosition(e.point, e.face || null, e.object.userData.isGround ? null : e.object);
-    
-    if (pos) {
-        setTiles((prev) => [...prev, pos]);
-        setN((prev) => prev - 1);
-        // Determine next hover pos immediately? It might be the same spot (stacked) or inside.
-        // The mouse hasn't moved, but the geometry changed. 
-        // We might want to force an update or wait for next move.
-    }
+      if (isDragging.current) return;
+      setSelectedTileId(tileId);
   };
+
+  const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData) => {
+      e.stopPropagation();
+      if (isDragging.current) return;
+      
+      const newTile = { ...ghost, id: crypto.randomUUID() };
+      setTiles(prev => [...prev, newTile]);
+      setSelectedTileId(newTile.id); // Auto-select the new tile
+  };
+
+  const handleBackgroundClick = (e: ThreeEvent<MouseEvent>) => {
+      // e.stopPropagation(); // Don't stop propagation if we want other things to handle it, but here it's fine
+      if (isDragging.current) return;
+      setSelectedTileId(null);
+  };
+
+  const selectedTile = tiles.find(t => t.id === selectedTileId);
+  const ghostTiles = selectedTile ? getGhostTiles(selectedTile) : [];
 
   return (
     <div 
-      className="flex flex-col justify-center items-center h-full w-full bg-white/10"
+      className="flex flex-col justify-center items-center h-full w-full bg-white/10 relative"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
+      {/* <div className="absolute top-4 right-4 bg-white/90 p-4 rounded-lg shadow-lg z-10 flex flex-col gap-4 w-64">
+        <h3 className="font-bold text-sm text-gray-700">Debug Settings</h3>
+        <div className="flex flex-col gap-2">
+            <label className="text-xs text-gray-600 flex justify-between">
+                <span>Overlap</span>
+                <span>{(overlap * 100).toFixed(0)}%</span>
+            </label>
+            <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={overlap} 
+                onChange={(e) => setOverlap(parseFloat(e.target.value))}
+                className="w-full accent-pink-500"
+            />
+        </div>
+      </div>
+   */}
       <Canvas
         shadows
         camera={{ position: [0, 300, 0], fov: 45 }}
@@ -130,14 +201,11 @@ const PlayCanvas: React.FC = () => {
           cellColor="#e5e7eb"
         />
 
-        {/* Invisible ground plane for raycasting */}
+        {/* Ground plane mainly for deselection */}
         <mesh 
             rotation={[-Math.PI / 2, 0, 0]} 
             position={[0, -0.01, 0]} 
-            onClick={handleClick}
-            onPointerMove={handlePointerMove}
-            onPointerLeave={() => setHoverPos(null)}
-            userData={{ isGround: true }}
+            onClick={handleBackgroundClick}
         >
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial visible={false} />
@@ -147,18 +215,24 @@ const PlayCanvas: React.FC = () => {
           <GizmoViewcube />
         </GizmoHelper>
 
-        {tiles.map((pos, i) => (
+        {tiles.map((tile) => (
           <TexTile 
-            key={i} 
-            position={pos} 
-            onClick={handleClick}
-            onPointerMove={handlePointerMove}
+            key={tile.id} 
+            position={tile.position} 
+            rotation={tile.rotation}
+            selected={tile.id === selectedTileId}
+            onClick={(e) => handleTileClick(e, tile.id)}
           />
         ))}
 
-        {hoverPos && n > 0 && (
-             <TexTile position={hoverPos} ghost />
-        )}
+        {ghostTiles.map((ghost) => (
+             <GhostArrow
+                key={ghost.id}
+                position={ghost.position}
+                rotation={ghost.arrowRotation}
+                onClick={(e) => handleGhostClick(e, ghost)}
+             />
+        ))}
       </Canvas>
 
       
@@ -171,8 +245,8 @@ const PlayCanvas: React.FC = () => {
           className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
-            setTiles([[0, 0, 0]]);
-            setN(45);
+            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, 0, 0] }]);
+            setSelectedTileId(null);
           }}
         >
           reset
@@ -185,9 +259,13 @@ const PlayCanvas: React.FC = () => {
             e.stopPropagation();
             setTiles((prev) => {
               if (prev.length <= 1) return prev;
-              return prev.slice(0, -1);
+              const newTiles = prev.slice(0, -1);
+              // If we removed the selected tile, deselect
+              if (selectedTileId && !newTiles.find(t => t.id === selectedTileId)) {
+                  setSelectedTileId(null);
+              }
+              return newTiles;
             });
-            setN((prev) => (prev < 45 ? prev + 1 : prev));
           }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
