@@ -24,7 +24,7 @@ const PlayCanvas: React.FC = () => {
   const [overlap, setOverlap] = useState<number>(0.61);
 
   // Constants
-  const ITEM_WIDTH = ITEM_SCALE[0]; 
+  const ITEM_WIDTH = ITEM_SCALE[0] + overlap*10;  
   
   // Major offset (Primary axis direction) - almost full width (touching or small overlap)
   // Let's use 5% overlap for the "non-overlapping" side to keep it tight? Or 0?

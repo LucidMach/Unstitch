@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { type JSX } from "react";
-import { useGLTF, Outlines } from "@react-three/drei";
+import { useGLTF, Outlines, Edges } from "@react-three/drei";
 import type { GLTF } from "three-stdlib";
 
 type GLTFResult = GLTF & {
@@ -33,9 +33,17 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
         position={[0, 0, 0]}
         rotation={[0, Math.PI / 8, Math.PI]}
         scale={[34.623, 0.49, 34.623]}
-      >
-        {selected && <Outlines thickness={3.0} color="hotpink" />}
-      </mesh>
+      />
+      {selected && (
+        <mesh
+          position={[0, 0, 0]}
+          rotation={[0, Math.PI / 8, Math.PI]}
+          scale={[34.623, 0.49, 34.623]}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <Edges color="hotpink" scale={2.1} />
+        </mesh>
+      )}
     </group>
   );
 }
