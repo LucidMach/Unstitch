@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { type JSX } from "react";
-import { useGLTF, Outlines, Edges } from "@react-three/drei";
+import { useGLTF, Edges } from "@react-three/drei";
 import type { GLTF } from "three-stdlib";
 
 type GLTFResult = GLTF & {

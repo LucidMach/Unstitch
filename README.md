@@ -44,3 +44,12 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+# Unstitch Playground Logic
+Tiling Logic:
+- new tile is rotated 90deg alternatively [0, +90, 0, +90, ...]
+- overlap is such that the center unit node is tightly adjacent
+- only overlap for the outer nodes of the unit - w, a, s, d
+
+Bending Logic:
+- bending can happen if only one side is connected

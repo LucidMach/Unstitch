@@ -8,15 +8,18 @@ import { Button } from "./ui/button";
 
 const PlayCanvas: React.FC = () => {
   // Store tiles as objects with id, position, and rotation
+  type Anchor = { id: string; anchor: string };
+
   type TileData = {
     id: string;
     position: [number, number, number];
     rotation: [number, number, number];
     arrowRotation?: [number, number, number]; // Extra rotation for the arrow visual
+    anchors: Anchor[];
   };
 
   const [tiles, setTiles] = useState<TileData[]>([
-    { id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0] },
+    { id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0], anchors: [] },
   ]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   
@@ -24,7 +27,7 @@ const PlayCanvas: React.FC = () => {
   const [overlap, setOverlap] = useState<number>(0.61);
 
   // Constants
-  const GHOST_WIDTH = ITEM_SCALE[0] + overlap*22.5;  
+  const GHOST_WIDTH = ITEM_SCALE[0] + overlap*29;  
   
   // Major offset (Primary axis direction) - almost full width (touching or small overlap)
   // Let's use 5% overlap for the "non-overlapping" side to keep it tight? Or 0?
@@ -36,7 +39,8 @@ const PlayCanvas: React.FC = () => {
   const OFFSET_MINOR = GHOST_WIDTH * (1 - overlap);
 
   // Helper to generate ghost tiles for a selected tile
-  const getGhostTiles = (parent: TileData): TileData[] => {
+  // Now returns objects that include the 'anchor' that would be created
+  const getGhostTiles = (parent: TileData): (TileData & { sourceAnchor: Anchor })[] => {
     const { position: p, rotation: r } = parent;
     
     // Pinwheel / Woven Pattern
@@ -48,32 +52,41 @@ const PlayCanvas: React.FC = () => {
     // Or just consistent cardinal directions relative to parent?
     // Let's calculate the angle of the offset.
     
+    // Mapping:
+    // Right (+X) -> 'd'
+    // Up (-Z) -> 'w'  (Note: standard 3D "forward" is often -Z, "up" on screen logic)
+    // Left (-X) -> 'a'
+    // Down (+Z) -> 's'
+    
+    // Determine which offset corresponds to which "local" cardinal direction?
+    // 4. North-ish (-Z local) -> 'w'
+    //    Let's stick to the User request: "w for up", "s for down", "d for right", "a for left".
+    //    In 3D (Top View, camera pos y>0, looking at 0,0,0), +X is Right, -X is Left, +Z is Down, -Z is Up.
+    //    We now IGNORE parent rotation for the ghost placement (World Space).
+    
     const offsets = [
-        // 1. East-ish (+X major, -Z minor) -> Rot -90
-        { x: OFFSET_MAJOR, z: -OFFSET_MINOR, rot: -Math.PI / 2 }, 
+        // 1. World East (+X) -> 'd'
+        { x: OFFSET_MAJOR, z: 0, rot: -Math.PI / 2, anchor: 'd' }, 
         
-        // 2. North-ish (+Z major, +X minor) -> Rot +90
-        { x: OFFSET_MINOR, z: OFFSET_MAJOR, rot: Math.PI / 2 },
+        // 2. World South (+Z) -> 's'
+        { x: 0, z: OFFSET_MAJOR, rot: Math.PI / 2, anchor: 's' },
         
-        // 3. West-ish (-X major, +Z minor) -> Rot -90
-        { x: -OFFSET_MAJOR, z: OFFSET_MINOR, rot: -Math.PI / 2 },
+        // 3. World West (-X) -> 'a'
+        { x: -OFFSET_MAJOR, z: 0, rot: -Math.PI / 2, anchor: 'a' },
         
-        // 4. South-ish (-Z major, -X minor) -> Rot +90
-        { x: -OFFSET_MINOR, z: -OFFSET_MAJOR, rot: Math.PI / 2 },
+        // 4. World North (-Z) -> 'w'
+        { x: 0, z: -OFFSET_MAJOR, rot: Math.PI / 2, anchor: 'w' },
     ];
 
-    const ghosts: TileData[] = [];
+    const ghosts: (TileData & { sourceAnchor: Anchor })[] = [];
 
-    // Parent rotation around Y axis
+    // Parent rotation around Y axis (Used for new tile rotation, but NOT for ghost position)
     const parentRotY = r[1]; 
 
     offsets.forEach((offset, index) => {
-        // Rotate the offset vector by the parent's rotation to get world offset
-        const cos = Math.cos(parentRotY);
-        const sin = Math.sin(parentRotY);
-        
-        const dx = offset.x * cos - offset.z * sin;
-        const dz = offset.x * sin + offset.z * cos;
+        // World Offset directly
+        const dx = offset.x; 
+        const dz = offset.z;
 
         const newPos: [number, number, number] = [
             p[0] + dx,
@@ -99,12 +112,17 @@ const PlayCanvas: React.FC = () => {
             return (dx * dx + dz * dz) < 1;
         });
 
-        if (!exists) {
+        // Check if parent already has this anchor? (Optional: prevent duplicate connections)
+        const parentHasAnchor = parent.anchors.some(a => a.anchor === offset.anchor);
+
+        if (!exists && !parentHasAnchor) {
              ghosts.push({
                  id: `ghost-${parent.id}-${index}`,
                  position: newPos,
                  rotation: newRot,
-                 arrowRotation: arrowRot
+                 arrowRotation: arrowRot,
+                 anchors: [], // Ghost starts empty
+                 sourceAnchor: { id: parent.id, anchor: offset.anchor }
              });
         }
     });
@@ -134,13 +152,50 @@ const PlayCanvas: React.FC = () => {
       setSelectedTileId(tileId);
   };
 
-  const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData) => {
+  const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData & { sourceAnchor: Anchor }) => {
       e.stopPropagation();
       if (isDragging.current) return;
       
-      const newTile = { ...ghost, id: crypto.randomUUID() };
-      setTiles(prev => [...prev, newTile]);
-      setSelectedTileId(newTile.id); // Auto-select the new tile
+      const newTileId = crypto.randomUUID();
+      
+      // Parse sourceAnchor: object { id, anchor }
+      const parentId = ghost.sourceAnchor.id;
+      const parentAnchorChar = ghost.sourceAnchor.anchor;
+
+      // User Logic:
+      // Down ('s') -> 'w'
+      // Right ('d') -> 'a'
+      // Left ('a') -> 'd'
+      // Up ('w') -> 's'
+      const reciprocalMap: Record<string, string> = { 
+          's': 'w', 
+          'd': 'a', 
+          'a': 'd', 
+          'w': 's' 
+      };
+      
+      const newTileAnchorChar = reciprocalMap[parentAnchorChar];
+      
+      setTiles(prev => {
+          // Update Parent
+          const newTiles = prev.map(t => {
+              if (t.id === parentId) { 
+                  return { ...t, anchors: [...t.anchors, { id: newTileId, anchor: parentAnchorChar }] };
+              }
+              return t;
+          });
+          
+          // Add New Tile
+          newTiles.push({ 
+              ...ghost, 
+              id: newTileId,
+              anchors: [{ id: parentId, anchor: newTileAnchorChar }] // Initialize with reciprocal connection
+          });
+          
+          return newTiles;
+      });
+      
+      setSelectedTileId(newTileId); // Auto-select the new tile
   };
 
   const handleBackgroundClick = (e: ThreeEvent<MouseEvent>) => {
@@ -226,7 +281,7 @@ const PlayCanvas: React.FC = () => {
           className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
-            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0] }]);
+            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0], anchors: [] }]);
             setSelectedTileId(null);
           }}
         >
@@ -252,6 +307,17 @@ const PlayCanvas: React.FC = () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
         </Button>
       </div>
+      
+      {selectedTile && (
+        <div className="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-lg font-mono text-xs w-64 whitespace-pre-wrap pointer-events-none">
+            {JSON.stringify(selectedTile, (key, value) => {
+                if (key === 'position' || key === 'rotation') {
+                    return value.map((n: number) => Number(n.toFixed(2)));
+                }
+                return value;
+            }, 2)}
+        </div>
+      )}
     </div>
   );
 };
