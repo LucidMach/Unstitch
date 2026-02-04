@@ -24,16 +24,16 @@ const PlayCanvas: React.FC = () => {
   const [overlap, setOverlap] = useState<number>(0.61);
 
   // Constants
-  const ITEM_WIDTH = ITEM_SCALE[0] + overlap*21.5;  
+  const GHOST_WIDTH = ITEM_SCALE[0] + overlap*22.5;  
   
   // Major offset (Primary axis direction) - almost full width (touching or small overlap)
   // Let's use 5% overlap for the "non-overlapping" side to keep it tight? Or 0?
   // User said "along X ONLY for...".
   // Let's stick effectively to touching (distance ~ width).
   // Dynamic calculation based on state
-  const OFFSET_MAJOR = ITEM_WIDTH * (1 - overlap / 10); 
+  const OFFSET_MAJOR = GHOST_WIDTH * (1 - overlap / 10); 
   // Minor offset (Secondary axis overlap) - dynamic overlap
-  const OFFSET_MINOR = ITEM_WIDTH * (1 - overlap);
+  const OFFSET_MINOR = GHOST_WIDTH * (1 - overlap);
 
   // Helper to generate ghost tiles for a selected tile
   const getGhostTiles = (parent: TileData): TileData[] => {

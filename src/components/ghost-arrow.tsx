@@ -15,7 +15,7 @@ export function GhostArrow({ position, rotation = [0, 0, 0], onClick }: GhostArr
       {/* Rotate Y by PI/4 to align flat sides with the cardinal directions if desired, or edges. 
           Since 4 segments, it's a square pyramid. */}
       <mesh rotation={[Math.PI / 2, Math.PI / 4, 0]}>
-        <coneGeometry args={[8, 8, 4]} />
+        <coneGeometry args={[12, 12, 6]} />
         <meshStandardMaterial color="#ec4899" transparent opacity={0.6} emissive="#ec4899" emissiveIntensity={0.5} />
       </mesh>
     </group>
