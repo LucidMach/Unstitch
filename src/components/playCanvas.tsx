@@ -24,7 +24,7 @@ const PlayCanvas: React.FC = () => {
   const [overlap, setOverlap] = useState<number>(0.61);
 
   // Constants
-  const ITEM_WIDTH = ITEM_SCALE[0] + overlap*10;  
+  const ITEM_WIDTH = ITEM_SCALE[0] + overlap*21.5;  
   
   // Major offset (Primary axis direction) - almost full width (touching or small overlap)
   // Let's use 5% overlap for the "non-overlapping" side to keep it tight? Or 0?
@@ -158,25 +158,6 @@ const PlayCanvas: React.FC = () => {
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
-      {/* <div className="absolute top-4 right-4 bg-white/90 p-4 rounded-lg shadow-lg z-10 flex flex-col gap-4 w-64">
-        <h3 className="font-bold text-sm text-gray-700">Debug Settings</h3>
-        <div className="flex flex-col gap-2">
-            <label className="text-xs text-gray-600 flex justify-between">
-                <span>Overlap</span>
-                <span>{(overlap * 100).toFixed(0)}%</span>
-            </label>
-            <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
-                value={overlap} 
-                onChange={(e) => setOverlap(parseFloat(e.target.value))}
-                className="w-full accent-pink-500"
-            />
-        </div>
-      </div>
-   */}
       <Canvas
         shadows
         camera={{ position: [0, 300, 0], fov: 45 }}

@@ -32,7 +32,7 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
 
   return (
     <group {...props} dispose={null}>
-      {components.map((node, index) => (
+      {components.map((node, index) => (node.name === "" ? null : (
         <mesh
           key={index}
           castShadow={!ghost}
@@ -43,7 +43,7 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
           rotation={[0, Math.PI / 8, Math.PI]}
           scale={[34.623, 0.49, 34.623]}
         />
-      ))}
+      )))}
       {selected && (
         <mesh
           position={[0, 0, 0]}
