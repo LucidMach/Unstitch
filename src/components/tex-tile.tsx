@@ -6,6 +6,10 @@ import type { GLTF } from "three-stdlib";
 type GLTFResult = GLTF & {
   nodes: {
     Unit: THREE.Mesh;
+    S: THREE.Mesh;
+    W: THREE.Mesh;
+    D: THREE.Mesh;
+    A: THREE.Mesh;
   };
   materials: {
     Material: THREE.MeshStandardMaterial;
@@ -15,7 +19,8 @@ type GLTFResult = GLTF & {
 export const ITEM_SCALE: [number, number, number] = [34.623, 0.49, 34.623];
 
 export function TexTile({ ghost = false, selected = false, ...props }: JSX.IntrinsicElements["group"] & { ghost?: boolean; selected?: boolean }) {
-  const { nodes, materials } = useGLTF("/Textile.glb");
+  // Cast to unknown first because GLTF & ObjectMap (implicit return) doesn't suffiently overlap with the strict GLTFResult type
+  const { nodes, materials } = useGLTF("/Textile-Components.glb") as unknown as GLTFResult;
 
   const ghostMaterial = new THREE.MeshStandardMaterial({
     color: "#ec4899",
@@ -23,17 +28,22 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
     opacity: 0.5,
   });
 
+  const components = [nodes.Unit, nodes.S, nodes.W, nodes.D, nodes.A];
+
   return (
     <group {...props} dispose={null}>
-      <mesh
-        castShadow={!ghost}
-        receiveShadow={!ghost}
-        geometry={(nodes.Unit as THREE.Mesh).geometry}
-        material={ghost ? ghostMaterial : materials.Material}
-        position={[0, 0, 0]}
-        rotation={[0, Math.PI / 8, Math.PI]}
-        scale={[34.623, 0.49, 34.623]}
-      />
+      {components.map((node, index) => (
+        <mesh
+          key={index}
+          castShadow={!ghost}
+          receiveShadow={!ghost}
+          geometry={node.geometry}
+          material={ghost ? ghostMaterial : materials.Material}
+          position={[0, 0, 0]}
+          rotation={[0, Math.PI / 8, Math.PI]}
+          scale={[34.623, 0.49, 34.623]}
+        />
+      ))}
       {selected && (
         <mesh
           position={[0, 0, 0]}
@@ -48,5 +58,5 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
   );
 }
 
-useGLTF.preload("/Textile.glb");
+useGLTF.preload("/Textile-Components.glb");
 export default TexTile;
