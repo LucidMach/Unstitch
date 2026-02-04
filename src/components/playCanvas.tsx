@@ -245,7 +245,7 @@ const PlayCanvas: React.FC = () => {
           className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
-            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, 0, 0] }]);
+            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0] }]);
             setSelectedTileId(null);
           }}
         >
