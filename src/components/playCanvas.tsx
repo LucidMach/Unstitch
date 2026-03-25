@@ -207,7 +207,16 @@ const PlayCanvas: React.FC = () => {
   };
 
   const updateFoldAngle = (tileId: string, angle: number) => {
-      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, foldAngle: angle } : t));
+      const snapPoints = [-Math.PI, -Math.PI/2, -Math.PI/4, 0, Math.PI/4, Math.PI/2, Math.PI];
+      const snapThreshold = 0.1; // ~5.7 degrees
+      let snappedAngle = angle;
+      for (const snap of snapPoints) {
+          if (Math.abs(angle - snap) < snapThreshold) {
+              snappedAngle = snap;
+              break;
+          }
+      }
+      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, foldAngle: snappedAngle } : t));
   };
 
   const selectedTile = tiles.find(t => t.id === selectedTileId);
@@ -295,8 +304,17 @@ const PlayCanvas: React.FC = () => {
                           selected={tile.id === selectedTileId}
                           onClick={(e) => handleTileClick(e, tile.id)}
                         />
+                        {/* Render active ghost arrows perfectly attached to folded parent */}
+                        {tile.id === selectedTileId && ghostTiles.map(ghost => (
+                             <GhostArrow 
+                                 key={ghost.id}
+                                 position={[ghost.position[0] - tile.position[0], 0, ghost.position[2] - tile.position[2]]}
+                                 rotation={ghost.arrowRotation}
+                                 onClick={(e) => handleGhostClick(e, ghost)}
+                             />
+                        ))}
                     </group>
-                    {isLeaf && (
+                    {isLeaf && tile.id === selectedTileId && (
                         <FoldControl 
                             axis={hingeRotationAxis} 
                             angle={foldAngle} 
@@ -308,20 +326,59 @@ const PlayCanvas: React.FC = () => {
           );
         })}
 
-        {ghostTiles.map((ghost) => (
-             <GhostArrow
-                key={ghost.id}
-                position={ghost.position}
-                rotation={ghost.arrowRotation}
-                onClick={(e) => handleGhostClick(e, ghost)}
-             />
-        ))}
+ 
       </Canvas>
 
       
       <Button onClick={
         ()=>window.history.back()
       } className="absolute top-7 hover:bg-pink-100 left-7 bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
+      
+      {/* Fold Angle Slider Overlay */}
+      {selectedTile && selectedTile.anchors.length === 1 && selectedTile.id !== "root" && (
+        <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-start gap-4 border border-zinc-200 z-10 pointer-events-auto">
+          <span className="text-sm font-medium text-zinc-700 w-20 pt-1">
+            Angle: {Math.round(((selectedTile.foldAngle || 0) * 180) / Math.PI)}°
+          </span>
+          <div className="relative w-64 flex flex-col">
+            <input
+              type="range"
+              min={-(99 * Math.PI) / 180}
+              max={(99 * Math.PI) / 180}
+              step={0.01}
+              value={selectedTile.foldAngle || 0}
+              onChange={(e) => updateFoldAngle(selectedTile.id, parseFloat(e.target.value))}
+              className="w-full accent-blue-500 cursor-pointer relative z-10"
+            />
+            <div className="absolute top-5 left-0 right-0 h-6 mx-[6px]">
+              {[
+                { label: '-90', val: -Math.PI / 2 },
+                { label: '-45', val: -Math.PI / 4 },
+                { label: '0', val: 0 },
+                { label: '45', val: Math.PI / 4 },
+                { label: '90', val: Math.PI / 2 },
+              ].map(pt => {
+                const MAX_ANGLE = (100 * Math.PI) / 180;
+                const percent = ((pt.val + MAX_ANGLE) / (2 * MAX_ANGLE)) * 100;
+                return (
+                  <div
+                    key={pt.label}
+                    className="absolute flex flex-col items-center cursor-pointer -translate-x-1/2 group"
+                    style={{ left: `${percent}%` }}
+                    onClick={() => updateFoldAngle(selectedTile.id, pt.val)}
+                  >
+                    <div className="w-[2px] h-2 bg-zinc-300 rounded mb-1 group-hover:bg-blue-500 transition-colors"></div>
+                    <span className="text-[10px] text-zinc-500 font-medium select-none group-hover:text-blue-600 transition-colors">
+                      {pt.label}°
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute bottom-7 flex gap-4">
         <Button
           variant="secondary"

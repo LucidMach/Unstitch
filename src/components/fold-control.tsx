@@ -29,9 +29,9 @@ export default function FoldControl({ axis, angle, onFold }: FoldControlProps) {
       const deltaY = dragStartY.current - e.clientY;
       // 100 pixels = 90 degrees (Math.PI / 2)
       let newAngle = initialAngle.current + deltaY * (Math.PI / 2 / 100);
-      // Clamp fold angle between -Math.PI and Math.PI or just 0 to PI depending on fold direction
-      // Let's allow -180 to 180 degrees
-      newAngle = Math.max(-Math.PI, Math.min(Math.PI, newAngle));
+      // Clamp fold angle between -100 and 100 degrees
+      const MAX_ANGLE = (99 * Math.PI) / 180;
+      newAngle = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, newAngle));
       onFold(newAngle);
     }
   };
@@ -74,19 +74,19 @@ export default function FoldControl({ axis, angle, onFold }: FoldControlProps) {
           {/* Curved Arrow Path (Semi-circle) */}
           <mesh rotation={[0, 0, 0]}>
             <torusGeometry args={[radius, tube, 8, 32, Math.PI]} />
-            <meshStandardMaterial color={active ? "#ec4899" : "#f472b6"} />
+            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
           </mesh>
 
           {/* Arrow Head at the end of the arc (x = -radius, y = 0) */}
           <mesh position={[-radius, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
             <coneGeometry args={[tube * 2.5, tube * 5, 8]} />
-            <meshStandardMaterial color={active ? "#ec4899" : "#f472b6"} />
+            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
           </mesh>
 
           {/* Arrow Head at start (x = radius, y = 0) */}
           <mesh position={[radius, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <coneGeometry args={[tube * 2.5, tube * 5, 8]} />
-            <meshStandardMaterial color={active ? "#ec4899" : "#f472b6"} />
+            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
           </mesh>
       </group>
     </group>
