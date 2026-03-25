@@ -3,6 +3,7 @@ import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import TexTile, { ITEM_SCALE } from "./tex-tile";
 import GhostArrow from "./ghost-arrow";
+import FoldControl from "./fold-control";
 import { Button } from "./ui/button";
 
 
@@ -16,6 +17,7 @@ const PlayCanvas: React.FC = () => {
     rotation: [number, number, number];
     arrowRotation?: [number, number, number]; // Extra rotation for the arrow visual
     anchors: Anchor[];
+    foldAngle?: number;
   };
 
   const [tiles, setTiles] = useState<TileData[]>([
@@ -204,6 +206,10 @@ const PlayCanvas: React.FC = () => {
       setSelectedTileId(null);
   };
 
+  const updateFoldAngle = (tileId: string, angle: number) => {
+      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, foldAngle: angle } : t));
+  };
+
   const selectedTile = tiles.find(t => t.id === selectedTileId);
   const ghostTiles = selectedTile ? getGhostTiles(selectedTile) : [];
 
@@ -251,15 +257,56 @@ const PlayCanvas: React.FC = () => {
           <GizmoViewcube />
         </GizmoHelper>
 
-        {tiles.map((tile) => (
-          <TexTile 
-            key={tile.id} 
-            position={tile.position} 
-            rotation={tile.rotation}
-            selected={tile.id === selectedTileId}
-            onClick={(e) => handleTileClick(e, tile.id)}
-          />
-        ))}
+        {tiles.map((tile) => {
+          let hingeOffset: [number, number, number] = [0, 0, 0];
+          let hingeRotationAxis: [number, number, number] = [1, 0, 0];
+          const foldAngle = tile.foldAngle || 0;
+          const isLeaf = tile.anchors.length === 1 && tile.id !== "root";
+          
+          if (isLeaf) {
+              const anchor = tile.anchors[0].anchor;
+              if (anchor === 'w') {
+                  hingeOffset = [0, 0, -OFFSET_MAJOR / 2];
+                  hingeRotationAxis = [1, 0, 0];
+              } else if (anchor === 's') {
+                  hingeOffset = [0, 0, OFFSET_MAJOR / 2];
+                  hingeRotationAxis = [-1, 0, 0];
+              } else if (anchor === 'a') {
+                  hingeOffset = [-OFFSET_MAJOR / 2, 0, 0];
+                  hingeRotationAxis = [0, 0, -1];
+              } else if (anchor === 'd') {
+                  hingeOffset = [OFFSET_MAJOR / 2, 0, 0];
+                  hingeRotationAxis = [0, 0, 1];
+              }
+          }
+
+          const hingeRot: [number, number, number] = [
+              hingeRotationAxis[0] * foldAngle,
+              hingeRotationAxis[1] * foldAngle,
+              hingeRotationAxis[2] * foldAngle
+          ];
+
+          return (
+            <group key={tile.id} position={tile.position}>
+                <group position={hingeOffset} rotation={hingeRot}>
+                    <group position={[-hingeOffset[0], -hingeOffset[1], -hingeOffset[2]]}>
+                        <TexTile 
+                          rotation={tile.rotation}
+                          selected={tile.id === selectedTileId}
+                          onClick={(e) => handleTileClick(e, tile.id)}
+                        />
+                    </group>
+                    {isLeaf && (
+                        <FoldControl 
+                            axis={hingeRotationAxis} 
+                            angle={foldAngle} 
+                            onFold={(angle) => updateFoldAngle(tile.id, angle)} 
+                        />
+                    )}
+                </group>
+            </group>
+          );
+        })}
 
         {ghostTiles.map((ghost) => (
              <GhostArrow
@@ -308,7 +355,7 @@ const PlayCanvas: React.FC = () => {
         </Button>
       </div>
       
-      {selectedTile && (
+      {/* {selectedTile && (
         <div className="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-lg font-mono text-xs w-64 whitespace-pre-wrap pointer-events-none">
             {JSON.stringify(selectedTile, (key, value) => {
                 if (key === 'position' || key === 'rotation') {
@@ -317,7 +364,7 @@ const PlayCanvas: React.FC = () => {
                 return value;
             }, 2)}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

@@ -32,7 +32,7 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
 
   return (
     <group {...props} dispose={null}>
-      {components.map((node, index) => (node.name === "Unit" ? null : (
+      {components.map((node, index) => (node.name === "" ? null : (
         <mesh
           key={index}
           castShadow={!ghost}
