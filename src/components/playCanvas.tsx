@@ -266,65 +266,78 @@ const PlayCanvas: React.FC = () => {
           <GizmoViewcube />
         </GizmoHelper>
 
-        {tiles.map((tile) => {
-          let hingeOffset: [number, number, number] = [0, 0, 0];
-          let hingeRotationAxis: [number, number, number] = [1, 0, 0];
-          const foldAngle = tile.foldAngle || 0;
-          const isLeaf = tile.anchors.length === 1 && tile.id !== "root";
-          
-          if (isLeaf) {
-              const anchor = tile.anchors[0].anchor;
-              if (anchor === 'w') {
-                  hingeOffset = [0, 0, -OFFSET_MAJOR / 2];
-                  hingeRotationAxis = [1, 0, 0];
-              } else if (anchor === 's') {
-                  hingeOffset = [0, 0, OFFSET_MAJOR / 2];
-                  hingeRotationAxis = [-1, 0, 0];
-              } else if (anchor === 'a') {
-                  hingeOffset = [-OFFSET_MAJOR / 2, 0, 0];
-                  hingeRotationAxis = [0, 0, -1];
-              } else if (anchor === 'd') {
-                  hingeOffset = [OFFSET_MAJOR / 2, 0, 0];
-                  hingeRotationAxis = [0, 0, 1];
+        {(() => {
+          const renderTileNode = (tile: TileData, localPos: [number, number, number]) => {
+              const children = tiles.filter(t => t.id !== "root" && t.anchors.length > 0 && t.anchors[0].id === tile.id);
+              let hingeOffset: [number, number, number] = [0, 0, 0];
+              let hingeRotationAxis: [number, number, number] = [1, 0, 0];
+              const foldAngle = tile.foldAngle || 0;
+              const isRoot = tile.id === "root";
+              const isLeaf = children.length === 0 && !isRoot;
+              
+              if (!isRoot && tile.anchors.length > 0) {
+                  const anchor = tile.anchors[0].anchor;
+                  if (anchor === 'w') {
+                      hingeOffset = [0, 0, -OFFSET_MAJOR / 2];
+                      hingeRotationAxis = [1, 0, 0];
+                  } else if (anchor === 's') {
+                      hingeOffset = [0, 0, OFFSET_MAJOR / 2];
+                      hingeRotationAxis = [-1, 0, 0];
+                  } else if (anchor === 'a') {
+                      hingeOffset = [-OFFSET_MAJOR / 2, 0, 0];
+                      hingeRotationAxis = [0, 0, -1];
+                  } else if (anchor === 'd') {
+                      hingeOffset = [OFFSET_MAJOR / 2, 0, 0];
+                      hingeRotationAxis = [0, 0, 1];
+                  }
               }
-          }
 
-          const hingeRot: [number, number, number] = [
-              hingeRotationAxis[0] * foldAngle,
-              hingeRotationAxis[1] * foldAngle,
-              hingeRotationAxis[2] * foldAngle
-          ];
+              const hingeRot: [number, number, number] = [
+                  hingeRotationAxis[0] * foldAngle,
+                  hingeRotationAxis[1] * foldAngle,
+                  hingeRotationAxis[2] * foldAngle
+              ];
 
-          return (
-            <group key={tile.id} position={tile.position}>
-                <group position={hingeOffset} rotation={hingeRot}>
-                    <group position={[-hingeOffset[0], -hingeOffset[1], -hingeOffset[2]]}>
-                        <TexTile 
-                          rotation={tile.rotation}
-                          selected={tile.id === selectedTileId}
-                          onClick={(e) => handleTileClick(e, tile.id)}
-                        />
-                        {/* Render active ghost arrows perfectly attached to folded parent */}
-                        {tile.id === selectedTileId && ghostTiles.map(ghost => (
-                             <GhostArrow 
-                                 key={ghost.id}
-                                 position={[ghost.position[0] - tile.position[0], 0, ghost.position[2] - tile.position[2]]}
-                                 rotation={ghost.arrowRotation}
-                                 onClick={(e) => handleGhostClick(e, ghost)}
-                             />
-                        ))}
+              return (
+                <group key={tile.id} position={localPos}>
+                    <group position={hingeOffset} rotation={hingeRot}>
+                        <group position={[-hingeOffset[0], -hingeOffset[1], -hingeOffset[2]]}>
+                            <TexTile 
+                              rotation={tile.rotation}
+                              selected={tile.id === selectedTileId}
+                              onClick={(e) => handleTileClick(e, tile.id)}
+                            />
+                            {children.map(child => {
+                                const childLocalPos: [number, number, number] = [
+                                    child.position[0] - tile.position[0],
+                                    child.position[1] - tile.position[1],
+                                    child.position[2] - tile.position[2],
+                                ];
+                                return renderTileNode(child, childLocalPos);
+                            })}
+                            {tile.id === selectedTileId && ghostTiles.map(ghost => (
+                                 <GhostArrow 
+                                     key={ghost.id}
+                                     position={[ghost.position[0] - tile.position[0], 0, ghost.position[2] - tile.position[2]]}
+                                     rotation={ghost.arrowRotation}
+                                     onClick={(e) => handleGhostClick(e, ghost)}
+                                 />
+                            ))}
+                        </group>
+                        {isLeaf && tile.id === selectedTileId && (
+                            <FoldControl 
+                                axis={hingeRotationAxis} 
+                                angle={foldAngle} 
+                                onFold={(angle) => updateFoldAngle(tile.id, angle)} 
+                            />
+                        )}
                     </group>
-                    {isLeaf && tile.id === selectedTileId && (
-                        <FoldControl 
-                            axis={hingeRotationAxis} 
-                            angle={foldAngle} 
-                            onFold={(angle) => updateFoldAngle(tile.id, angle)} 
-                        />
-                    )}
                 </group>
-            </group>
-          );
-        })}
+              );
+          };
+          const rootTile = tiles.find(t => t.id === "root");
+          return rootTile ? renderTileNode(rootTile, [0, 0, 0]) : null;
+        })()}
 
  
       </Canvas>
