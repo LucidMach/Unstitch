@@ -294,7 +294,7 @@ const PlayCanvas: React.FC = () => {
               let hingeRotationAxis: [number, number, number] = [1, 0, 0];
               const foldAngle = tile.foldAngle;
               const isRoot = tile.id === "root";
-              const isLeaf = childrenNodes.length === 0 && !isRoot;
+
               
               if (!isRoot && tile.localAnchor) {
                   const anchor = tile.localAnchor;
@@ -375,7 +375,7 @@ const PlayCanvas: React.FC = () => {
                                  />
                             ))}
                         </group>
-                        {isLeaf && tile.id === selectedTileId && (
+                        {!isRoot && tile.id === selectedTileId && (
                             <FoldControl 
                                 axis={hingeRotationAxis} 
                                 angle={foldAngle} 
@@ -399,7 +399,7 @@ const PlayCanvas: React.FC = () => {
       } className="absolute top-7 hover:bg-pink-100 left-7 bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
       
       {/* Fold Angle Slider Overlay */}
-      {selectedTile && Object.keys(selectedTile.children).length === 0 && selectedTile.id !== "root" && (
+      {selectedTile && selectedTile.id !== "root" && (
         <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-start gap-4 border border-zinc-200 z-10 pointer-events-auto">
           <span className="text-sm font-medium text-zinc-700 w-20 pt-1">
             Angle: {Math.round(((selectedTile.foldAngle || 0) * 180) / Math.PI)}°
