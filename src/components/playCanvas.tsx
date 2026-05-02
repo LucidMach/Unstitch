@@ -5,6 +5,7 @@ import TexTile, { ITEM_SCALE } from "./tex-tile";
 import GhostArrow from "./ghost-arrow";
 import FoldControl from "./fold-control";
 import { Button } from "./ui/button";
+import ActionBar from "./action-bar";
 
 
 const PlayCanvas: React.FC = () => {
@@ -166,6 +167,11 @@ const PlayCanvas: React.FC = () => {
       }
   }
 
+  const recordMove = () => {
+    setHistory(prev => [tiles, ...prev].slice(0, 10));
+    setRedoStack([]);
+  };
+
   const handleTileClick = (e: ThreeEvent<MouseEvent>, tileId: string) => {
       e.stopPropagation();
       if (isDragging.current) return;
@@ -196,8 +202,7 @@ const PlayCanvas: React.FC = () => {
       
       const newTileAnchorChar = reciprocalMap[parentAnchorChar];
       
-      setHistory(prev => [tiles, ...prev].slice(0, 5));
-      setRedoStack([]);
+      recordMove();
       
       setTiles(prev => {
           // Update Parent
@@ -247,8 +252,7 @@ const PlayCanvas: React.FC = () => {
   const deleteTile = (tileId: string) => {
     if (tileId === "root") return; // Cannot delete root
     
-    setHistory(prev => [tiles, ...prev].slice(0, 5));
-    setRedoStack([]);
+    recordMove();
 
     setTiles(prev => {
         const toDelete = new Set<string>();
@@ -278,6 +282,24 @@ const PlayCanvas: React.FC = () => {
                 return changed ? { ...t, children: updatedChildren } : t;
             });
     });
+    setSelectedTileId(null);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const previous = history[0];
+    setRedoStack(prev => [tiles, ...prev].slice(0, 5));
+    setHistory(prev => prev.slice(1));
+    setTiles(previous);
+    setSelectedTileId(null);
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[0];
+    setHistory(prev => [tiles, ...prev].slice(0, 5));
+    setRedoStack(prev => prev.slice(1));
+    setTiles(next);
     setSelectedTileId(null);
   };
 
@@ -424,6 +446,7 @@ const PlayCanvas: React.FC = () => {
                                 axis={hingeRotationAxis} 
                                 angle={foldAngle} 
                                 onFold={(angle) => updateFoldAngle(tile.id, angle)} 
+                                onFoldStart={recordMove}
                             />
                         )}
                     </group>
@@ -464,6 +487,7 @@ const PlayCanvas: React.FC = () => {
               max={(99 * Math.PI) / 180}
               step={0.01}
               value={selectedTile.foldAngle || 0}
+              onPointerDown={recordMove}
               onChange={(e) => updateFoldAngle(selectedTile.id, parseFloat(e.target.value))}
               className="w-full accent-blue-500 cursor-pointer relative z-10"
             />
@@ -496,86 +520,15 @@ const PlayCanvas: React.FC = () => {
         </div>
       )}
 
-      <div className="absolute bottom-7 flex gap-4">
-        <Button
-          variant="secondary"
-          size="icon"
-          className="cursor-pointer hover:bg-pink-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowResetConfirm(true);
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6 16.538l-4.592-4.548 4.546-4.587-1.416-1.403-4.545 4.589-4.588-4.543-1.405 1.405 4.593 4.552-4.547 4.592 1.405 1.405 4.555-4.596 4.591 4.55 1.403-1.416z"/></svg>
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
-          disabled={history.length === 0}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (history.length === 0) return;
-            const previous = history[0];
-            setRedoStack(prev => [tiles, ...prev].slice(0, 5));
-            setHistory(prev => prev.slice(1));
-            setTiles(previous);
-            setSelectedTileId(null);
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
-        </Button>
-
-        {/* History Preview */}
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-white/50 rounded-full border border-zinc-200/50 shadow-inner h-10 self-center mx-1">
-            {/* Previous States */}
-            {[...history].reverse().map((_, i) => (
-                <div key={`hist-${i}`} className="w-1.5 h-1.5 rounded-full bg-zinc-300 animate-in fade-in duration-300" />
-            ))}
-            
-            {/* Current State Indicator */}
-            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-            
-            {/* Future (Redo) States */}
-            {redoStack.map((_, i) => (
-                <div key={`redo-${i}`} className="w-1.5 h-1.5 rounded-full bg-zinc-100 border border-zinc-300 animate-in fade-in duration-300" />
-            ))}
-        </div>
-
-        <Button
-          variant="secondary"
-          size="icon"
-          className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
-          disabled={redoStack.length === 0}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (redoStack.length === 0) return;
-            const next = redoStack[0];
-            setHistory(prev => [tiles, ...prev].slice(0, 5));
-            setRedoStack(prev => prev.slice(1));
-            setTiles(next);
-            setSelectedTileId(null);
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
-        </Button>
-
-        <Button
-            variant="destructive"
-            size="icon"
-            className={`cursor-pointer transition-all duration-300 ${
-                (selectedTile && selectedTile.id !== "root") 
-                ? "opacity-100 scale-100" 
-                : "opacity-0 scale-90 pointer-events-none shadow-none"
-            }`}
-            onClick={(e) => {
-                e.stopPropagation();
-                if (selectedTile) setDeleteConfirmId(selectedTile.id);
-            }}
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-        </Button>
-      </div>
+      <ActionBar 
+        historyCount={history.length}
+        redoCount={redoStack.length}
+        canDelete={!!selectedTile && selectedTile.id !== "root"}
+        onReset={() => setShowResetConfirm(true)}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onDelete={() => selectedTile && setDeleteConfirmId(selectedTile.id)}
+      />
       
       {/* {selectedTile && (
         <div className="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-lg font-mono text-xs w-64 whitespace-pre-wrap pointer-events-none">

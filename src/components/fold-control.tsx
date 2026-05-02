@@ -6,9 +6,10 @@ interface FoldControlProps {
   axis: [number, number, number];
   angle: number;
   onFold: (newAngle: number) => void;
+  onFoldStart?: () => void;
 }
 
-export default function FoldControl({ axis, angle, onFold }: FoldControlProps) {
+export default function FoldControl({ axis, angle, onFold, onFoldStart }: FoldControlProps) {
   const [active, setActive] = useState(false);
   const dragStartY = useRef(0);
   const initialAngle = useRef(0);
@@ -19,6 +20,7 @@ export default function FoldControl({ axis, angle, onFold }: FoldControlProps) {
       (e.target as any).setPointerCapture(e.pointerId);
     }
     setActive(true);
+    onFoldStart?.();
     dragStartY.current = e.clientY;
     initialAngle.current = angle;
   };
