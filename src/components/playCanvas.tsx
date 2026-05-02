@@ -33,7 +33,11 @@ const PlayCanvas: React.FC = () => {
       foldAngle: 0 
     },
   ]);
+  const [history, setHistory] = useState<TileData[][]>([]);
+  const [redoStack, setRedoStack] = useState<TileData[][]>([]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   // Debug State
   const [overlap, setOverlap] = useState<number>(0.61);
@@ -192,6 +196,9 @@ const PlayCanvas: React.FC = () => {
       
       const newTileAnchorChar = reciprocalMap[parentAnchorChar];
       
+      setHistory(prev => [tiles, ...prev].slice(0, 5));
+      setRedoStack([]);
+      
       setTiles(prev => {
           // Update Parent
           const newTiles = prev.map(t => {
@@ -235,6 +242,43 @@ const PlayCanvas: React.FC = () => {
           }
       }
       setTiles(prev => prev.map(t => t.id === tileId ? { ...t, foldAngle: snappedAngle } : t));
+  };
+
+  const deleteTile = (tileId: string) => {
+    if (tileId === "root") return; // Cannot delete root
+    
+    setHistory(prev => [tiles, ...prev].slice(0, 5));
+    setRedoStack([]);
+
+    setTiles(prev => {
+        const toDelete = new Set<string>();
+        const collectDescendants = (id: string) => {
+            toDelete.add(id);
+            const t = prev.find(tile => tile.id === id);
+            if (t) {
+                Object.values(t.children).forEach(childId => {
+                    if (childId) collectDescendants(childId);
+                });
+            }
+        };
+        collectDescendants(tileId);
+
+        return prev
+            .filter(t => !toDelete.has(t.id))
+            .map(t => {
+                // If this tile was the parent of the deleted tile, remove it from children
+                const updatedChildren = { ...t.children };
+                let changed = false;
+                Object.entries(updatedChildren).forEach(([dir, childId]) => {
+                    if (childId === tileId) {
+                        delete updatedChildren[dir];
+                        changed = true;
+                    }
+                });
+                return changed ? { ...t, children: updatedChildren } : t;
+            });
+    });
+    setSelectedTileId(null);
   };
 
   const selectedTile = tiles.find(t => t.id === selectedTileId);
@@ -400,7 +444,16 @@ const PlayCanvas: React.FC = () => {
       
       {/* Fold Angle Slider Overlay */}
       {selectedTile && selectedTile.id !== "root" && (
-        <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-start gap-4 border border-zinc-200 z-10 pointer-events-auto">
+        <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-center gap-4 border border-zinc-200 z-10 pointer-events-auto">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hover:bg-red-50 text-zinc-400 hover:text-red-500 transition-colors -ml-2"
+            onClick={() => setDeleteConfirmId(selectedTile.id)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+          </Button>
+          <div className="w-[1px] h-8 bg-zinc-200"></div>
           <span className="text-sm font-medium text-zinc-700 w-20 pt-1">
             Angle: {Math.round(((selectedTile.foldAngle || 0) * 180) / Math.PI)}°
           </span>
@@ -446,42 +499,81 @@ const PlayCanvas: React.FC = () => {
       <div className="absolute bottom-7 flex gap-4">
         <Button
           variant="secondary"
+          size="icon"
           className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
-            setTiles([{ 
-              id: "root", 
-              position: [0, 0, 0], 
-              rotation: [0, Math.PI / 8, 0], 
-              parentId: null,
-              parentAnchor: null,
-              localAnchor: null,
-              children: {},
-              foldAngle: 0 
-            }]);
-            setSelectedTileId(null);
+            setShowResetConfirm(true);
           }}
         >
-          reset
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6 16.538l-4.592-4.548 4.546-4.587-1.416-1.403-4.545 4.589-4.588-4.543-1.405 1.405 4.593 4.552-4.547 4.592 1.405 1.405 4.555-4.596 4.591 4.55 1.403-1.416z"/></svg>
         </Button>
         <Button
           variant="secondary"
-          className="cursor-pointer hover:bg-pink-100"
+          size="icon"
+          className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
+          disabled={history.length === 0}
           onClick={(e) => {
             e.stopPropagation();
-            setTiles((prev) => {
-              if (prev.length <= 1) return prev;
-              const newTiles = prev.slice(0, -1);
-              // If we removed the selected tile, deselect
-              if (selectedTileId && !newTiles.find(t => t.id === selectedTileId)) {
-                  setSelectedTileId(null);
-              }
-              return newTiles;
-            });
+            if (history.length === 0) return;
+            const previous = history[0];
+            setRedoStack(prev => [tiles, ...prev].slice(0, 5));
+            setHistory(prev => prev.slice(1));
+            setTiles(previous);
+            setSelectedTileId(null);
           }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
+        </Button>
+
+        {/* History Preview */}
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-white/50 rounded-full border border-zinc-200/50 shadow-inner h-10 self-center mx-1">
+            {/* Previous States */}
+            {[...history].reverse().map((_, i) => (
+                <div key={`hist-${i}`} className="w-1.5 h-1.5 rounded-full bg-zinc-300 animate-in fade-in duration-300" />
+            ))}
+            
+            {/* Current State Indicator */}
+            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            
+            {/* Future (Redo) States */}
+            {redoStack.map((_, i) => (
+                <div key={`redo-${i}`} className="w-1.5 h-1.5 rounded-full bg-zinc-100 border border-zinc-300 animate-in fade-in duration-300" />
+            ))}
+        </div>
+
+        <Button
+          variant="secondary"
+          size="icon"
+          className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
+          disabled={redoStack.length === 0}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (redoStack.length === 0) return;
+            const next = redoStack[0];
+            setHistory(prev => [tiles, ...prev].slice(0, 5));
+            setRedoStack(prev => prev.slice(1));
+            setTiles(next);
+            setSelectedTileId(null);
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}><path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/></svg>
+        </Button>
+
+        <Button
+            variant="destructive"
+            size="icon"
+            className={`cursor-pointer transition-all duration-300 ${
+                (selectedTile && selectedTile.id !== "root") 
+                ? "opacity-100 scale-100" 
+                : "opacity-0 scale-90 pointer-events-none shadow-none"
+            }`}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (selectedTile) setDeleteConfirmId(selectedTile.id);
+            }}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
         </Button>
       </div>
       
@@ -495,6 +587,102 @@ const PlayCanvas: React.FC = () => {
             }, 2)}
         </div>
       )} */}
+      {/* Custom Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-900/10 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+            <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-zinc-200 p-7 max-w-96 w-full animate-in zoom-in-95 duration-200">
+                <div className="flex flex-col gap-5">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center text-red-500 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-zinc-900 leading-tight">delete tile?</h3>
+                    </div>
+                    
+                    <p className="text-sm text-zinc-600 leading-relaxed px-1">
+                        {(() => {
+                            const tile = tiles.find(t => t.id === deleteConfirmId);
+                            const hasChildren = tile && Object.keys(tile.children).length > 0;
+                            return hasChildren 
+                                ? "This tile has others attached. Deleting it will remove the entire branch."
+                                : "Are you sure you want to delete this tile?";
+                        })()}
+                    </p>
+
+                    <div className="flex gap-2.5 pt-1">
+                        <Button 
+                            variant="secondary" 
+                            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-none transition-all"
+                            onClick={() => setDeleteConfirmId(null)}
+                        >
+                            cancel
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white border-none transition-all shadow-sm"
+                            onClick={() => {
+                                deleteTile(deleteConfirmId);
+                                setDeleteConfirmId(null);
+                            }}
+                        >
+                            delete
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+      {/* Custom Reset Confirmation Dialog */}
+      {showResetConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-900/10 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+            <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-zinc-200 p-7 max-w-[340px] w-full animate-in zoom-in-95 duration-200">
+                <div className="flex flex-col gap-5">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-600 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-zinc-900 leading-tight">Reset Canvas?</h3>
+                    </div>
+                    
+                    <p className="text-[14px] text-zinc-600 leading-relaxed px-1">
+                        This will remove all tiles and return to the starting root tile. This move will be added to your undo history.
+                    </p>
+
+                    <div className="flex gap-2.5 pt-1">
+                        <Button 
+                            variant="secondary" 
+                            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-none transition-all"
+                            onClick={() => setShowResetConfirm(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white border-none transition-all shadow-sm"
+                            onClick={() => {
+                                setHistory(prev => [tiles, ...prev].slice(0, 5));
+                                setRedoStack([]);
+                                setTiles([{ 
+                                    id: "root", 
+                                    position: [0, 0, 0], 
+                                    rotation: [0, Math.PI / 8, 0], 
+                                    parentId: null,
+                                    parentAnchor: null,
+                                    localAnchor: null,
+                                    children: {},
+                                    foldAngle: 0 
+                                }]);
+                                setSelectedTileId(null);
+                                setShowResetConfirm(false);
+                            }}
+                        >
+                            Reset
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
