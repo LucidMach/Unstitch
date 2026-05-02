@@ -102,7 +102,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                                     opacity: dot.type === 'empty' ? 0.2 : 1, 
                                     scale: dot.type === 'current' ? 1.3 : dot.type === 'empty' ? 0.75 : 1, 
                                     x: 0,
-                                    backgroundColor: dot.type === 'current' ? "#3b82f6" : dot.type === 'past' ? "#a1a1aa" : dot.type === 'empty' ? "transparent" : "#e4e4e7"
+                                    backgroundColor: dot.type === 'current' ? "#ec4899" : dot.type === 'past' ? "#a1a1aa" : dot.type === 'empty' ? "transparent" : "#e4e4e7"
                                 }}
                                 exit={{ opacity: 0, scale: 0.2, x: -20 }}
                                 transition={{ 
@@ -112,7 +112,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                                     backgroundColor: { duration: 0.4 }
                                 }}
                                 className={`w-2 h-2 rounded-full shrink-0 relative ${
-                                    dot.type === 'current' ? "shadow-[0_0_12px_rgba(59,130,246,0.8)] z-10" : "z-0"
+                                    dot.type === 'current' ? "shadow-[0_0_12px_rgba(236,72,153,0.8)] z-10" : "z-0"
                                 } ${
                                     dot.type === 'future' ? "border-2 border-zinc-300" : ""
                                 } ${
