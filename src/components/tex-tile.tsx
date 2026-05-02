@@ -18,7 +18,7 @@ type GLTFResult = GLTF & {
 
 export const ITEM_SCALE: [number, number, number] = [34.623, 0.49, 34.623];
 
-export function TexTile({ ghost = false, selected = false, ...props }: JSX.IntrinsicElements["group"] & { ghost?: boolean; selected?: boolean }) {
+export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ...props }: JSX.IntrinsicElements["group"] & { ghost?: boolean; selected?: boolean; hiddenMeshes?: string[] }) {
   // Cast to unknown first because GLTF & ObjectMap (implicit return) doesn't suffiently overlap with the strict GLTFResult type
   const { nodes, materials } = useGLTF("/Textile-Components.glb") as unknown as GLTFResult;
 
@@ -32,18 +32,26 @@ export function TexTile({ ghost = false, selected = false, ...props }: JSX.Intri
 
   return (
     <group {...props} dispose={null}>
-      {components.map((node, index) => (node.name === "" ? null : (
-        <mesh
-          key={index}
-          castShadow={!ghost}
-          receiveShadow={!ghost}
-          geometry={node.geometry}
-          material={ghost ? ghostMaterial : materials.Material}
-          position={[0, 0, 0]}
-          rotation={[0, Math.PI / 8, Math.PI]}
-          scale={[34.623, 0.49, 34.623]}
-        />
-      )))}
+      {components.map((node, index) => {
+        if (!node || node.name === "") return null;
+        if (hiddenMeshes.includes('S') && node === nodes.S) return null;
+        if (hiddenMeshes.includes('W') && node === nodes.W) return null;
+        if (hiddenMeshes.includes('D') && node === nodes.D) return null;
+        if (hiddenMeshes.includes('A') && node === nodes.A) return null;
+        
+        return (
+          <mesh
+            key={index}
+            castShadow={!ghost}
+            receiveShadow={!ghost}
+            geometry={node.geometry}
+            material={ghost ? ghostMaterial : materials.Material}
+            position={[0, 0, 0]}
+            rotation={[0, Math.PI / 8, Math.PI]}
+            scale={[34.623, 0.49, 34.623]}
+          />
+        );
+      })}
       {selected && (
         <mesh
           position={[0, 0, 0]}

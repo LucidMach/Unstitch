@@ -298,6 +298,37 @@ const PlayCanvas: React.FC = () => {
                   hingeRotationAxis[2] * foldAngle
               ];
 
+              const hiddenWorldAnchors: string[] = [];
+              // If this tile is folding relative to its parent
+              if (Math.abs(foldAngle) > 0.01 && tile.anchors.length > 0) {
+                  hiddenWorldAnchors.push(tile.anchors[0].anchor);
+              }
+              // If any children are folding relative to this tile
+              const foldingChildren = tiles.filter(t => t.anchors.length > 0 && t.anchors[0].id === tile.id && Math.abs(t.foldAngle || 0) > 0.01);
+              for (const child of foldingChildren) {
+                  const parentAnchorForChild = tile.anchors.find(a => a.id === child.id);
+                  if (parentAnchorForChild) {
+                      hiddenWorldAnchors.push(parentAnchorForChild.anchor);
+                  }
+              }
+
+              const hiddenMeshes: string[] = [];
+              if (hiddenWorldAnchors.length > 0) {
+                  const relativeRot = tile.rotation[1] - Math.PI / 8;
+                  let k = Math.round(relativeRot / (Math.PI / 2)) % 4;
+                  if (k < 0) k += 4;
+                  const map: Record<number, Record<string, string>> = {
+                      0: { 'w': 'A', 's': 'D', 'a': 'W', 'd': 'S' },
+                      1: { 'w': 'S', 's': 'W', 'a': 'A', 'd': 'D' },
+                      2: { 'w': 'D', 's': 'A', 'a': 'S', 'd': 'W' },
+                      3: { 'w': 'W', 's': 'S', 'a': 'D', 'd': 'A' }
+                  };
+                  hiddenWorldAnchors.forEach(wa => {
+                      const localMesh = map[k][wa];
+                      if (localMesh) hiddenMeshes.push(localMesh);
+                  });
+              }
+
               return (
                 <group key={tile.id} position={localPos}>
                     <group position={hingeOffset} rotation={hingeRot}>
@@ -305,6 +336,7 @@ const PlayCanvas: React.FC = () => {
                             <TexTile 
                               rotation={tile.rotation}
                               selected={tile.id === selectedTileId}
+                              hiddenMeshes={hiddenMeshes}
                               onClick={(e) => handleTileClick(e, tile.id)}
                             />
                             {children.map(child => {
