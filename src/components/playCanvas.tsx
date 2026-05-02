@@ -8,20 +8,30 @@ import { Button } from "./ui/button";
 
 
 const PlayCanvas: React.FC = () => {
-  // Store tiles as objects with id, position, and rotation
-  type Anchor = { id: string; anchor: string };
-
   type TileData = {
     id: string;
     position: [number, number, number];
     rotation: [number, number, number];
     arrowRotation?: [number, number, number]; // Extra rotation for the arrow visual
-    anchors: Anchor[];
-    foldAngle?: number;
+    
+    parentId: string | null;
+    parentAnchor: string | null;
+    localAnchor: string | null;
+    children: Partial<Record<string, string>>;
+    foldAngle: number;
   };
 
   const [tiles, setTiles] = useState<TileData[]>([
-    { id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0], anchors: [] },
+    { 
+      id: "root", 
+      position: [0, 0, 0], 
+      rotation: [0, Math.PI / 8, 0], 
+      parentId: null,
+      parentAnchor: null,
+      localAnchor: null,
+      children: {},
+      foldAngle: 0 
+    },
   ]);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   
@@ -42,7 +52,7 @@ const PlayCanvas: React.FC = () => {
 
   // Helper to generate ghost tiles for a selected tile
   // Now returns objects that include the 'anchor' that would be created
-  const getGhostTiles = (parent: TileData): (TileData & { sourceAnchor: Anchor })[] => {
+  const getGhostTiles = (parent: TileData): (TileData & { sourceAnchor: { id: string; anchor: string } })[] => {
     const { position: p, rotation: r } = parent;
     
     // Pinwheel / Woven Pattern
@@ -80,7 +90,7 @@ const PlayCanvas: React.FC = () => {
         { x: 0, z: -OFFSET_MAJOR, rot: Math.PI / 2, anchor: 'w' },
     ];
 
-    const ghosts: (TileData & { sourceAnchor: Anchor })[] = [];
+    const ghosts: (TileData & { sourceAnchor: { id: string; anchor: string } })[] = [];
 
     // Parent rotation around Y axis (Used for new tile rotation, but NOT for ghost position)
     const parentRotY = r[1]; 
@@ -115,7 +125,7 @@ const PlayCanvas: React.FC = () => {
         });
 
         // Check if parent already has this anchor? (Optional: prevent duplicate connections)
-        const parentHasAnchor = parent.anchors.some(a => a.anchor === offset.anchor);
+        const parentHasAnchor = !!parent.children[offset.anchor];
 
         if (!exists && !parentHasAnchor) {
              ghosts.push({
@@ -123,7 +133,11 @@ const PlayCanvas: React.FC = () => {
                  position: newPos,
                  rotation: newRot,
                  arrowRotation: arrowRot,
-                 anchors: [], // Ghost starts empty
+                 parentId: null,
+                 parentAnchor: null,
+                 localAnchor: null,
+                 children: {},
+                 foldAngle: 0,
                  sourceAnchor: { id: parent.id, anchor: offset.anchor }
              });
         }
@@ -154,7 +168,7 @@ const PlayCanvas: React.FC = () => {
       setSelectedTileId(tileId);
   };
 
-  const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData & { sourceAnchor: Anchor }) => {
+  const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData & { sourceAnchor: { id: string; anchor: string } }) => {
       e.stopPropagation();
       if (isDragging.current) return;
       
@@ -182,7 +196,7 @@ const PlayCanvas: React.FC = () => {
           // Update Parent
           const newTiles = prev.map(t => {
               if (t.id === parentId) { 
-                  return { ...t, anchors: [...t.anchors, { id: newTileId, anchor: parentAnchorChar }] };
+                  return { ...t, children: { ...t.children, [parentAnchorChar]: newTileId } };
               }
               return t;
           });
@@ -191,7 +205,11 @@ const PlayCanvas: React.FC = () => {
           newTiles.push({ 
               ...ghost, 
               id: newTileId,
-              anchors: [{ id: parentId, anchor: newTileAnchorChar }] // Initialize with reciprocal connection
+              parentId: parentId,
+              parentAnchor: parentAnchorChar,
+              localAnchor: newTileAnchorChar,
+              children: {},
+              foldAngle: 0
           });
           
           return newTiles;
@@ -268,15 +286,18 @@ const PlayCanvas: React.FC = () => {
 
         {(() => {
           const renderTileNode = (tile: TileData, localPos: [number, number, number]) => {
-              const children = tiles.filter(t => t.id !== "root" && t.anchors.length > 0 && t.anchors[0].id === tile.id);
+              const childrenNodes = Object.values(tile.children)
+                  .map(childId => tiles.find(t => t.id === childId))
+                  .filter((t): t is TileData => t !== undefined);
+                  
               let hingeOffset: [number, number, number] = [0, 0, 0];
               let hingeRotationAxis: [number, number, number] = [1, 0, 0];
-              const foldAngle = tile.foldAngle || 0;
+              const foldAngle = tile.foldAngle;
               const isRoot = tile.id === "root";
-              const isLeaf = children.length === 0 && !isRoot;
+              const isLeaf = childrenNodes.length === 0 && !isRoot;
               
-              if (!isRoot && tile.anchors.length > 0) {
-                  const anchor = tile.anchors[0].anchor;
+              if (!isRoot && tile.localAnchor) {
+                  const anchor = tile.localAnchor;
                   if (anchor === 'w') {
                       hingeOffset = [0, 0, -OFFSET_MAJOR / 2];
                       hingeRotationAxis = [1, 0, 0];
@@ -300,15 +321,13 @@ const PlayCanvas: React.FC = () => {
 
               const hiddenWorldAnchors: string[] = [];
               // If this tile is folding relative to its parent
-              if (Math.abs(foldAngle) > 0.01 && tile.anchors.length > 0) {
-                  hiddenWorldAnchors.push(tile.anchors[0].anchor);
+              if (Math.abs(foldAngle) > 0.01 && tile.localAnchor) {
+                  hiddenWorldAnchors.push(tile.localAnchor);
               }
               // If any children are folding relative to this tile
-              const foldingChildren = tiles.filter(t => t.anchors.length > 0 && t.anchors[0].id === tile.id && Math.abs(t.foldAngle || 0) > 0.01);
-              for (const child of foldingChildren) {
-                  const parentAnchorForChild = tile.anchors.find(a => a.id === child.id);
-                  if (parentAnchorForChild) {
-                      hiddenWorldAnchors.push(parentAnchorForChild.anchor);
+              for (const child of childrenNodes) {
+                  if (Math.abs(child.foldAngle) > 0.01 && child.parentAnchor) {
+                      hiddenWorldAnchors.push(child.parentAnchor);
                   }
               }
 
@@ -339,7 +358,7 @@ const PlayCanvas: React.FC = () => {
                               hiddenMeshes={hiddenMeshes}
                               onClick={(e) => handleTileClick(e, tile.id)}
                             />
-                            {children.map(child => {
+                            {childrenNodes.map(child => {
                                 const childLocalPos: [number, number, number] = [
                                     child.position[0] - tile.position[0],
                                     child.position[1] - tile.position[1],
@@ -380,7 +399,7 @@ const PlayCanvas: React.FC = () => {
       } className="absolute top-7 hover:bg-pink-100 left-7 bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
       
       {/* Fold Angle Slider Overlay */}
-      {selectedTile && selectedTile.anchors.length === 1 && selectedTile.id !== "root" && (
+      {selectedTile && Object.keys(selectedTile.children).length === 0 && selectedTile.id !== "root" && (
         <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-start gap-4 border border-zinc-200 z-10 pointer-events-auto">
           <span className="text-sm font-medium text-zinc-700 w-20 pt-1">
             Angle: {Math.round(((selectedTile.foldAngle || 0) * 180) / Math.PI)}°
@@ -430,7 +449,16 @@ const PlayCanvas: React.FC = () => {
           className="cursor-pointer hover:bg-pink-100"
           onClick={(e) => {
             e.stopPropagation();
-            setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0], anchors: [] }]);
+            setTiles([{ 
+              id: "root", 
+              position: [0, 0, 0], 
+              rotation: [0, Math.PI / 8, 0], 
+              parentId: null,
+              parentAnchor: null,
+              localAnchor: null,
+              children: {},
+              foldAngle: 0 
+            }]);
             setSelectedTileId(null);
           }}
         >
