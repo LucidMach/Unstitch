@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import TexTile, { ITEM_SCALE } from "./tex-tile";
@@ -6,7 +6,8 @@ import GhostArrow from "./ghost-arrow";
 import FoldControl from "./fold-control";
 import { Button } from "./ui/button";
 import ActionBar from "./action-bar";
-
+import { motion, AnimatePresence } from "framer-motion";
+import { HelpCircle } from "lucide-react";
 
 const PlayCanvas: React.FC = () => {
   type TileData = {
@@ -303,7 +304,13 @@ const PlayCanvas: React.FC = () => {
     setSelectedTileId(null);
   };
 
+  const [showHelp, setShowHelp] = useState(false);
   const [typedAngle, setTypedAngle] = useState<string | null>(null);
+  const [isTouch, setIsTouch] = useState(false);
+
+  useEffect(() => {
+    setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   const selectedTile = tiles.find(t => t.id === selectedTileId);
   const ghostTiles = selectedTile ? getGhostTiles(selectedTile) : [];
@@ -469,9 +476,9 @@ const PlayCanvas: React.FC = () => {
       
       {/* Fold Angle Slider Overlay */}
       {selectedTile && selectedTile.id !== "root" && (
-        <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-center gap-6 border border-zinc-200 z-10 pointer-events-auto">
-          <div className="flex items-center gap-1.5 bg-zinc-50 px-2.5 py-1.5 rounded-xl border border-zinc-200 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-            <span className="text-[10px] uppercase tracking-tighter font-black text-zinc-400 select-none">Deg</span>
+        <div className="absolute sm:top-7 bottom-24 sm:bottom-auto left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-center gap-3 sm:gap-6 border border-zinc-200 z-10 pointer-events-auto max-w-[95vw]">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-zinc-50 px-2.5 py-1.5 rounded-xl border border-zinc-200 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all shrink-0">
+            <span className="text-[9px] sm:text-[10px] uppercase tracking-tighter font-black text-zinc-400 select-none">Deg</span>
             <input 
                 type="number"
                 value={typedAngle !== null ? typedAngle : Math.round(((selectedTile.foldAngle || 0) * 180) / Math.PI)}
@@ -487,11 +494,11 @@ const PlayCanvas: React.FC = () => {
                     setTypedAngle("");
                 }}
                 onBlur={() => setTypedAngle(null)}
-                className="w-10 bg-transparent text-center font-mono text-pink-600 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm pt-0.5"
+                className="w-8 sm:w-10 bg-transparent text-center font-mono text-pink-600 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm pt-0.5"
             />
-            <span className="text-zinc-400 font-bold text-sm">°</span>
+            <span className="text-zinc-400 font-bold text-xs sm:text-sm">°</span>
           </div>
-          <div className="relative w-64 flex flex-col">
+          <div className="relative w-32 sm:w-64 flex flex-col">
             <input
               type="range"
               min={-(99 * Math.PI) / 180}
@@ -505,9 +512,9 @@ const PlayCanvas: React.FC = () => {
             <div className="absolute top-5 left-0 right-0 h-6 mx-[6px]">
               {[
                 { label: '-90', val: -Math.PI / 2 },
-                { label: '-45', val: -Math.PI / 4 },
+                { label: '-45', val: -Math.PI / 4, hideOnMobile: true },
                 { label: '0', val: 0 },
-                { label: '45', val: Math.PI / 4 },
+                { label: '45', val: Math.PI / 4, hideOnMobile: true },
                 { label: '90', val: Math.PI / 2 },
               ].map(pt => {
                 const MAX_ANGLE = (100 * Math.PI) / 180;
@@ -515,7 +522,7 @@ const PlayCanvas: React.FC = () => {
                 return (
                   <div
                     key={pt.label}
-                    className="absolute flex flex-col items-center cursor-pointer -translate-x-1/2 group"
+                    className={`absolute flex-col items-center cursor-pointer -translate-x-1/2 group ${pt.hideOnMobile ? 'hidden sm:flex' : 'flex'}`}
                     style={{ left: `${percent}%` }}
                     onClick={() => updateFoldAngle(selectedTile.id, pt.val)}
                   >
@@ -647,6 +654,116 @@ const PlayCanvas: React.FC = () => {
             </div>
         </div>
       )}
+
+      {/* Interaction Help Toggle */}
+      {/* Laptop Version: Floating Button */}
+      <div className="hidden sm:flex absolute bottom-7 right-7 pointer-events-auto flex-col items-end gap-3 z-50">
+          <AnimatePresence>
+            {showHelp && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                className="bg-white/95 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border border-zinc-200 w-64 mb-2 origin-bottom-right"
+              >
+                  <div className="flex flex-col gap-5">
+                      <div className="space-y-1">
+                          <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-zinc-400">Interaction Guide</h4>
+                          <div className="h-[1px] w-8 bg-pink-500" />
+                      </div>
+                      
+                      <div className="flex flex-col gap-4">
+                          {[
+                              isTouch ? { text: "Swipe to rotate view" } : { text: "Drag to rotate view" },
+                              isTouch ? { text: "Two fingers to pan" } : { text: "Shift + Drag to pan" },
+                              isTouch ? { text: "Pinch to zoom view" } : { text: "Scroll to zoom view" },
+                              isTouch ? { text: "Tap tile to modify" } : { text: "Click tile to modify" },
+                              { text: "Manage moves in bottom bar" }
+                          ].map((item, i) => (
+                              <div key={i} className="flex items-center gap-3">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-pink-500/30" />
+                                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-tight leading-tight">
+                                      {item.text}
+                                  </p>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Button
+            variant="secondary"
+            size="icon"
+            className={`w-12 h-12 rounded-full shadow-lg border border-zinc-200 transition-all duration-300 ${
+                showHelp 
+                ? "bg-pink-500 text-white border-pink-600 scale-110 rotate-12" 
+                : "bg-white/90 text-zinc-500 hover:text-pink-500 hover:scale-105"
+            }`}
+            onClick={() => setShowHelp(!showHelp)}
+          >
+            <HelpCircle size={24} />
+          </Button>
+      </div>
+
+      {/* Mobile Version: Full-width Bottom Bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-auto">
+          <AnimatePresence>
+            {showHelp && (
+              <motion.div 
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white/95 backdrop-blur-xl p-8 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-zinc-200 w-full"
+              >
+                  <div className="flex flex-col gap-6">
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <h4 className="text-[11px] uppercase tracking-[0.2em] font-black text-zinc-400">Interaction Guide</h4>
+                            <div className="h-[1px] w-8 bg-pink-500" />
+                        </div>
+                        <button 
+                            onClick={() => setShowHelp(false)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 text-zinc-400"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                      </div>
+                      
+                      <div className="flex flex-col gap-5">
+                          {[
+                              { text: "Swipe to rotate view" },
+                              { text: "Two fingers to pan" },
+                              { text: "Pinch to zoom view" },
+                              { text: "Tap tile to modify" },
+                              { text: "Undo/Redo in bottom bar" }
+                          ].map((item, i) => (
+                              <div key={i} className="flex items-center gap-4">
+                                  <div className="w-2 h-2 rounded-full bg-pink-500" />
+                                  <p className="text-[13px] font-bold text-zinc-600 uppercase tracking-tight">
+                                      {item.text}
+                                  </p>
+                              </div>
+                          ))}
+                      </div>
+                      <div className="h-4" /> {/* Spacer for safe area */}
+                  </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button 
+            onClick={() => setShowHelp(!showHelp)}
+            className="w-full h-4 bg-pink-500 text-white flex items-center justify-center gap-2 active:bg-pink-600 transition-colors]"
+          >
+              <HelpCircle size={16} />
+              <span className="text-xs">
+                  {showHelp ? "Close Guide" : "How to Interact"}
+              </span>
+          </button>
+      </div>
     </div>
   );
 };

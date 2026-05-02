@@ -48,18 +48,18 @@ const ActionBar: React.FC<ActionBarProps> = ({
     }, [historyCount, redoCount, targetSlot]);
 
     return (
-        <div className="absolute bottom-7 flex gap-4 pointer-events-auto items-center">
+        <div className="absolute bottom-5 sm:bottom-7 flex gap-2 sm:gap-4 pointer-events-auto items-center">
             {/* Reset Button */}
             <Button
                 variant="secondary"
                 size="icon"
-                className="cursor-pointer hover:bg-pink-100"
+                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100"
                 onClick={(e) => {
                     e.stopPropagation();
                     onReset();
                 }}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
                 </svg>
             </Button>
@@ -68,30 +68,30 @@ const ActionBar: React.FC<ActionBarProps> = ({
             <Button
                 variant="secondary"
                 size="icon"
-                className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
+                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 disabled:opacity-30"
                 disabled={historyCount === 0}
                 onClick={(e) => {
                     e.stopPropagation();
                     onUndo();
                 }}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
                     <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
                 </svg>
             </Button>
 
             {/* Dynamic History Preview with Layout Animation */}
-            <div className="relative flex items-center px-4 py-1 bg-white/30 backdrop-blur-md rounded-full border border-zinc-200/50 shadow-inner h-10 min-w-[180px] justify-center overflow-hidden">
+            <div className="relative flex items-center px-3 sm:px-4 py-1 bg-white/30 backdrop-blur-md rounded-full border border-zinc-200/50 shadow-inner h-9 sm:h-10 min-w-[120px] sm:min-w-[180px] justify-center overflow-hidden">
                 {/* Fixed Icon and Separator on the left */}
-                <div className="absolute left-4 flex items-center gap-3">
+                <div className="absolute left-3 sm:left-4 flex items-center gap-2 sm:gap-3">
                     <div className="flex items-center text-zinc-400/80">
-                        <History size={15} strokeWidth={2.5} />
+                        <History className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" strokeWidth={2.5} />
                     </div>
-                    <div className="w-[1px] h-4 bg-zinc-300/60" />
+                    <div className="w-[1px] h-3 sm:h-4 bg-zinc-300/60" />
                 </div>
 
                 {/* Centered Dots Container */}
-                <div className="flex gap-2.5 items-center h-full">
+                <div className="flex gap-2 sm:gap-2.5 items-center h-full translate-x-3 sm:translate-x-0">
                     <AnimatePresence mode="popLayout" initial={false}>
                         {visibleDots.map((dot) => (
                             <motion.div
@@ -111,7 +111,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                                     scale: { type: "spring", stiffness: 500, damping: 25 },
                                     backgroundColor: { duration: 0.4 }
                                 }}
-                                className={`w-2 h-2 rounded-full shrink-0 relative ${
+                                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 relative ${
                                     dot.type === 'current' ? "shadow-[0_0_12px_rgba(236,72,153,0.8)] z-10" : "z-0"
                                 } ${
                                     dot.type === 'future' ? "border-2 border-zinc-300" : ""
@@ -128,14 +128,14 @@ const ActionBar: React.FC<ActionBarProps> = ({
             <Button
                 variant="secondary"
                 size="icon"
-                className="cursor-pointer hover:bg-pink-100 disabled:opacity-30"
+                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 disabled:opacity-30"
                 disabled={redoCount === 0}
                 onClick={(e) => {
                     e.stopPropagation();
                     onRedo();
                 }}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}>
                     <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
                 </svg>
             </Button>
@@ -144,7 +144,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
             <Button
                 variant="destructive"
                 size="icon"
-                className={`cursor-pointer transition-all duration-300 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 cursor-pointer transition-all duration-300 ${
                     canDelete 
                     ? "opacity-100 scale-100" 
                     : "opacity-0 scale-90 pointer-events-none shadow-none"
@@ -154,7 +154,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                     onDelete();
                 }}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
                 </svg>
             </Button>
