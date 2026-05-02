@@ -7,7 +7,7 @@ import FoldControl from "./fold-control";
 import { Button } from "./ui/button";
 import ActionBar from "./action-bar";
 import { motion, AnimatePresence } from "framer-motion";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Save, FolderOpen, Trash2, X, Plus } from "lucide-react";
 
 const PlayCanvas: React.FC = () => {
   type TileData = {
@@ -307,10 +307,94 @@ const PlayCanvas: React.FC = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [typedAngle, setTypedAngle] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projects, setProjects] = useState<{ id: string; name: string; timestamp: number }[]>([]);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    
+    // Load projects index
+    const index = localStorage.getItem('unstitch_projects_index');
+    if (index) {
+      try {
+        setProjects(JSON.parse(index));
+      } catch (e) {
+        console.error("Failed to parse projects index", e);
+      }
+    }
   }, []);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSaveProject = (isUpdate: boolean = false) => {
+    const idToSave = isUpdate && currentProjectId ? currentProjectId : Date.now().toString();
+    const finalName = isUpdate && currentProjectId 
+      ? projects.find(p => p.id === currentProjectId)?.name || projectName 
+      : projectName;
+
+    if (!finalName.trim()) {
+      showToast('Please enter a name');
+      return;
+    }
+    try {
+      const data = { tiles, history, redoStack };
+      localStorage.setItem(`unstitch_project_${idToSave}`, JSON.stringify(data));
+      
+      const newEntry = { id: idToSave, name: finalName, timestamp: Date.now() };
+      const updatedIndex = [newEntry, ...projects.filter(p => p.id !== idToSave)];
+      setProjects(updatedIndex);
+      localStorage.setItem('unstitch_projects_index', JSON.stringify(updatedIndex));
+      
+      setCurrentProjectId(idToSave);
+      setShowSaveDialog(false);
+      setProjectName("");
+      showToast(isUpdate ? 'Project updated successfully!' : 'Project saved successfully!');
+    } catch (e) {
+      showToast('Error saving project.');
+    }
+  };
+
+  const handleLoadProject = (id: string) => {
+    try {
+      const data = localStorage.getItem(`unstitch_project_${id}`);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed.tiles) setTiles(parsed.tiles);
+        if (parsed.history) setHistory(parsed.history);
+        if (parsed.redoStack) setRedoStack(parsed.redoStack);
+        setSelectedTileId(null);
+        setCurrentProjectId(id);
+        setShowLoadDialog(false);
+        showToast('Project loaded successfully!');
+      } else {
+        showToast('Project data not found.');
+      }
+    } catch (e) {
+      showToast('Error loading project.');
+    }
+  };
+
+  const handleDeleteProject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const updatedIndex = projects.filter(p => p.id !== id);
+      setProjects(updatedIndex);
+      localStorage.setItem('unstitch_projects_index', JSON.stringify(updatedIndex));
+      localStorage.removeItem(`unstitch_project_${id}`);
+      if (currentProjectId === id) setCurrentProjectId(null);
+      showToast('Project deleted.');
+    } catch (e) {
+      showToast('Error deleting project.');
+    }
+  };
 
   const selectedTile = tiles.find(t => t.id === selectedTileId);
   const ghostTiles = selectedTile ? getGhostTiles(selectedTile) : [];
@@ -469,11 +553,44 @@ const PlayCanvas: React.FC = () => {
  
       </Canvas>
 
-      
-      <Button onClick={
-        ()=>window.history.back()
-      } className="absolute top-7 hover:bg-pink-100 left-7 bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
-      
+      <div className="absolute top-5 sm:top-7 left-4 sm:left-7 flex flex-wrap items-center gap-3 z-50 pointer-events-auto">
+          <Button onClick={
+            ()=>window.history.back()
+          } className="hover:bg-pink-100 bg-white/50 backdrop-blur-md shadow-lg border border-zinc-200/50 w-10 h-10 p-0 text-zinc-600"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg></Button>
+          
+          <div className="flex bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 overflow-hidden">
+              <Button 
+                variant="ghost" 
+                className="h-10 px-3 sm:px-4 rounded-none border-r border-zinc-200 text-zinc-600 hover:text-pink-600 hover:bg-pink-50 transition-colors gap-1.5 sm:gap-2"
+                onClick={() => setShowSaveDialog(true)}
+              >
+                  <Save size={16} />
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Save</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="h-10 px-3 sm:px-4 rounded-none text-zinc-600 hover:text-pink-600 hover:bg-pink-50 transition-colors gap-1.5 sm:gap-2"
+                onClick={() => setShowLoadDialog(true)}
+              >
+                  <FolderOpen size={16} />
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Load</span>
+              </Button>
+          </div>
+      </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+          {toastMessage && (
+              <motion.div 
+                  initial={{ opacity: 0, y: -20, x: "-50%" }}
+                  animate={{ opacity: 1, y: 0, x: "-50%" }}
+                  exit={{ opacity: 0, y: -20, x: "-50%" }}
+                  className="absolute top-24 sm:top-28 left-1/2 z-[100] bg-pink-500 text-white px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-[0_4px_20px_rgba(236,72,153,0.4)] pointer-events-none"
+              >
+                  {toastMessage}
+              </motion.div>
+          )}
+      </AnimatePresence>
       {/* Fold Angle Slider Overlay */}
       {selectedTile && selectedTile.id !== "root" && (
         <div className="absolute sm:top-7 bottom-24 sm:bottom-auto left-1/2 -translate-x-1/2 bg-white/90 shadow-lg backdrop-blur-sm px-6 pb-6 pt-4 rounded-2xl flex items-center gap-3 sm:gap-6 border border-zinc-200 z-10 pointer-events-auto max-w-[95vw]">
@@ -644,6 +761,7 @@ const PlayCanvas: React.FC = () => {
                                     foldAngle: 0 
                                 }]);
                                 setSelectedTileId(null);
+                                setCurrentProjectId(null);
                                 setShowResetConfirm(false);
                             }}
                         >
@@ -764,6 +882,115 @@ const PlayCanvas: React.FC = () => {
               </span>
           </button>
       </div>
+      {/* Save Project Dialog */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl border border-zinc-200 w-full max-w-sm overflow-hidden"
+            >
+              <div className="p-6 space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-zinc-800">Save Project</h3>
+                  <button onClick={() => setShowSaveDialog(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {currentProjectId && (
+                    <Button 
+                      onClick={() => handleSaveProject(true)}
+                      className="w-full bg-zinc-800 hover:bg-black text-white rounded-xl py-6 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                    >
+                      <Save size={16} />
+                      Update "{projects.find(p => p.id === currentProjectId)?.name}"
+                    </Button>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                      {currentProjectId ? "Or Save as New Project" : "Project Name"}
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        autoFocus={!currentProjectId}
+                        type="text" 
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveProject(false)}
+                        placeholder="Enter name..."
+                        className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 transition-all"
+                      />
+                      <Button 
+                        onClick={() => handleSaveProject(false)}
+                        className="bg-pink-500 hover:bg-pink-600 text-white rounded-xl px-4 font-bold"
+                      >
+                        <Plus size={20} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Load Project Dialog */}
+      <AnimatePresence>
+        {showLoadDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl border border-zinc-200 w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-800">Your Projects</h3>
+                <button onClick={() => setShowLoadDialog(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {projects.length === 0 ? (
+                  <div className="py-12 text-center space-y-3">
+                    <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto text-zinc-300">
+                      <FolderOpen size={24} />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">No saved projects</p>
+                  </div>
+                ) : (
+                  projects.map((p) => (
+                    <div 
+                      key={p.id}
+                      onClick={() => handleLoadProject(p.id)}
+                      className="group flex items-center justify-between p-4 bg-zinc-50 hover:bg-pink-50 rounded-2xl border border-zinc-100 hover:border-pink-200 cursor-pointer transition-all"
+                    >
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-zinc-800 group-hover:text-pink-600 transition-colors">{p.name}</h4>
+                        <p className="text-[10px] text-zinc-400 font-medium">
+                          {new Date(p.timestamp).toLocaleDateString()} at {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={(e) => handleDeleteProject(p.id, e)}
+                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-100 sm:opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
