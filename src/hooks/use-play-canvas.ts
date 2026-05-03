@@ -17,8 +17,8 @@ export const usePlayCanvas = () => {
       foldAngle: 0 
     },
   ]);
-  const [history, setHistory] = useState<TileData[][]>([]);
-  const [redoStack, setRedoStack] = useState<TileData[][]>([]);
+  const [history, setHistory] = useState<{ tiles: TileData[], transform: typeof worldTransform, activeRootHinge: string | null, selectedTileId: string | null }[]>([]);
+  const [redoStack, setRedoStack] = useState<{ tiles: TileData[], transform: typeof worldTransform, activeRootHinge: string | null, selectedTileId: string | null }[]>([]);
   const [activeRootHinge, setActiveRootHinge] = useState<string | null>(null);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -59,7 +59,12 @@ export const usePlayCanvas = () => {
   };
 
   const recordMove = () => {
-    setHistory(prev => [tiles, ...prev].slice(0, 10));
+    setHistory(prev => [{ 
+        tiles, 
+        transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
+        activeRootHinge,
+        selectedTileId
+    }, ...prev].slice(0, 10));
     setRedoStack([]);
   };
 
@@ -190,19 +195,33 @@ export const usePlayCanvas = () => {
   const handleUndo = () => {
     if (history.length === 0) return;
     const previous = history[0];
-    setRedoStack(prev => [tiles, ...prev].slice(0, 5));
+    setRedoStack(prev => [{ 
+        tiles, 
+        transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
+        activeRootHinge,
+        selectedTileId
+    }, ...prev].slice(0, 5));
     setHistory(prev => prev.slice(1));
-    setTiles(previous);
-    setSelectedTileId(null);
+    setTiles(previous.tiles);
+    setWorldTransform(previous.transform);
+    setActiveRootHinge(previous.activeRootHinge);
+    setSelectedTileId(previous.selectedTileId);
   };
 
   const handleRedo = () => {
     if (redoStack.length === 0) return;
     const next = redoStack[0];
-    setHistory(prev => [tiles, ...prev].slice(0, 5));
+    setHistory(prev => [{ 
+        tiles, 
+        transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
+        activeRootHinge,
+        selectedTileId
+    }, ...prev].slice(0, 5));
     setRedoStack(prev => prev.slice(1));
-    setTiles(next);
-    setSelectedTileId(null);
+    setTiles(next.tiles);
+    setWorldTransform(next.transform);
+    setActiveRootHinge(next.activeRootHinge);
+    setSelectedTileId(next.selectedTileId);
   };
 
   const handleSaveProject = (isUpdate: boolean = false) => {
@@ -210,7 +229,7 @@ export const usePlayCanvas = () => {
     const finalName = isUpdate && currentProjectId ? projects.find(p => p.id === currentProjectId)?.name || projectName : projectName;
     if (!finalName.trim()) { showToast('Please enter a name'); return; }
     try {
-      const data = { tiles, history, redoStack };
+      const data = { tiles, history, redoStack, worldTransform };
       localStorage.setItem(`unstitch_project_${idToSave}`, JSON.stringify(data));
       const newEntry = { id: idToSave, name: finalName, timestamp: Date.now() };
       const updatedIndex = [newEntry, ...projects.filter(p => p.id !== idToSave)];
@@ -231,6 +250,12 @@ export const usePlayCanvas = () => {
         if (parsed.tiles) setTiles(parsed.tiles);
         if (parsed.history) setHistory(parsed.history);
         if (parsed.redoStack) setRedoStack(parsed.redoStack);
+        if (parsed.worldTransform) {
+            setWorldTransform({
+                position: new THREE.Vector3().copy(parsed.worldTransform.position),
+                quaternion: new THREE.Quaternion().copy(parsed.worldTransform.quaternion)
+            });
+        }
         setSelectedTileId(null);
         setCurrentProjectId(id);
         setShowLoadDialog(false);
