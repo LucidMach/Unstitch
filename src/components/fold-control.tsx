@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import * as THREE from "three";
-import { type ThreeEvent } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
 
 interface FoldControlProps {
   axis: [number, number, number];

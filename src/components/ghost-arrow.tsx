@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type ThreeEvent } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
 
 interface GhostArrowProps {
   position: [number, number, number];
