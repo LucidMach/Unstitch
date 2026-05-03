@@ -82,11 +82,26 @@ export const usePlayCanvas = () => {
       e.stopPropagation();
       if (isDragging.current) return;
       setSelectedTileId(tileId);
+
+      if (tileId === "root") {
+          const rootNode = tiles.find(t => t.id === "root");
+          const children = Object.values(rootNode?.children || {}).filter(Boolean);
+          
+          if (children.length === 1) {
+              setActiveRootHinge(children[0] as string);
+          } else if (children.length > 1) {
+              setActiveRootHinge(null);
+              showToast("Select an arc to fold");
+          }
+      } else {
+          setActiveRootHinge(null);
+      }
   };
 
   const handleBackgroundClick = (e: ThreeEvent<MouseEvent>) => {
       if (isDragging.current) return;
       setSelectedTileId(null);
+      setActiveRootHinge(null);
   };
 
   const updateFoldAngle = (tileId: string, angle: number) => {
