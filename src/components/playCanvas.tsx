@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import * as THREE from 'three';
+import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import TexTile, { ITEM_SCALE } from "./tex-tile";
 import GhostArrow from "./ghost-arrow";
@@ -41,7 +42,18 @@ const PlayCanvas: React.FC = () => {
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isFolding, setIsFolding] = useState(false);
+  const [worldTransform, setWorldTransform] = useState({ 
+      position: new THREE.Vector3(0, 0, 0), 
+      quaternion: new THREE.Quaternion() 
+  });
   
+  const dragStartData = useRef<{
+      worldTransform: { position: THREE.Vector3, quaternion: THREE.Quaternion },
+      foldAngle: number,
+      tileId: string
+  } | null>(null);
+
   // Debug State
   const [overlap, setOverlap] = useState<number>(0.61);
 
@@ -178,9 +190,6 @@ const PlayCanvas: React.FC = () => {
       e.stopPropagation();
       if (isDragging.current) return;
       setSelectedTileId(tileId);
-      if (tileId !== "root") {
-          setActiveRootHinge(null);
-      }
   };
 
   const handleGhostClick = (e: ThreeEvent<MouseEvent>, ghost: TileData & { sourceAnchor: { id: string; anchor: string } }) => {
@@ -235,11 +244,58 @@ const PlayCanvas: React.FC = () => {
       setSelectedTileId(newTileId); // Auto-select the new tile
   };
 
+  const makeChildRoot = (childId: string) => {
+      recordMove();
+      setTiles(prev => {
+          const root = prev.find(t => t.parentId === null);
+          const child = prev.find(t => t.id === childId);
+          if (!root || !child || child.parentId !== root.id) return prev;
+
+          const rootChildren = { ...root.children };
+          let bAnchorInA = null;
+          for (const [anchor, id] of Object.entries(rootChildren)) {
+              if (id === child.id) {
+                  bAnchorInA = anchor;
+                  delete rootChildren[anchor as keyof typeof rootChildren];
+                  break;
+              }
+          }
+
+          const childChildren = { ...child.children };
+          if (child.localAnchor) {
+              childChildren[child.localAnchor] = root.id;
+          }
+
+          return prev.map(t => {
+              if (t.id === root.id) {
+                  return {
+                      ...t,
+                      parentId: child.id,
+                      parentAnchor: child.localAnchor,
+                      localAnchor: bAnchorInA,
+                      children: rootChildren,
+                      foldAngle: child.foldAngle
+                  };
+              }
+              if (t.id === child.id) {
+                  return {
+                      ...t,
+                      parentId: null,
+                      parentAnchor: null,
+                      localAnchor: null,
+                      children: childChildren,
+                      foldAngle: 0
+                  };
+              }
+              return t;
+          });
+      });
+  };
+
   const handleBackgroundClick = (e: ThreeEvent<MouseEvent>) => {
       // e.stopPropagation(); // Don't stop propagation if we want other things to handle it, but here it's fine
       if (isDragging.current) return;
       setSelectedTileId(null);
-      setActiveRootHinge(null);
   };
 
   const updateFoldAngle = (tileId: string, angle: number) => {
@@ -252,7 +308,64 @@ const PlayCanvas: React.FC = () => {
               break;
           }
       }
-      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, foldAngle: snappedAngle } : t));
+
+      setTiles(prevTiles => {
+          const tile = prevTiles.find(t => t.id === tileId);
+          if (!tile) return prevTiles;
+
+          if (activeRootHinge === tileId && tile.parentId === "root") {
+              const rootTile = prevTiles.find(t => t.id === "root");
+              if (rootTile && tile.localAnchor) {
+                  const anchor = tile.localAnchor;
+                  let axis = new THREE.Vector3(1, 0, 0);
+                  let offset = new THREE.Vector3(0, 0, 0);
+                  
+                  if (anchor === 'w') { offset.set(0, 0, -OFFSET_MAJOR / 2); axis.set(1, 0, 0); }
+                  else if (anchor === 's') { offset.set(0, 0, OFFSET_MAJOR / 2); axis.set(-1, 0, 0); }
+                  else if (anchor === 'a') { offset.set(-OFFSET_MAJOR / 2, 0, 0); axis.set(0, 0, -1); }
+                  else if (anchor === 'd') { offset.set(OFFSET_MAJOR / 2, 0, 0); axis.set(0, 0, 1); }
+
+                  const hingeLocalPos = new THREE.Vector3(
+                      tile.position[0] - rootTile.position[0] + offset.x,
+                      tile.position[1] - rootTile.position[1] + offset.y,
+                      tile.position[2] - rootTile.position[2] + offset.z
+                  );
+
+                  if (dragStartData.current && dragStartData.current.tileId === tileId) {
+                      const deltaAngle = snappedAngle - dragStartData.current.foldAngle;
+                      const baseWt = dragStartData.current.worldTransform;
+                      const hingeWorldPos = hingeLocalPos.clone().applyQuaternion(baseWt.quaternion).add(baseWt.position);
+                      const worldAxis = axis.clone().applyQuaternion(baseWt.quaternion).normalize();
+                      const deltaQuat = new THREE.Quaternion().setFromAxisAngle(worldAxis, -deltaAngle);
+                      
+                      const newQuat = deltaQuat.clone().multiply(baseWt.quaternion);
+                      const vec = baseWt.position.clone().sub(hingeWorldPos);
+                      vec.applyQuaternion(deltaQuat);
+                      const newPos = hingeWorldPos.clone().add(vec);
+                      
+                      setWorldTransform({ position: newPos, quaternion: newQuat });
+                  } else {
+                      // Fallback for typed angles or non-drag updates
+                      const deltaAngle = snappedAngle - tile.foldAngle;
+                      if (Math.abs(deltaAngle) > 0.0001) {
+                          setWorldTransform(prevWt => {
+                              const hingeWorldPos = hingeLocalPos.clone().applyQuaternion(prevWt.quaternion).add(prevWt.position);
+                              const worldAxis = axis.clone().applyQuaternion(prevWt.quaternion).normalize();
+                              const deltaQuat = new THREE.Quaternion().setFromAxisAngle(worldAxis, -deltaAngle);
+                              
+                              const newQuat = deltaQuat.clone().multiply(prevWt.quaternion);
+                              const vec = prevWt.position.clone().sub(hingeWorldPos);
+                              vec.applyQuaternion(deltaQuat);
+                              const newPos = hingeWorldPos.clone().add(vec);
+                              
+                              return { position: newPos, quaternion: newQuat };
+                          });
+                      }
+                  }
+              }
+          }
+          return prevTiles.map(t => t.id === tileId ? { ...t, foldAngle: snappedAngle } : t);
+      });
   };
 
   const deleteTile = (tileId: string) => {
@@ -438,7 +551,7 @@ const PlayCanvas: React.FC = () => {
         <mesh 
             rotation={[-Math.PI / 2, 0, 0]} 
             position={[0, -0.01, 0]} 
-            onClick={handleBackgroundClick}
+            onPointerDown={handleBackgroundClick}
         >
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial visible={false} />
@@ -460,14 +573,6 @@ const PlayCanvas: React.FC = () => {
               let localAnchor = tile.localAnchor;
               const isRoot = tile.id === "root";
 
-              if (isRoot && activeRootHinge) {
-                  const activeChild = tiles.find(t => t.id === activeRootHinge);
-                  if (activeChild && activeChild.parentAnchor) {
-                      localAnchor = activeChild.parentAnchor;
-                      foldAngle = activeChild.foldAngle;
-                  }
-              }
-              
               if (localAnchor) {
                   const anchor = localAnchor;
                   if (anchor === 'w') {
@@ -528,7 +633,7 @@ const PlayCanvas: React.FC = () => {
                               rotation={tile.rotation}
                               selected={tile.id === selectedTileId}
                               hiddenMeshes={hiddenMeshes}
-                              onClick={(e) => handleTileClick(e, tile.id)}
+                              onPointerDown={(e) => handleTileClick(e as any, tile.id)}
                             />
                             {childrenNodes.map(child => {
                                 const childLocalPos: [number, number, number] = [
@@ -552,7 +657,19 @@ const PlayCanvas: React.FC = () => {
                                 axis={hingeRotationAxis} 
                                 angle={foldAngle} 
                                 onFold={(angle) => updateFoldAngle(tile.id, angle)} 
-                                onFoldStart={recordMove}
+                                onFoldStart={() => { 
+                                    recordMove(); 
+                                    setIsFolding(true);
+                                    dragStartData.current = {
+                                        worldTransform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
+                                        foldAngle: foldAngle,
+                                        tileId: tile.id
+                                    };
+                                }}
+                                onFoldEnd={() => {
+                                    setIsFolding(false);
+                                    dragStartData.current = null;
+                                }}
                             />
                         )}
                         {!isRoot && tile.parentId === selectedTileId && selectedTileId === "root" && (
@@ -563,21 +680,40 @@ const PlayCanvas: React.FC = () => {
                                 isSelected={activeRootHinge === tile.id}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setActiveRootHinge(tile.id);
+                                    setActiveRootHinge(tile.id === activeRootHinge ? null : tile.id);
                                 }}
                                 onFold={(angle) => {
                                     setActiveRootHinge(tile.id);
                                     updateFoldAngle(tile.id, angle);
                                 }} 
-                                onFoldStart={recordMove}
+                                onFoldStart={() => { 
+                                    recordMove(); 
+                                    setIsFolding(true);
+                                    dragStartData.current = {
+                                        worldTransform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
+                                        foldAngle: foldAngle,
+                                        tileId: tile.id
+                                    };
+                                }}
+                                onFoldEnd={() => {
+                                    setIsFolding(false);
+                                    dragStartData.current = null;
+                                }}
                             />
                         )}
                     </group>
                 </group>
               );
           };
+
           const rootTile = tiles.find(t => t.id === "root");
-          return rootTile ? renderTileNode(rootTile, [0, 0, 0]) : null;
+          if (!rootTile) return null;
+
+          return (
+              <group position={worldTransform.position} quaternion={worldTransform.quaternion}>
+                  {renderTileNode(rootTile, [0, 0, 0])}
+              </group>
+          );
         })()}
 
  
@@ -625,7 +761,7 @@ const PlayCanvas: React.FC = () => {
       {(() => {
         const sliderTile = selectedTileId === "root" && activeRootHinge 
           ? tiles.find(t => t.id === activeRootHinge) 
-          : (selectedTile?.id !== "root" ? selectedTile : null);
+          : (selectedTileId !== "root" ? selectedTile : null);
           
         if (!sliderTile) return null;
         

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as THREE from "three";
 import { type ThreeEvent } from "@react-three/fiber";
 
@@ -7,15 +7,28 @@ interface FoldControlProps {
   angle: number;
   onFold: (newAngle: number) => void;
   onFoldStart?: () => void;
+  onFoldEnd?: () => void;
   isGhost?: boolean;
   isSelected?: boolean;
   onClick?: (e: any) => void;
 }
 
-export default function FoldControl({ axis, angle, onFold, onFoldStart, isGhost, isSelected, onClick }: FoldControlProps) {
+export default function FoldControl({ axis, angle, onFold, onFoldStart, onFoldEnd, isGhost, isSelected, onClick }: FoldControlProps) {
   const [active, setActive] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const dragStartY = useRef(0);
   const initialAngle = useRef(0);
+
+  useEffect(() => {
+    if (hovered) {
+      document.body.style.cursor = 'pointer';
+    } else {
+      document.body.style.cursor = 'auto';
+    }
+    return () => {
+      document.body.style.cursor = 'auto';
+    };
+  }, [hovered]);
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
@@ -48,6 +61,7 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart, isGhost,
       (e.target as any).releasePointerCapture(e.pointerId);
     }
     setActive(false);
+    onFoldEnd?.();
   };
 
   // Align Torus Z axis with the hinge axis.
@@ -65,7 +79,7 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart, isGhost,
 
   const baseColor = isGhost && !isSelected ? "#9ca3af" : "#60a5fa"; // gray-400 for ghost, blue-400 for normal
   const activeColor = isGhost && !isSelected ? "#6b7280" : "#3b82f6"; // gray-500 for ghost active, blue-500 for normal active
-  const opacity = isGhost && !isSelected ? 0.3 : 0.5;
+  const opacity = (isGhost && !isSelected) ? (hovered ? 0.7 : 0.3) : (hovered ? 0.9 : 0.5);
 
   return (
     <group rotation={euler} position={[0, 0, 0]}>
@@ -74,10 +88,12 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart, isGhost,
           onPointerMove={handlePointerMove} 
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+          onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
       >
-          {/* Invisible larger hit area for easier grabbing */}
-          <mesh position={[0, radius / 2, 0]}>
-            <boxGeometry args={[radius * 2 + 4, radius + 4, 4]} />
+          {/* Invisible much larger hit area for easier grabbing */}
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[radius * 2 + 4, radius * 2 + 4, 30]} />
             <meshBasicMaterial visible={false} />
           </mesh>
           
