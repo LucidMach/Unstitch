@@ -7,9 +7,12 @@ interface FoldControlProps {
   angle: number;
   onFold: (newAngle: number) => void;
   onFoldStart?: () => void;
+  isGhost?: boolean;
+  isSelected?: boolean;
+  onClick?: (e: any) => void;
 }
 
-export default function FoldControl({ axis, angle, onFold, onFoldStart }: FoldControlProps) {
+export default function FoldControl({ axis, angle, onFold, onFoldStart, isGhost, isSelected, onClick }: FoldControlProps) {
   const [active, setActive] = useState(false);
   const dragStartY = useRef(0);
   const initialAngle = useRef(0);
@@ -20,6 +23,7 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart }: FoldCo
       (e.target as any).setPointerCapture(e.pointerId);
     }
     setActive(true);
+    onClick?.(e);
     onFoldStart?.();
     dragStartY.current = e.clientY;
     initialAngle.current = angle;
@@ -59,6 +63,10 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart }: FoldCo
   const radius = 6;
   const tube = 0.5;
 
+  const baseColor = isGhost && !isSelected ? "#9ca3af" : "#60a5fa"; // gray-400 for ghost, blue-400 for normal
+  const activeColor = isGhost && !isSelected ? "#6b7280" : "#3b82f6"; // gray-500 for ghost active, blue-500 for normal active
+  const opacity = isGhost && !isSelected ? 0.3 : 0.5;
+
   return (
     <group rotation={euler} position={[0, 0, 0]}>
       <group
@@ -76,19 +84,19 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart }: FoldCo
           {/* Curved Arrow Path (Semi-circle) */}
           <mesh rotation={[0, 0, 0]}>
             <torusGeometry args={[radius, tube, 8, 32, Math.PI]} />
-            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
+            <meshStandardMaterial color={active ? activeColor : baseColor} transparent opacity={opacity} />
           </mesh>
 
           {/* Arrow Head at the end of the arc (x = -radius, y = 0) */}
           <mesh position={[-radius, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
             <coneGeometry args={[tube * 2.5, tube * 5, 8]} />
-            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
+            <meshStandardMaterial color={active ? activeColor : baseColor} transparent opacity={opacity} />
           </mesh>
 
           {/* Arrow Head at start (x = radius, y = 0) */}
           <mesh position={[radius, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <coneGeometry args={[tube * 2.5, tube * 5, 8]} />
-            <meshStandardMaterial color={active ? "#3b82f6" : "#60a5fa"} transparent opacity={0.5} />
+            <meshStandardMaterial color={active ? activeColor : baseColor} transparent opacity={opacity} />
           </mesh>
       </group>
     </group>
