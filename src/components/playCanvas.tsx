@@ -1,5 +1,4 @@
 import React from "react";
-import * as THREE from 'three';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
 import { AnimatePresence, motion } from "framer-motion";
@@ -86,6 +85,7 @@ const PlayCanvas: React.FC = () => {
         <ambientLight intensity={0.7} />
         <directionalLight position={[50, 100, 50]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
         <Grid infiniteGrid cellSize={ITEM_SCALE[0]/10} sectionSize={ITEM_SCALE[0]} fadeDistance={1000} sectionColor="#d1d5db" cellColor="#e5e7eb" />
+        {/* empty mess to hangle unselection */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} onPointerDown={pc.handleBackgroundClick}>
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial visible={false} />

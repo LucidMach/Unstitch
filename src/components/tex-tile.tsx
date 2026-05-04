@@ -59,6 +59,7 @@ export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ..
           scale={[34.623, 0.49, 34.623]}
         >
           <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial visible={false} />
           <Edges color="hotpink" scale={2.1} />
         </mesh>
       )}
