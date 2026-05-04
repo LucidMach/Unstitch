@@ -48,40 +48,61 @@ const ActionBar: React.FC<ActionBarProps> = ({
     }, [historyCount, redoCount, targetSlot]);
 
     return (
-        <div className="absolute bottom-5 sm:bottom-7 flex gap-2 sm:gap-4 pointer-events-auto items-center">
+        <motion.div 
+            layout
+            className="absolute bottom-5 sm:bottom-7 flex gap-2 sm:gap-3 pointer-events-auto items-center px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl"
+        >
             {/* Reset Button */}
-            <Button
-                variant="secondary"
-                size="icon"
-                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onReset();
-                }}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
-                </svg>
-            </Button>
+            <AnimatePresence mode="popLayout">
+                {historyCount >= 1 && (
+                    <motion.div
+                        key="reset-btn"
+                        layout
+                        initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    >
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onReset();
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                            </svg>
+                        </Button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Undo Button */}
-            <Button
-                variant="secondary"
-                size="icon"
-                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 disabled:opacity-30"
-                disabled={historyCount === 0}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onUndo();
-                }}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
-                    <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
-                </svg>
-            </Button>
+            <motion.div layout>
+                <Button
+                    variant="secondary"
+                    size="icon"
+                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200 disabled:opacity-30"
+                    disabled={historyCount === 0}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onUndo();
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
+                        <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
+                    </svg>
+                </Button>
+            </motion.div>
 
             {/* Dynamic History Preview with Layout Animation */}
-            <div className="relative flex items-center px-3 sm:px-4 py-1 bg-white/30 backdrop-blur-md rounded-full border border-zinc-200/50 shadow-inner h-9 sm:h-10 min-w-[120px] sm:min-w-[180px] justify-center overflow-hidden">
+            <motion.div 
+                layout
+                className="relative flex items-center px-3 sm:px-4 py-1 bg-white/50 backdrop-blur-md rounded-full border border-zinc-200/50 shadow-inner h-9 sm:h-10 min-w-[120px] sm:min-w-[180px] justify-center overflow-hidden"
+            >
                 {/* Fixed Icon and Separator on the left */}
                 <div className="absolute left-3 sm:left-4 flex items-center gap-2 sm:gap-3">
                     <div className="flex items-center text-zinc-400/80">
@@ -122,43 +143,54 @@ const ActionBar: React.FC<ActionBarProps> = ({
                         ))}
                     </AnimatePresence>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Redo Button */}
-            <Button
-                variant="secondary"
-                size="icon"
-                className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 disabled:opacity-30"
-                disabled={redoCount === 0}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onRedo();
-                }}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}>
-                    <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
-                </svg>
-            </Button>
+            <motion.div layout>
+                <Button
+                    variant="secondary"
+                    size="icon"
+                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200 disabled:opacity-30"
+                    disabled={redoCount === 0}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRedo();
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}>
+                        <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
+                    </svg>
+                </Button>
+            </motion.div>
 
             {/* Delete Button */}
-            <Button
-                variant="destructive"
-                size="icon"
-                className={`w-9 h-9 sm:w-10 sm:h-10 cursor-pointer transition-all duration-300 ${
-                    canDelete 
-                    ? "opacity-100 scale-100" 
-                    : "opacity-0 scale-90 pointer-events-none shadow-none"
-                }`}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                }}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
-                </svg>
-            </Button>
-        </div>
+            <AnimatePresence mode="popLayout">
+                {canDelete && (
+                    <motion.div
+                        key="delete-btn"
+                        layout
+                        initial={{ opacity: 0, scale: 0.5, x: 10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, x: 10 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    >
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer shadow-lg"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete();
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
+                            </svg>
+                        </Button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 };
 

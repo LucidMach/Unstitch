@@ -139,7 +139,7 @@ const PlayCanvas: React.FC = () => {
 
       <ConfirmDialog show={!!pc.deleteConfirmId} title="delete tile?" message={pc.deleteConfirmId && Object.keys(pc.tiles.find(t => t.id === pc.deleteConfirmId)?.children || {}).length > 0 ? "This tile has others attached. Deleting it will remove the entire branch." : "Are you sure you want to delete this tile?"} confirmLabel="delete" onConfirm={() => { pc.deleteTile(pc.deleteConfirmId!); pc.setDeleteConfirmId(null); }} onCancel={() => pc.setDeleteConfirmId(null)} />
 
-      <ConfirmDialog show={pc.showResetConfirm} title="Reset Canvas?" message="This will remove all tiles and return to the starting root tile. This move will be added to your undo history." confirmLabel="Reset" confirmVariant="destructive" onConfirm={pc.handleReset} onCancel={() => pc.setShowResetConfirm(false)} icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>} />
+      <ConfirmDialog show={pc.showResetConfirm} title="Reset Canvas?" message="This will remove all tiles and clear your entire undo/redo history. This action cannot be undone." confirmLabel="Reset" confirmVariant="destructive" onConfirm={pc.handleReset} onCancel={() => pc.setShowResetConfirm(false)} icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>} />
     </div>
   );
 };

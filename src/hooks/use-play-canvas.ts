@@ -292,8 +292,10 @@ export const usePlayCanvas = () => {
   };
 
   const handleReset = () => {
-    recordMove();
     setTiles([{ id: "root", position: [0, 0, 0], rotation: [0, Math.PI / 8, 0], parentId: null, parentAnchor: null, localAnchor: null, children: {}, foldAngle: 0 }]);
+    setHistory([]);
+    setRedoStack([]);
+    setWorldTransform({ position: new THREE.Vector3(0, 0, 0), quaternion: new THREE.Quaternion() });
     setSelectedTileId(null);
     setCurrentProjectId(null);
     setShowResetConfirm(false);
