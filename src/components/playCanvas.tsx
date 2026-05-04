@@ -78,9 +78,20 @@ const PlayCanvas: React.FC = () => {
 
   const rootTile = pc.tiles.find(t => t.id === "root");
 
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const cameraPosition: [number, number, number] = isMobile ? [0, 500, 0] : [0, 300, 0];
+
   return (
     <div className="flex flex-col justify-center items-center h-full w-full bg-white/10 relative" onPointerDown={pc.handlePointerDown} onPointerUp={pc.handlePointerUp}>
-      <Canvas shadows camera={{ position: [0, 300, 0], fov: 45 }} className="w-full h-full bg-zinc-50">
+      <Canvas shadows camera={{ position: cameraPosition, fov: 45 }} className="w-full h-full bg-zinc-50">
         <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
         <ambientLight intensity={0.7} />
         <directionalLight position={[50, 100, 50]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
