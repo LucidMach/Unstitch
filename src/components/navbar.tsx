@@ -162,7 +162,7 @@ const NavBar: React.FC = () => {
         */}
         <div 
             ref={homeRef}
-            onClick={(e) => { e.stopPropagation(); handleNav(0); }}
+            onClick={(e) => { e.stopPropagation(); handleNav(0, '/'); }}
             className="absolute cursor-pointer
                     w-52 h-52 md:w-80 md:h-80 bg-[#dbeafe] 
                     flex items-center justify-center 
@@ -182,7 +182,7 @@ const NavBar: React.FC = () => {
         */}
         <div 
             ref={shopRef}
-            onClick={(e) => { e.stopPropagation(); handleNav(2); }} 
+            onClick={(e) => { e.stopPropagation(); handleNav(2, '/coming-soon'); }} 
             className="absolute cursor-pointer
                     w-48 h-48 md:w-96 md:h-96 
                     flex items-center justify-center 

@@ -64,7 +64,7 @@ const VertCarousel: React.FC = () => {
   }, [lastScrollTime, scrollAccumulator]);
 
   return (
-    <div className="relative -z-10 w-full h-full bg-neutral-50 overflow-hidden flex flex-col items-center justify-center">
+    <div className="relative w-full h-full bg-neutral-50 overflow-hidden flex flex-col items-center justify-center">
       {/* 1. Left Sidebar Navigation (Dots) */}
       <div className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2 md:gap-4 bg-black rounded-full py-2 px-1 md:py-4 md:px-2">
         {products.map((_, index) => (
@@ -108,9 +108,10 @@ const VertCarousel: React.FC = () => {
             {/* 3. Bottom Button */}
             <div className="absolute bottom-35 md:bottom-30 cursor-pointer z-20">
               <Button 
+                asChild
                 className="bg-[#A87285] hover:bg-[#8B5A6B] text-white px-8 rounded-none uppercase tracking-widest"
               >
-                explore
+                <a href="/coming-soon">explore</a>
               </Button>
             </div>
           </motion.div>

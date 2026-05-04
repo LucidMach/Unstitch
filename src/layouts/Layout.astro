@@ -4,9 +4,10 @@ import NavBar from "../components/navbar";
 
 interface Props {
   showNavbar?: boolean;
+  title?: string;
 }
 
-const { showNavbar = true } = Astro.props;
+const { showNavbar = true, title = "Unstitched" } = Astro.props;
 ---
 
 <!doctype html>
@@ -16,7 +17,7 @@ const { showNavbar = true } = Astro.props;
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>Unstitched</title>
+    <title>{title}</title>
   </head>
   <body>
     {showNavbar && <NavBar client:visible />}
