@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstitch — Learn</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg">
+
+<!-- ==========================================================================
+     LEARN / WORKSHOP PAGE
+
+     HOW TO EDIT
+     - Hero carousel: each <div class="carousel__slide"> in the hero is one
+       event. Copy/paste a slide to add another, delete one to remove it —
+       the dots and arrows adjust automatically. Swap each .ph for a real
+       image.
+     - "How the tiles connect": swap the .ph placeholder for the real
+       animated demo (gif/video) once ready. The floral background is
+       assets/floral-pattern.svg — swap that file for the real illustration
+       whenever you have it.
+     - "Who is this for": School/Public/Corporate each expand on click.
+       Public has fuller copy for now — School and Corporate are meant to
+       get more content later, so keep them light until then.
+     - Partner logos: add/remove <img> tags in the .partner-ticker__track —
+       duplicate the whole track content once for a seamless loop, same
+       pattern as the top ticker.
+     - Nav links live in the header, footer, mobile nav, and menu sheet —
+       search "NAV LINKS" to update all of them together.
+     ========================================================================== -->
+</head>
+<body>
+
+  <!-- ============ TICKER — EDITABLE ============ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__track" data-ticker-track>
+      <span>zero waste</span><span>•</span><span>modular puzzle</span><span>•</span><span>upcycle textile</span><span>•</span>
+    </div>
+  </div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="wrap site-header__row">
+      <div class="site-header__left">
+        <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="header-play-link">Play</a>
+        <ul class="site-header__links">
+          <li><a href="about.html">About</a></li>
+          <li><a href="learn.html" aria-current="page">Learn</a></li>
+          <li><a href="custom.html">Custom</a></li>
+          <li><a href="shop.html">Shop</a></li>
+        </ul>
+      </div>
+      <a href="index.html" class="logo" aria-label="Unstitch — home">
+        <img class="logo-full" src="assets/logo-full.svg" alt="Unstitch">
+        <img class="logo-mark" src="assets/logo-mark.svg" alt="Unstitch">
+      </a>
+      <div class="site-header__actions">
+        <button class="icon-btn" data-menu-open aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ HERO CAROUSEL — EDITABLE ============
+         Built as a carousel from the start since this will show multiple
+         upcoming events later. Only one slide today; add more any time. -->
+    <section class="media-hero learn-hero" data-carousel>
+      <div class="media-hero__content">
+        <div class="wrap learn-hero__label-wrap">
+          <p class="learn-hero__label">Learn</p>
+        </div>
+      </div>
+
+      <div class="carousel__track" data-carousel-track>
+
+        <!-- ---- Slide 1 — EDITABLE ---- -->
+        <div class="carousel__slide is-active" data-carousel-slide>
+          <div class="ph media-hero__media">Image</div>
+          <div class="media-hero__content">
+            <div class="wrap"><div class="learn-hero__inner">
+              <p class="section__eyebrow">Up Next | Workshop</p>
+              <h1 class="learn-hero__title">Find us at Zero Waste Festival.<br>Saturday 12 Sep 2026.<br>Fed Square.</h1>
+              <p class="learn-hero__body">Drop-in tile building all day, no experience needed.</p>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- ---- Slide 2 — EDITABLE (placeholder for the next event) ---- -->
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph media-hero__media">Image</div>
+          <div class="media-hero__content">
+            <div class="wrap"><div class="learn-hero__inner">
+              <p class="section__eyebrow">Up Next | Workshop</p>
+              <h1 class="learn-hero__title">More workshops coming soon.</h1>
+              <p class="learn-hero__body">Check back for upcoming drop-in sessions and events.</p>
+            </div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="carousel__dots" data-carousel-dots></div>
+    </section>
+
+    <!-- ============ HOW THE TILES CONNECT — EDITABLE ============
+         The demo placeholder is full-bleed (spans the whole viewport
+         width), while the heading text stays in the normal content column. -->
+    <section class="mechanism">
+      <div class="mechanism__bg" aria-hidden="true"></div>
+      <div class="wrap mechanism__inner">
+        <p class="section__eyebrow">Interlocking Mechanism</p>
+        <h2 class="mechanism__title">How the tiles connect</h2>
+      </div>
+      <!-- EDITABLE: replace with a real <img>/<video>/<gif> of the slot-and-tab mechanism -->
+      <div class="ph mechanism__demo">Insert an animated image showing<br>the slot-and-tab mechanism</div>
+    </section>
+
+    <!-- ============ WHO IS THIS FOR — EDITABLE ============ -->
+    <section class="wrap section who-section">
+      <p class="section__eyebrow">Who is this for?</p>
+      <h2 class="section__title">Build with Unstitch</h2>
+    </section>
+
+    <!-- ============ WHO ACCORDION — EDITABLE ============
+         DOM order is tab→panel→tab→panel→tab→panel — that's the natural
+         mobile layout (each panel opens directly under its own tab, not
+         confusingly below the whole tab group). Desktop rearranges the
+         same markup into "3 tabs in a row, one shared panel row below"
+         purely with CSS grid-area — see the (min-width: 769px) block. -->
+    <section class="who-accordion" aria-label="Who this is for">
+
+      <button class="who-tab who-tab--school" data-accordion-trigger="school" aria-expanded="false">
+        <span class="who-tab__label">School</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
+
+      <!-- ---- School panel — EDITABLE (light for now, more copy coming later) ---- -->
+      <div class="who-panel who-panel--school" data-accordion-panel="school">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>School</strong></p>
+            <p class="who-panel__body">Circular design thinking workshop, Year 7 to VCE.</p>
+            <div class="who-panel__ctas">
+              <a href="contact.html?category=school-workshop-enquiry" class="btn btn-filled btn-small">Book a Class Visit</a>
+              <!-- EDITABLE: point at the real PDF once it exists -->
+              <a href="#" class="btn btn-outline btn-small">Download Workshop Programme</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="who-tab who-tab--public" data-accordion-trigger="public" aria-expanded="false">
+        <span class="who-tab__label">Public Community</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
+
+      <!-- ---- Public panel — EDITABLE (fullest copy of the three right now) ---- -->
+      <div class="who-panel who-panel--public" data-accordion-panel="public">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>Public</strong></p>
+            <p class="who-panel__body">Drop in for hands-on workshops suitable for ages 4+. No bookings required — just turn up.</p>
+            <div class="who-panel__ctas">
+              <!-- EDITABLE: link to the real events/calendar page once it exists -->
+              <a href="#" class="btn btn-outline btn-small">See Calendar Event</a>
+            </div>
+            <p class="who-panel__subhead">Run a gallery, museum, library or council program?</p>
+            <div class="who-panel__ctas">
+              <a href="contact.html?category=venue-partnership-enquiry" class="btn btn-outline btn-small">Partner With Us</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="who-tab who-tab--corporate" data-accordion-trigger="corporate" aria-expanded="false">
+        <span class="who-tab__label">Corporate</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
+
+      <!-- ---- Corporate panel — EDITABLE (light for now, more copy coming later) ---- -->
+      <div class="who-panel who-panel--corporate" data-accordion-panel="corporate">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>Corporate</strong></p>
+            <p class="who-panel__body">Team building to create a bespoke brand artefact specific to your business.</p>
+            <div class="who-panel__ctas">
+              <a href="contact.html?category=corporate-workshop-enquiry" class="btn btn-filled btn-small">Enquire for a Session</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop-only: sits in its own grid row between the tabs and
+           whichever panel is open, so the transition is a zigzag rather
+           than a straight border line. Hidden on mobile (see CSS). -->
+      <!-- Static zigzag for the "nothing expanded" state — desktop only.
+           On mobile it's hidden; each panel's own seamless top-edge
+           (see .who-panel__edge) already provides the zigzag there
+           exactly when it's needed. -->
+      <div class="who-accordion__closed-zigzag stitch" aria-hidden="true"></div>
+
+    </section>
+
+    <!-- ============ PARTNER LOGOS — EDITABLE ============
+         Static row (not scrolling) — add/remove <img> tags below. -->
+    <section class="partner-ticker" aria-label="Our partners">
+      <div class="partner-ticker__group">
+        <img src="assets/partners/zero-waste-festival-logo.png" alt="Zero Waste Victoria Festival">
+        <img src="assets/partners/datta-vic-logo.jpeg" alt="DATTA Victoria — Design and Technology Teachers Association">
+        <img src="assets/partners/monash-university-logo.svg" alt="Monash University">
+      </div>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP — EDITABLE ============
+         The "Interested in an Unstitch workshop?" CTA that used to live
+         here has moved to the commission page (still to be built) —
+         this newsletter signup takes its place instead. -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="learn-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name">
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required>
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+
+
+  </main>
+
+  <!-- ============ FOOTER — NAV LINKS + EDITABLE TEXT ============ -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <ul class="site-footer__nav">
+        <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Play</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="learn.html">Learn</a></li>
+        <li><a href="custom.html">Custom</a></li>
+        <li><a href="shop.html">Shop</a></li>
+        <li><a href="archive.html">Material Archive</a></li>
+        <li><a href="contact.html">Contact Us</a></li>
+      </ul>
+      <p class="site-footer__ack">We acknowledge the Wurundjeri people of the Kulin Nation, the traditional custodians of this land on which we work. We pay our respects to their Elders, past and present, and recognise their creativity and connection to this unceded land.</p>
+      <div class="site-footer__bottom">
+        <span>© 2025–2026 Unstitch | Naarm, Melbourne Australia</span>
+        <div class="site-footer__social" aria-label="Social media">
+          <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#111" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="#111" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="#111"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#111" stroke-width="1.6"/><path d="M7.5 10v6.2M7.5 7.3v.2M11.2 16.2V13c0-1.4.9-2.3 2-2.3s1.8.8 1.8 2.2v3.3" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ MOBILE BOTTOM NAV — NAV LINKS ============ -->
+  <nav class="mobile-nav" aria-label="Primary">
+    <div class="mobile-nav__row">
+      <a href="index.html" class="mobile-nav__item">
+        <img src="assets/logo-mark.svg" alt="">
+        <span>Home</span>
+      </a>
+      <a href="shop.html" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span>Shop</span>
+      </a>
+      <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 4h3v3H9a2 2 0 1 0 0 4H4V8a2 2 0 0 1 2-2h3V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 11h3a2 2 0 1 1 0 4h-3v3H9v-3H4v-3h5v-1h3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Play</span>
+      </a>
+      <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>More</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ MASCOT BUTTON ============ -->
+  <button class="mascot-btn" aria-label="Chat with us — coming soon" title="Chat — coming soon">
+    <img src="assets/mascot.svg" alt="">
+  </button>
+
+  <!-- ============ MENU SHEET — NAV LINKS ============ -->
+  <div class="menu-overlay" data-menu-overlay></div>
+  <aside class="menu-sheet" data-menu-sheet aria-label="Site menu">
+    <div class="menu-sheet__top">
+      <button class="icon-btn" data-menu-close aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <ul class="menu-sheet__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Playground</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="learn.html" aria-current="page">Learn</a></li>
+      <li><a href="custom.html">Custom</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="archive.html">Material Archive</a></li>
+      <li><a href="contact.html">Contact Us</a></li>
+    </ul>
+    <p class="menu-sheet__foot">Naarm, Melbourne Australia</p>
+  </aside>
+
+  <script src="script.js"></script>
+
+  <style>
+    /* Page-specific layout for the learn page only. */
+
+    /* ---- hero carousel ---- */
+    .learn-hero { min-height: 460px; }
+    .learn-hero .media-hero__media { padding-top: 56px; }
+    .learn-hero__label-wrap {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      z-index: 3;
+    }
+    .learn-hero__label {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .learn-hero__inner { max-width: 600px; padding-top: 40px; padding-bottom: 48px; }
+    .learn-hero__title {
+      font-size: clamp(1.6rem, 3.6vw, 2.4rem);
+      margin: 8px 0 14px;
+    }
+    .learn-hero__body { color: #333; max-width: 46ch; }
+
+    .carousel__track { position: absolute; inset: 0; }
+    .carousel__slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      display: flex;
+      align-items: flex-end;
+    }
+    .carousel__slide.is-active { opacity: 1; pointer-events: auto; }
+
+    .carousel__dots {
+      position: absolute;
+      bottom: 18px;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .carousel__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      padding: 0;
+    }
+    .carousel__dot.is-active { background: var(--ink); }
+
+    /* ---- how the tiles connect ---- */
+    .mechanism { position: relative; padding-top: 56px; padding-bottom: 24px; overflow: hidden; }
+    .mechanism__bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('assets/floral-pattern.svg');
+      background-repeat: repeat-x;
+      background-position: bottom left;
+      background-size: 360px 220px;
+      opacity: 0.8;
+    }
+    .mechanism__inner { position: relative; z-index: 1; padding-bottom: 32px; }
+    .mechanism__title {
+      font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+      margin: 6px 0 0;
+    }
+    .mechanism__demo {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      min-height: 320px;
+      text-align: center;
+      font-size: 1rem;
+      line-height: 1.5;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+    }
+
+    /* ==========================================================================
+       WHO IS THIS FOR / ACCORDION
+       Mobile-first: plain stacked flow, DOM order tab→panel→tab→panel...
+       so each panel opens directly under its own tab. Desktop rearranges
+       the exact same markup into "3 tabs in a row, shared panel row
+       below" using grid-area — see the (min-width: 769px) block below.
+       ========================================================================== */
+    .who-section { padding-top: 32px; padding-bottom: 24px; }
+
+    .who-accordion {
+      border-top: 1px solid var(--ink);
+    }
+    .who-tab {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--ink);
+      background: none;
+      padding: 18px var(--gutter);
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: background 0.2s ease;
+    }
+    .who-tab:hover { background: #fafafa; }
+    .who-tab[aria-expanded="true"] { background: #f0f0f0; }
+    .who-tab__label {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .who-tab__cta {
+      font-size: 0.82rem;
+      text-decoration: underline;
+      color: #555;
+    }
+    .who-tab[aria-expanded="true"] .who-tab__cta { color: var(--accent); }
+
+    .who-panel {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s ease;
+      position: relative;
+      top: -16px;
+    }
+    .who-panel.is-open { grid-template-rows: 1fr; }
+    .who-panel__clip { position: relative; overflow: hidden; min-height: 0; }
+    .who-panel__media {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border: none;
+      border-radius: 0;
+      min-height: 0;
+      opacity: 0.7;
+    }
+    /* Seamless zigzag top edge — drawn straight onto the panel's own
+       image (white fill in the "peaks", the image shows through in the
+       "valleys"), exactly the technique used on the shop page's archive
+       banner. Only visible once the panel has actual height. */
+    .who-panel__edge {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 16px;
+      z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='16'%3E%3Cpolygon points='0,0 100,0 100,13 75,3 50,13 25,3 0,13' fill='%23f0f0f0'/%3E%3Cpolyline points='0,13 25,3 50,13 75,3 100,13' fill='none' stroke='%23111111' stroke-width='2.5'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+    }
+    .who-panel__inner { position: relative; z-index: 2; padding: 32px 24px; }
+    .who-panel__label {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+    .who-panel__body { color: #333; max-width: 60ch; margin-bottom: 16px; }
+    .who-panel__ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .who-panel__subhead { font-weight: 600; margin-bottom: 12px; }
+
+    /* The "closed" zigzag only needs to exist on desktop: mobile's rule
+       (further down) hides it entirely, since each panel's own seamless
+       edge already covers that job there. Must span all 3 grid columns
+       explicitly — without it, CSS Grid auto-places a lone unplaced item
+       into just the first column instead of the full row. It's also only
+       meant to be visible when nothing is expanded (see .is-any-open). */
+    .who-accordion__closed-zigzag { display: none; grid-column: 1 / -1; }
+
+    /* Desktop: 3 tabs side by side, panels collapse into one shared row
+       spanning all 3 columns underneath. Each panel is pulled up 16px so
+       its own __edge overlay lands exactly on the tab/panel seam — when
+       collapsed this has zero visible effect (0 height either way), when
+       expanded it's what makes the image bleed seamlessly into the
+       zigzag rather than starting behind a flat gap. */
+    @media (min-width: 769px) {
+      .who-accordion {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-areas:
+          "tab1 tab2 tab3"
+          "panel panel panel";
+      }
+      .who-tab { border-bottom: none; border-right: 1px solid var(--ink); justify-content: flex-start; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+      .who-tab--school { grid-area: tab1; }
+      .who-tab--public { grid-area: tab2; border-left: 1px solid var(--ink); }
+      .who-tab--corporate { grid-area: tab3; border-left: 1px solid var(--ink); border-right: none; }
+      .who-panel--school, .who-panel--public, .who-panel--corporate {
+        grid-area: panel;
+      }
+      .who-accordion__closed-zigzag { display: block; }
+      .who-accordion.is-any-open .who-accordion__closed-zigzag { display: none; }
+    }
+
+    /* ---- partner logos ---- */
+    .partner-ticker {
+      padding: 36px 0;
+      overflow: hidden;
+      border-bottom: 1px solid var(--ink);
+    }
+    .partner-ticker__group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 56px;
+    }
+    .partner-ticker__group img {
+      height: 42px;
+      width: auto;
+      max-width: 130px;
+      object-fit: contain;
+    }
+
+    @media (max-width: 768px) {
+      .learn-hero { min-height: 420px; }
+      .learn-hero__inner { padding: 32px 0; }
+
+      .who-section { padding-bottom: 8px; }
+
+      .partner-ticker { border-bottom: none; }
+      .partner-ticker__group { gap: 32px; }
+      .partner-ticker__group img { height: 30px; max-width: 96px; }
+    }
+  </style>
+
+</body>
+</html>

@@ -1,0 +1,680 @@
+/* ==========================================================================
+   UNSTITCH — SHARED STYLESHEET
+   This file is shared across every page of the site (landing, shop, about…)
+   so edits here (colours, fonts, header, footer, buttons) apply everywhere.
+
+   HOW TO EDIT LATER
+   - Brand colours & fonts:      see ":root" block right below.
+   - Header / footer / nav:      see "HEADER", "MOBILE BOTTOM NAV", "MENU
+                                  SHEET" and "FOOTER" sections.
+   - Page-specific styling only: put it in a <style> block in that page's
+                                  HTML, or a separate CSS file — don't grow
+                                  this file with one-page rules.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- brand tokens : change these to re-skin the whole site ---- */
+  --ink: #111111;
+  --paper: #ffffff;
+  --accent: #b784a7;         /* opera mauve — filled buttons, active states */
+  --accent-pale: #e9dae5;    /* footer band, soft fills */
+  --placeholder: #e4e4e4;    /* placeholder image/gif blocks */
+  --placeholder-line: #b8b8b8;
+  --line: #111111;           /* hairline rule colour */
+  --radius: 6px;              /* button / input corner radius — rectangular, not pill */
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Avenir Next', 'Avenir', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --header-h: 64px;
+  --ticker-h: 34px;
+  --mobile-nav-h: 72px;
+  --gutter: 24px;              /* shared side padding for .wrap — bump on mobile below */
+}
+
+* { box-sizing: border-box; }
+
+/* ==========================================================================
+   CUSTOM CURSOR — the mascot replaces the default pointer sitewide.
+   Text-editing fields explicitly keep the normal text (I-beam) cursor
+   below, since losing that cue would make it unclear a field is
+   editable. More specific cursor rules elsewhere (e.g. the material
+   archive's left/right navigation zones) still win over this — CSS
+   specificity naturally protects them, nothing to do there.
+   ========================================================================== */
+html {
+  cursor: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+Cjxzdmcgd2lkdGg9IjE2IiBoZWlnaHQ9IjIyIiB2aWV3Qm94PSIwIDAgNzEwIDEwMDAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgeG1sbnM6c2VyaWY9Imh0dHA6Ly93d3cuc2VyaWYuY29tLyIgc3R5bGU9ImZpbGwtcnVsZTpldmVub2RkO2NsaXAtcnVsZTpldmVub2RkO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2UtbWl0ZXJsaW1pdDoyOyI+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwxLC05MjkxLjkyODQ4LC0zNTMwLjc4MzI5NSkiPgogICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDQuMTY2NjY3LDAsMCw0LjE2NjY2Nyw3ODkyLjcxODc1LDI3OTAuMzU2MjUpIj4KICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsMSw0NzMuNDc4NSwzNDQuMDI1NikiPgogICAgICAgICAgICAgICAgPHBhdGggZD0iTTAsNi43MTFDLTIuMTczLDQuOTk3IC0yLjE3MywxLjcxNCAwLC0wQzE4LjcyOSwtMTQuNzc2IDMxLjIzLC0zNy4xODMgMzIuNTk0LC02Mi4zNjdDMzIuNzI2LC02NC44MDEgMzAuNzUxLC02Ni44MzcgMjguMzEzLC02Ni44MzdMNi45MTIsLTY2LjgzN0M0LjcsLTY2LjgzNyAyLjgyNCwtNjUuMTU0IDIuNjUxLC02Mi45NUMwLjQzNCwtMzQuNjE2IC0yMy41OCwtMTIuMDc5IC01Mi4zMzgsLTEyLjE0M0MtODEuMDAzLC0xMi4yMDcgLTEwNC44NzEsLTM0LjcwNSAtMTA3LjA4MiwtNjIuOTQ4Qy0xMDcuMjU0LC02NS4xNTQgLTEwOS4xMywtNjYuODM3IC0xMTEuMzQzLC02Ni44MzdMLTEzMy4zODEsLTY2LjgzN0MtMTM1LjgxOSwtNjYuODM3IC0xMzcuNzkzLC02NC44MDEgLTEzNy42NjIsLTYyLjM2N0MtMTM2LjI5OCwtMzcuMTg3IC0xMjMuODAyLC0xNC43NzcgLTEwNS4wNzMsMC4wMDFDLTEwMi45MDEsMS43MTUgLTEwMi45MDEsNC45OTcgLTEwNS4wNzMsNi43MTFDLTEyMy44MDIsMjEuNDg5IC0xMzYuMjk4LDQzLjg5OSAtMTM3LjY2Miw2OS4wNzhDLTEzNy43OTMsNzEuNTEzIC0xMzUuODE5LDczLjU0OCAtMTMzLjM4MSw3My41NDhMLTExMS4zNDMsNzMuNTQ4Qy0xMDkuMTMsNzMuNTQ4IC0xMDcuMjU0LDcxLjg2NSAtMTA3LjA4Miw2OS42NkMtMTA0Ljg3MSw0MS40MTcgLTgxLjAwMywxOC45MTggLTUyLjMzOCwxOC44NTRDLTIzLjU4LDE4Ljc5IDAuNDM0LDQxLjMyOCAyLjY1MSw2OS42NjFDMi44MjQsNzEuODY2IDQuNyw3My41NDggNi45MTIsNzMuNTQ4TDI4LjMxMyw3My41NDhDMzAuNzUxLDczLjU0OCAzMi43MjYsNzEuNTEzIDMyLjU5NCw2OS4wNzhDMzEuMjMsNDMuODk1IDE4LjcyOSwyMS40ODcgMCw2LjcxMSIgc3R5bGU9ImZpbGw6cmdiKDM1LDMxLDMyKTtmaWxsLXJ1bGU6bm9uemVybzsiLz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCg0LjE2NjY2NywwLDAsNC4xNjY2NjcsNzg5Mi43MTg3NSwyNzkwLjM1NjI1KSI+CiAgICAgICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLDEsMzc3LjI3MjksMTgxLjk1OTQpIj4KICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0wLDkxLjU2MUM1LjQ2Nyw5NS4yIDExLjcwNyw5Ny4wNjMgMTguMTUzLDk3LjA2M0MyMS4xNiw5Ny4wNjMgMjQuMjEzLDk2LjY1OCAyNy4yNTIsOTUuODM3QzQ5LjcyNiw4OS43NzcgNTQuNzczLDcyLjczMiA1NS40MzksNDlDNTYuMTg5LDE5Ljg1OCA2MS43ODksMTYuMDQ3IDY5LjAzLDE0LjA5M0M3OC4wMTMsMTEuNjcyIDg2Ljg1OCwxOC41NDcgOTAuMDY3LDMwLjQ0MkM5My42MzksNDMuNjg3IDg3LjUyNCw1My43OCA3MS44OTUsNjAuNDRMNzAuMjk1LDYxLjEyMkw3NS4xNzUsNzkuMjE3TDc3LjI2Myw3OC4zODNDMTAyLjc2NCw2OC4xOTQgMTEyLjg0Nyw1MC4yMTQgMTA2LjQyMSwyNi4zODlDMTAzLjIzNSwxNC41NzYgOTcuMTQzLDUuNjE5IDg4LjgwMiwwLjQ4NEM4MS4wNzYsLTQuMjczIDcxLjY1MiwtNS41MDIgNjIuMjczLC0yLjk2OEM0Mi4xMzYsMi40NjIgMzcuNjk1LDE5LjI3OSAzNy4yMjMsNDIuODZDMzYuODA0LDY2LjE4MyAzMy4xMDgsNzUuMDEyIDIyLjU4MSw3Ny44NTJDMTcuNDU2LDc5LjIzNiAxMi40Myw3OC4yMDkgOC4wNDYsNzQuODg5QzMuMzAzLDcxLjI5NyAtMC4zMTEsNjUuMjk2IC0yLjQwMyw1Ny41MzZDLTYuMzUxLDQyLjkgMC4yNjYsMzAuNzIzIDE1Ljc1LDI0LjEyOEwxNy4zNSwyMy40NDdMMTIuNTE1LDUuNTE5TDEwLjQyNyw2LjM1M0MtMTQuNjkyLDE2LjM4OSAtMjUuNjkzLDM3LjE5NyAtMTkuMDAxLDYyLjAxMkMtMTUuMzY2LDc1LjQ4OSAtOC43OTYsODUuNzA3IDAsOTEuNTYxIiBzdHlsZT0iZmlsbDpyZ2IoMzUsMzEsMzIpO2ZpbGwtcnVsZTpub256ZXJvOyIvPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDQuMTY2NjY3LDAsMCw0LjE2NjY2Nyw3ODkyLjcxODc1LDI3OTAuMzU2MjUpIj4KICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsMSw0MjAuOTQ0OCwzMDAuOTk1NSkiPgogICAgICAgICAgICAgICAgPHBhdGggZD0iTTAsMTYuNjg2QzQuNjA4LDE2LjY4NiA4LjM0MywxMi45NTEgOC4zNDMsOC4zNDNDOC4zNDMsMy43MzYgNC42MDgsMCAwLDBDLTQuNjA4LDAgLTguMzQzLDMuNzM2IC04LjM0Myw4LjM0M0MtOC4zNDMsMTIuOTUxIC00LjYwOCwxNi42ODYgMCwxNi42ODYiIHN0eWxlPSJmaWxsOnJnYigzNSwzMSwzMik7ZmlsbC1ydWxlOm5vbnplcm87Ii8+CiAgICAgICAgICAgIDwvZz4KICAgICAgICA8L2c+CiAgICA8L2c+Cjwvc3ZnPgo=") 2 2, auto;
+}
+a, button, select, label,
+input[type="checkbox"], input[type="radio"], input[type="submit"],
+.btn, [role="button"] {
+  cursor: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+Cjxzdmcgd2lkdGg9IjE2IiBoZWlnaHQ9IjIyIiB2aWV3Qm94PSIwIDAgNzEwIDEwMDAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgeG1sbnM6c2VyaWY9Imh0dHA6Ly93d3cuc2VyaWYuY29tLyIgc3R5bGU9ImZpbGwtcnVsZTpldmVub2RkO2NsaXAtcnVsZTpldmVub2RkO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2UtbWl0ZXJsaW1pdDoyOyI+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwxLC05MjkxLjkyODQ4LC0zNTMwLjc4MzI5NSkiPgogICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDQuMTY2NjY3LDAsMCw0LjE2NjY2Nyw3ODkyLjcxODc1LDI3OTAuMzU2MjUpIj4KICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsMSw0NzMuNDc4NSwzNDQuMDI1NikiPgogICAgICAgICAgICAgICAgPHBhdGggZD0iTTAsNi43MTFDLTIuMTczLDQuOTk3IC0yLjE3MywxLjcxNCAwLC0wQzE4LjcyOSwtMTQuNzc2IDMxLjIzLC0zNy4xODMgMzIuNTk0LC02Mi4zNjdDMzIuNzI2LC02NC44MDEgMzAuNzUxLC02Ni44MzcgMjguMzEzLC02Ni44MzdMNi45MTIsLTY2LjgzN0M0LjcsLTY2LjgzNyAyLjgyNCwtNjUuMTU0IDIuNjUxLC02Mi45NUMwLjQzNCwtMzQuNjE2IC0yMy41OCwtMTIuMDc5IC01Mi4zMzgsLTEyLjE0M0MtODEuMDAzLC0xMi4yMDcgLTEwNC44NzEsLTM0LjcwNSAtMTA3LjA4MiwtNjIuOTQ4Qy0xMDcuMjU0LC02NS4xNTQgLTEwOS4xMywtNjYuODM3IC0xMTEuMzQzLC02Ni44MzdMLTEzMy4zODEsLTY2LjgzN0MtMTM1LjgxOSwtNjYuODM3IC0xMzcuNzkzLC02NC44MDEgLTEzNy42NjIsLTYyLjM2N0MtMTM2LjI5OCwtMzcuMTg3IC0xMjMuODAyLC0xNC43NzcgLTEwNS4wNzMsMC4wMDFDLTEwMi45MDEsMS43MTUgLTEwMi45MDEsNC45OTcgLTEwNS4wNzMsNi43MTFDLTEyMy44MDIsMjEuNDg5IC0xMzYuMjk4LDQzLjg5OSAtMTM3LjY2Miw2OS4wNzhDLTEzNy43OTMsNzEuNTEzIC0xMzUuODE5LDczLjU0OCAtMTMzLjM4MSw3My41NDhMLTExMS4zNDMsNzMuNTQ4Qy0xMDkuMTMsNzMuNTQ4IC0xMDcuMjU0LDcxLjg2NSAtMTA3LjA4Miw2OS42NkMtMTA0Ljg3MSw0MS40MTcgLTgxLjAwMywxOC45MTggLTUyLjMzOCwxOC44NTRDLTIzLjU4LDE4Ljc5IDAuNDM0LDQxLjMyOCAyLjY1MSw2OS42NjFDMi44MjQsNzEuODY2IDQuNyw3My41NDggNi45MTIsNzMuNTQ4TDI4LjMxMyw3My41NDhDMzAuNzUxLDczLjU0OCAzMi43MjYsNzEuNTEzIDMyLjU5NCw2OS4wNzhDMzEuMjMsNDMuODk1IDE4LjcyOSwyMS40ODcgMCw2LjcxMSIgc3R5bGU9ImZpbGw6cmdiKDM1LDMxLDMyKTtmaWxsLXJ1bGU6bm9uemVybzsiLz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCg0LjE2NjY2NywwLDAsNC4xNjY2NjcsNzg5Mi43MTg3NSwyNzkwLjM1NjI1KSI+CiAgICAgICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLDEsMzc3LjI3MjksMTgxLjk1OTQpIj4KICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0wLDkxLjU2MUM1LjQ2Nyw5NS4yIDExLjcwNyw5Ny4wNjMgMTguMTUzLDk3LjA2M0MyMS4xNiw5Ny4wNjMgMjQuMjEzLDk2LjY1OCAyNy4yNTIsOTUuODM3QzQ5LjcyNiw4OS43NzcgNTQuNzczLDcyLjczMiA1NS40MzksNDlDNTYuMTg5LDE5Ljg1OCA2MS43ODksMTYuMDQ3IDY5LjAzLDE0LjA5M0M3OC4wMTMsMTEuNjcyIDg2Ljg1OCwxOC41NDcgOTAuMDY3LDMwLjQ0MkM5My42MzksNDMuNjg3IDg3LjUyNCw1My43OCA3MS44OTUsNjAuNDRMNzAuMjk1LDYxLjEyMkw3NS4xNzUsNzkuMjE3TDc3LjI2Myw3OC4zODNDMTAyLjc2NCw2OC4xOTQgMTEyLjg0Nyw1MC4yMTQgMTA2LjQyMSwyNi4zODlDMTAzLjIzNSwxNC41NzYgOTcuMTQzLDUuNjE5IDg4LjgwMiwwLjQ4NEM4MS4wNzYsLTQuMjczIDcxLjY1MiwtNS41MDIgNjIuMjczLC0yLjk2OEM0Mi4xMzYsMi40NjIgMzcuNjk1LDE5LjI3OSAzNy4yMjMsNDIuODZDMzYuODA0LDY2LjE4MyAzMy4xMDgsNzUuMDEyIDIyLjU4MSw3Ny44NTJDMTcuNDU2LDc5LjIzNiAxMi40Myw3OC4yMDkgOC4wNDYsNzQuODg5QzMuMzAzLDcxLjI5NyAtMC4zMTEsNjUuMjk2IC0yLjQwMyw1Ny41MzZDLTYuMzUxLDQyLjkgMC4yNjYsMzAuNzIzIDE1Ljc1LDI0LjEyOEwxNy4zNSwyMy40NDdMMTIuNTE1LDUuNTE5TDEwLjQyNyw2LjM1M0MtMTQuNjkyLDE2LjM4OSAtMjUuNjkzLDM3LjE5NyAtMTkuMDAxLDYyLjAxMkMtMTUuMzY2LDc1LjQ4OSAtOC43OTYsODUuNzA3IDAsOTEuNTYxIiBzdHlsZT0iZmlsbDpyZ2IoMzUsMzEsMzIpO2ZpbGwtcnVsZTpub256ZXJvOyIvPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDQuMTY2NjY3LDAsMCw0LjE2NjY2Nyw3ODkyLjcxODc1LDI3OTAuMzU2MjUpIj4KICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsMSw0MjAuOTQ0OCwzMDAuOTk1NSkiPgogICAgICAgICAgICAgICAgPHBhdGggZD0iTTAsMTYuNjg2QzQuNjA4LDE2LjY4NiA4LjM0MywxMi45NTEgOC4zNDMsOC4zNDNDOC4zNDMsMy43MzYgNC42MDgsMCAwLDBDLTQuNjA4LDAgLTguMzQzLDMuNzM2IC04LjM0Myw4LjM0M0MtOC4zNDMsMTIuOTUxIC00LjYwOCwxNi42ODYgMCwxNi42ODYiIHN0eWxlPSJmaWxsOnJnYigzNSwzMSwzMik7ZmlsbC1ydWxlOm5vbnplcm87Ii8+CiAgICAgICAgICAgIDwvZz4KICAgICAgICA8L2c+CiAgICA8L2c+Cjwvc3ZnPgo=") 2 2, pointer;
+}
+input[type="text"], input[type="email"], input[type="tel"],
+input[type="search"], input[type="number"], input[type="date"],
+input[type="password"], input[type="url"], textarea, [contenteditable] {
+  cursor: text;
+}
+
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.5;
+}
+
+img { max-width: 100%; display: block; }
+
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p { margin: 0; }
+
+button { font-family: inherit; cursor: pointer; }
+
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* ---- reusable buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--ink);
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.btn-outline {
+  background: var(--paper);
+  color: var(--ink);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.btn-outline:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.btn-small {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+}
+
+/* ---- placeholder media block : swap for <img>/<video> later ---- */
+.ph {
+  background: var(--placeholder);
+  border: 1px solid var(--placeholder-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8a8a;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  min-height: 120px;
+  width: 100%;
+}
+
+/* ---- zigzag "stitch" divider ---- */
+.stitch {
+  width: 100%;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='16'%3E%3Cpolyline points='0,13 25,3 50,13 75,3 100,13' fill='none' stroke='%23111111' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: left center;
+}
+
+/* ==========================================================================
+   SHARED CONTENT COMPONENTS
+   Used across multiple pages (home, shop, etc): generic section spacing,
+   the product-card grid, and the email signup bar. Keep truly page-unique
+   layout (e.g. a homepage-only hero) in that page's own <style> block —
+   only put things here that more than one page reuses as-is.
+   ========================================================================== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.section { padding-top: 56px; padding-bottom: 56px; }
+.section__title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  margin-bottom: 28px;
+}
+.section__eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: #6b6b6b;
+  margin-bottom: 10px;
+}
+
+/* ---- product grid ---- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.product-card__name { font-size: 1rem; margin-top: 14px; }
+.product-card__price { color: #555; margin-top: 4px; font-size: 0.9rem; }
+.product-card__cta { margin-top: 12px; width: 100%; }
+
+/* ---- email signup bar ---- */
+.signup {
+  padding-top: 44px;
+  padding-bottom: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.signup__text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.signup__form {
+  display: flex;
+  flex-shrink: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.signup__input {
+  border: none;
+  border-radius: 0;
+  padding: 12px 18px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  box-shadow: none;
+}
+.signup__form input[type="text"] {
+  flex: 0 1 140px;
+  min-width: 90px;
+}
+.signup__form input[type="email"] {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+.signup__form .btn {
+  border: none;
+  border-radius: 0;
+}
+.signup__form input ~ input,
+.signup__form input ~ button {
+  border-left: 1.5px solid var(--ink);
+}
+
+.form-feedback {
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+.form-feedback--success { color: #2f6b3f; }
+.form-feedback--error { color: #a83232; }
+
+@media (max-width: 768px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .signup { flex-direction: column; align-items: flex-start; }
+  .signup__text { white-space: normal; font-size: 1.05rem; }
+  .signup__form { width: 100%; }
+  .signup__form input[type="text"] { flex: 0 1 84px; min-width: 70px; }
+  .signup__form input[type="email"] { flex: 1 1 auto; min-width: 0; }
+}
+@media (max-width: 480px) {
+  .product-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- full-bleed hero with a background image and overlaid content ----
+   Used by the shop "drop is live" hero and the countdown page. The .ph
+   placeholder (or a real <img>/<video>) sits absolutely behind the text. */
+.media-hero {
+  position: relative;
+  overflow: hidden;
+}
+.media-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 20px;
+}
+.media-hero__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* ---- countdown digits ---- */
+.countdown {
+  display: flex;
+  justify-content: center;
+  gap: clamp(10px, 3vw, 28px);
+}
+.countdown__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.countdown__digits {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 8vw, 5.5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.countdown__sep {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 8vw, 5.5rem);
+  line-height: 1;
+  color: #999;
+}
+.countdown__label {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+/* ==========================================================================
+   TICKER
+   ========================================================================== */
+.ticker {
+  height: var(--ticker-h);
+  overflow: hidden;
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper);
+}
+.ticker__track {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  align-items: center;
+  animation: ticker-scroll 26s linear infinite;
+  will-change: transform;
+}
+.ticker__track span {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track { animation: none; }
+}
+
+/* ==========================================================================
+   HEADER  (sticky — stays visible while the page scrolls)
+   ========================================================================== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--paper);
+  border-bottom: 1px solid var(--ink);
+}
+.site-header__row {
+  height: var(--header-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+/* left cluster: Play link always visible, quick-links join it on scroll */
+.site-header__left {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.header-play-link {
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.site-header__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 26px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.site-header__links a {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.logo {
+  grid-column: 2;
+  position: relative;
+  display: block;
+  height: calc(var(--header-h) * 0.6);
+  width: 380px; /* generous fixed box; images are centered inside it below */
+}
+.logo img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 100%;
+  width: auto;
+  transition: opacity 0.2s ease;
+}
+.logo .logo-mark { opacity: 0; }
+
+/* ---- condensed / persistent state, applied once the page is scrolled ---- */
+.site-header.is-scrolled .logo .logo-full { opacity: 0; }
+.site-header.is-scrolled .logo .logo-mark { opacity: 1; }
+
+.site-header__actions {
+  grid-column: 3;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---- condensed / persistent state: quick-links fade in on scroll ---- */
+.site-header.is-scrolled .site-header__links {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn svg { width: 22px; height: 22px; }
+
+/* ==========================================================================
+   MENU SHEET  (off-canvas full navigation — opened from header or bottom nav)
+   ========================================================================== */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.35);
+  z-index: 80;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.menu-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 88vw);
+  background: var(--paper);
+  border-left: 1px solid var(--ink);
+  z-index: 90;
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 28px;
+}
+.menu-sheet.is-open { transform: translateX(0); }
+
+.menu-sheet__top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 40px;
+}
+
+.menu-sheet__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.menu-sheet__links a {
+  display: block;
+  padding: 14px 2px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  border-bottom: 1px solid #eee;
+}
+.menu-sheet__links a[aria-current="page"] { color: var(--accent); }
+
+.menu-sheet__foot {
+  margin-top: auto;
+  padding-top: 20px;
+  font-size: 0.8rem;
+  color: #6b6b6b;
+}
+
+/* ==========================================================================
+   MOBILE BOTTOM NAV  (mobile only — 4 icons, replaces the top header nav)
+   ========================================================================== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  background: var(--paper);
+  border-top: 1px solid var(--ink);
+  height: var(--mobile-nav-h);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.mobile-nav__row {
+  display: flex;
+  height: 100%;
+}
+.mobile-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--ink);
+}
+.mobile-nav__item svg { width: 24px; height: 24px; }
+.mobile-nav__item img { height: 20px; width: auto; aspect-ratio: 710 / 585; }
+.mobile-nav__item span {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   MASCOT BUTTON  (floating, fixed bottom-right — future chatbox trigger)
+   ========================================================================== */
+.mascot-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 65;
+  box-shadow: 0 2px 8px rgba(17,17,17,0.12);
+}
+.mascot-btn img { height: 24px; width: auto; aspect-ratio: 710 / 1000; }
+
+@media (max-width: 768px) {
+  .mascot-btn {
+    right: 16px;
+    bottom: calc(var(--mobile-nav-h) + 14px + env(safe-area-inset-bottom, 0));
+    width: 46px;
+    height: 46px;
+  }
+  .mascot-btn img { height: 20px; width: auto; aspect-ratio: 710 / 1000; }
+}
+
+.mobile-nav.is-hidden-for-modal,
+.mascot-btn.is-hidden-for-modal {
+  display: none;
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+.site-footer {
+  background: var(--accent-pale);
+  border-top: 1px solid var(--ink);
+  padding: 40px 0 24px;
+}
+.site-footer__nav {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 0;
+  margin: 0 0 40px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.site-footer__ack {
+  font-size: 0.8rem;
+  color: #4a4a4a;
+  max-width: 640px;
+  margin-bottom: 22px;
+}
+.site-footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid rgba(17,17,17,0.15);
+  padding-top: 18px;
+  font-size: 0.78rem;
+}
+.site-footer__social {
+  display: flex;
+  gap: 14px;
+}
+.site-footer__social svg { width: 18px; height: 18px; }
+
+/* ==========================================================================
+   RESPONSIVE : below 768px, hide desktop header actions, show bottom nav
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root { --gutter: 28px; }  /* extra breathing room on mobile vs desktop's 24px */
+
+  /* Mobile header is NOT sticky/persistent — it scrolls away with the
+     page like ordinary content. The bottom nav is what stays persistent
+     on mobile, so the top header doesn't need to pin itself too. */
+  .site-header {
+    position: static;
+    border-bottom: none;
+  }
+
+  .site-header__actions { display: none; }
+  .site-header__left { display: none; }
+  .site-header__row {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 14px 0;
+  }
+
+  /* Mobile keeps one simple header: big full logo, no scroll-condense. */
+  .logo {
+    grid-column: 1;
+    height: auto;
+    width: min(300px, 78vw);
+    margin: 0 auto;
+  }
+  .logo img {
+    position: static;
+    transform: none;
+    width: 100%;
+    height: auto;
+  }
+  .logo .logo-mark { display: none; }
+  .site-header.is-scrolled .logo .logo-full { opacity: 1; }
+  .site-header.is-scrolled .logo .logo-mark { opacity: 0; }
+
+  .mobile-nav { display: block; }
+  body { padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0)); }
+}

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstitch — Material Archive</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg">
+
+<!-- ==========================================================================
+     MATERIAL ARCHIVE PAGE
+
+     HOW TO EDIT
+     - Hero label/image: see EDITABLE comments in the hero section.
+     - Partner CTA: "Become a Partner Today" links to
+       contact.html?category=surplus-material-enquiry — once contact.html
+       exists, have it read that query param (URLSearchParams) and
+       pre-select a matching category field.
+     - Each material: a <button class="material-tile"> in the grid PLUS a
+       matching <div class="material-modal" data-material="00N"> lower down
+       in the file. They're linked purely by that matching data-material
+       value — copy/paste one full pair (tile + modal) and change the
+       number to add a 7th item, or delete a pair to remove one.
+     - Nav links live in the header, footer, mobile nav, and menu sheet —
+       search "NAV LINKS" to update all of them together.
+     ========================================================================== -->
+</head>
+<body>
+
+  <!-- ============ TICKER — EDITABLE ============ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__track" data-ticker-track>
+      <span>zero waste</span><span>•</span><span>modular puzzle</span><span>•</span><span>upcycle textile</span><span>•</span>
+    </div>
+  </div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="wrap site-header__row">
+      <div class="site-header__left">
+        <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="header-play-link">Play</a>
+        <ul class="site-header__links">
+          <li><a href="about.html">About</a></li>
+          <li><a href="learn.html">Learn</a></li>
+          <li><a href="custom.html">Custom</a></li>
+          <li><a href="shop.html">Shop</a></li>
+        </ul>
+      </div>
+      <a href="index.html" class="logo" aria-label="Unstitch — home">
+        <img class="logo-full" src="assets/logo-full.svg" alt="Unstitch">
+        <img class="logo-mark" src="assets/logo-mark.svg" alt="Unstitch">
+      </a>
+      <div class="site-header__actions">
+        <button class="icon-btn" data-menu-open aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ ARCHIVE HERO — EDITABLE ============
+         Full-bleed image with a small eyebrow label overlaid at the top. -->
+    <section class="media-hero archive-hero">
+      <!-- EDITABLE: replace with <img class="media-hero__media" src="images/archive-hero.jpg" alt=""> -->
+      <div class="ph media-hero__media">Image</div>
+      <div class="media-hero__content">
+        <div class="wrap archive-hero__label-wrap">
+          <p class="archive-hero__label">Rescue Material Files</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PARTNER CTA — EDITABLE ============ -->
+    <section class="wrap partner-cta">
+      <p class="section__eyebrow">Have surplus material?</p>
+      <h2 class="partner-cta__title">Partner With Us</h2>
+      <p class="partner-cta__body">Don't let fabric remnants, premium textiles, deadstock or factory offcuts go to waste. We would love to collaborate with brands and manufacturers to give your surplus textiles a second life.</p>
+      <!-- Pre-selects a category once contact.html exists — see file header note. -->
+      <a href="contact.html?category=surplus-material-enquiry" class="btn btn-outline btn-small">Become a Partner Today</a>
+    </section>
+
+    <!-- ============ MATERIAL GRID — EDITABLE ============
+         Hover a tile to preview the raw material behind each collection;
+         click to open the full file. 3 columns desktop, 2 on mobile. -->
+    <section class="material-grid" aria-label="Rescue material files">
+
+      <button class="material-tile" data-open-material="001" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">001</span>
+      </button>
+
+      <button class="material-tile" data-open-material="002" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">002</span>
+      </button>
+
+      <button class="material-tile" data-open-material="003" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">003</span>
+      </button>
+
+      <button class="material-tile" data-open-material="004" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">004</span>
+      </button>
+
+      <button class="material-tile" data-open-material="005" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">005</span>
+      </button>
+
+      <button class="material-tile" data-open-material="006" aria-haspopup="dialog">
+        <div class="ph material-tile__img material-tile__img--collection">Image of transformed collection</div>
+        <div class="ph material-tile__img material-tile__img--raw">Image of raw material</div>
+        <span class="material-tile__num">006</span>
+      </button>
+
+    </section>
+
+    <!-- ============ EMAIL SIGNUP — EDITABLE ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="archive-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name">
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required>
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- ============ FOOTER — NAV LINKS + EDITABLE TEXT ============ -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <ul class="site-footer__nav">
+        <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Play</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="learn.html">Learn</a></li>
+        <li><a href="custom.html">Custom</a></li>
+        <li><a href="shop.html">Shop</a></li>
+        <li><a href="archive.html">Material Archive</a></li>
+        <li><a href="contact.html">Contact Us</a></li>
+      </ul>
+      <p class="site-footer__ack">We acknowledge the Wurundjeri people of the Kulin Nation, the traditional custodians of this land on which we work. We pay our respects to their Elders, past and present, and recognise their creativity and connection to this unceded land.</p>
+      <div class="site-footer__bottom">
+        <span>© 2025–2026 Unstitch | Naarm, Melbourne Australia</span>
+        <div class="site-footer__social" aria-label="Social media">
+          <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#111" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="#111" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="#111"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#111" stroke-width="1.6"/><path d="M7.5 10v6.2M7.5 7.3v.2M11.2 16.2V13c0-1.4.9-2.3 2-2.3s1.8.8 1.8 2.2v3.3" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ MOBILE BOTTOM NAV — NAV LINKS ============ -->
+  <nav class="mobile-nav" aria-label="Primary">
+    <div class="mobile-nav__row">
+      <a href="index.html" class="mobile-nav__item">
+        <img src="assets/logo-mark.svg" alt="">
+        <span>Home</span>
+      </a>
+      <a href="shop.html" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span>Shop</span>
+      </a>
+      <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 4h3v3H9a2 2 0 1 0 0 4H4V8a2 2 0 0 1 2-2h3V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 11h3a2 2 0 1 1 0 4h-3v3H9v-3H4v-3h5v-1h3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Play</span>
+      </a>
+      <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>More</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ MASCOT BUTTON ============ -->
+  <button class="mascot-btn" aria-label="Chat with us — coming soon" title="Chat — coming soon">
+    <img src="assets/mascot.svg" alt="">
+  </button>
+
+  <!-- ============ MENU SHEET — NAV LINKS ============ -->
+  <div class="menu-overlay" data-menu-overlay></div>
+  <aside class="menu-sheet" data-menu-sheet aria-label="Site menu">
+    <div class="menu-sheet__top">
+      <button class="icon-btn" data-menu-close aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <ul class="menu-sheet__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Playground</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="learn.html">Learn</a></li>
+      <li><a href="custom.html">Custom</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="archive.html" aria-current="page">Material Archive</a></li>
+      <li><a href="contact.html">Contact Us</a></li>
+    </ul>
+    <p class="menu-sheet__foot">Naarm, Melbourne Australia</p>
+  </aside>
+
+  <!-- ============ MATERIAL FILE MODAL ============
+       One shared overlay + nav shell; the six panels below are the actual
+       per-material content, each matched to its grid tile by the
+       data-material value. Only one panel is visible at a time. -->
+  <div class="material-modal-overlay" data-material-overlay hidden></div>
+
+  <div class="material-modal-shell" data-material-shell hidden role="dialog" aria-modal="true">
+    <button class="material-modal__close" data-material-close aria-label="Close file">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="material-modal__drag-handle" data-material-drag-handle aria-hidden="true"></div>
+
+    <div class="material-modal__scroll" data-material-scroll>
+
+    <!-- ---- File 001 — EDITABLE ---- -->
+    <div class="material-modal" data-material="001">
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 001</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ---- File 002 — EDITABLE ---- -->
+    <div class="material-modal" data-material="002" hidden>
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 002</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ---- File 003 — EDITABLE ---- -->
+    <div class="material-modal" data-material="003" hidden>
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 003</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ---- File 004 — EDITABLE ---- -->
+    <div class="material-modal" data-material="004" hidden>
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 004</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ---- File 005 — EDITABLE ---- -->
+    <div class="material-modal" data-material="005" hidden>
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 005</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ---- File 006 — EDITABLE ---- -->
+    <div class="material-modal" data-material="006" hidden>
+      <div class="material-modal__images">
+        <div class="ph material-modal__image">Image of raw material</div>
+        <div class="ph material-modal__image">Image of transformed collection</div>
+      </div>
+      <div class="material-modal__info">
+        <div class="material-modal__specs">
+          <h2 class="material-modal__name">Collection 006</h2>
+          <dl class="material-modal__spec-list">
+            <div><dt>Origin Source</dt><dd>Textile mill, Melbourne</dd></div>
+            <div><dt>Diverted from</dt><dd>Landfill</dd></div>
+            <div><dt>Rescue Weight</dt><dd>12 kg</dd></div>
+            <div><dt>Rescue Yield</dt><dd>40 tiles</dd></div>
+            <div><dt>Usable Width</dt><dd>140 cm</dd></div>
+          </dl>
+          <dl class="material-modal__spec-list">
+            <div><dt>Material Type</dt><dd>Cotton twill</dd></div>
+            <div><dt>Fibre Content</dt><dd>100% cotton</dd></div>
+            <div><dt>Colour</dt><dd>Indigo</dd></div>
+            <div><dt>Flaw</dt><dd>Selvedge fraying</dd></div>
+          </dl>
+        </div>
+        <p class="material-modal__story">A story behind how we came across this material and turned it into the collection. More on it, more on it, more on it.</p>
+      </div>
+      <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+
+  <style>
+    /* Page-specific layout for the archive page only. */
+
+    .archive-hero {
+      min-height: 340px;
+    }
+    .archive-hero .media-hero__media { padding-top: 56px; }
+    .archive-hero__label-wrap {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+    }
+    .archive-hero__label {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .partner-cta { padding-top: 48px; padding-bottom: 48px; }
+    .partner-cta__title {
+      font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+      margin: 6px 0 16px;
+    }
+    .partner-cta__body {
+      max-width: 62ch;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    /* ---- material grid: full-bleed, 3 columns, square tiles ---- */
+    .material-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--ink);
+      border-left: 1px solid var(--ink);
+    }
+    .material-tile {
+      position: relative;
+      display: block;
+      aspect-ratio: 1 / 1;
+      border: none;
+      border-right: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      padding: 0;
+      background: none;
+      overflow: hidden;
+    }
+    .material-tile__img {
+      position: absolute;
+      inset: 0;
+      border: none;
+      border-radius: 0;
+      min-height: 0;
+      transition: opacity 0.25s ease;
+    }
+    .material-tile__img--raw { opacity: 0; }
+    .material-tile:hover .material-tile__img--collection,
+    .material-tile:focus-visible .material-tile__img--collection { opacity: 0; }
+    .material-tile:hover .material-tile__img--raw,
+    .material-tile:focus-visible .material-tile__img--raw { opacity: 1; }
+    .material-tile__num {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 16px;
+      z-index: 1;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       MATERIAL FILE MODAL
+       ========================================================================== */
+    .material-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 17, 17, 0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .material-modal-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .material-modal-shell {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      z-index: 110;
+      width: min(600px, 92vw);
+      max-height: 88vh;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      transform: translate(-50%, calc(-50% + var(--drag-y, 0px))) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .material-modal-shell.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, calc(-50% + var(--drag-y, 0px))) scale(1);
+    }
+    .material-modal__scroll {
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .material-modal__close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 6;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .material-modal__close svg { width: 18px; height: 18px; }
+
+    /* Mobile-only drag handle, overlaid on the image so it doesn't add
+       its own strip of empty space above the content. */
+    .material-modal__drag-handle { display: none; }
+
+    /* ---- in-card hover navigation ----
+       Spans the whole card (images + info), not just the image row, so
+       the cursor-arrow effect works no matter where you're hovering. */
+    .material-modal__nav-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 30%;
+      z-index: 4;
+      margin: 0;
+      border: none;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background: none;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .material-modal__nav-zone--prev { left: 0; justify-content: flex-start; }
+    .material-modal__nav-zone--next { right: 0; justify-content: flex-end; }
+    .material-modal__nav-zone svg {
+      width: 26px;
+      height: 26px;
+      opacity: 0;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+    }
+    .material-modal__nav-zone[disabled] {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Mouse/trackpad: no visible icon — the cursor itself becomes a
+       left/right arrow while hovering that zone, and reverts to the
+       default cursor once past the last/first file. */
+    @media (hover: hover) and (pointer: fine) {
+      .material-modal__nav-zone--prev {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M18 10l-6 6 6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, w-resize;
+      }
+      .material-modal__nav-zone--next {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M14 10l6 6-6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, e-resize;
+      }
+    }
+
+    /* Touch can't hover/show a custom cursor, so the zones are invisible
+       there — mobile navigates by swipe instead (see script.js). */
+    @media (hover: none) {
+      .material-modal__nav-zone { display: none; }
+    }
+
+    .material-modal {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .material-modal__images {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .material-modal__image {
+      aspect-ratio: 1 / 1;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+      border-right: 1px solid var(--ink);
+    }
+    .material-modal__images .ph:last-child { border-right: none; }
+    .material-modal__info {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-top: 1px solid var(--ink);
+    }
+    .material-modal__name {
+      font-size: 1.4rem;
+      margin-bottom: 14px;
+    }
+    .material-modal__spec-list {
+      margin: 0 0 14px;
+    }
+    .material-modal__spec-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 0.86rem;
+    }
+    .material-modal__spec-list dt { color: #666; }
+    .material-modal__spec-list dd { margin: 0; font-weight: 600; text-align: right; }
+    .material-modal__story {
+      font-size: 0.92rem;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .material-grid { grid-template-columns: repeat(2, 1fr); }
+      .material-modal-shell {
+        top: 50%;
+        left: 50%;
+        width: 90vw;
+        max-height: 90vh;
+        border-radius: 0;
+      }
+      .material-modal__scroll { max-height: 90vh; }
+      .material-modal__drag-handle {
+        display: block;
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.85);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+      }
+    }
+  </style>
+
+</body>
+</html>

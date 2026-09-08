@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstitch — Custom</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg">
+
+<!-- ==========================================================================
+     CUSTOM / COMMISSION PAGE
+
+     HOW TO EDIT
+     - Hero: built to hold a VIDEO of past work, not just a still image —
+       see the EDITABLE comment in the hero section for the exact markup
+       to drop in once you have a clip.
+     - Use cases: each is just a bordered box with a short label — add or
+       remove <div class="use-case"> items freely, the grid reflows.
+     - Process steps: each of the 5 columns reveals a short description on
+       hover WITHOUT changing size (the box height is fixed and the extra
+       text is reserved space that's just invisible until hovered) — edit
+       the hidden text in each .process-step__desc.
+     - Capabilities: placeholder paragraphs — swap for real copy on
+       materials, scale, lead times, etc.
+     - Closing CTA: left side is the main "Custom your piece" enquiry,
+       right side offers "Book a Workshop" as a lower-commitment
+       alternative for people not ready to commission yet.
+     - Nav links live in the header, footer, mobile nav, and menu sheet —
+       search "NAV LINKS" to update all of them together.
+     ========================================================================== -->
+</head>
+<body>
+
+  <!-- ============ TICKER — EDITABLE ============ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__track" data-ticker-track>
+      <span>zero waste</span><span>•</span><span>modular puzzle</span><span>•</span><span>upcycle textile</span><span>•</span>
+    </div>
+  </div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header">
+    <div class="wrap site-header__row">
+      <div class="site-header__left">
+        <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="header-play-link">Play</a>
+        <ul class="site-header__links">
+          <li><a href="about.html">About</a></li>
+          <li><a href="learn.html">Learn</a></li>
+          <li><a href="custom.html" aria-current="page">Custom</a></li>
+          <li><a href="shop.html">Shop</a></li>
+        </ul>
+      </div>
+      <a href="index.html" class="logo" aria-label="Unstitch — home">
+        <img class="logo-full" src="assets/logo-full.svg" alt="Unstitch">
+        <img class="logo-mark" src="assets/logo-mark.svg" alt="Unstitch">
+      </a>
+      <div class="site-header__actions">
+        <button class="icon-btn" data-menu-open aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ CUSTOM HERO — EDITABLE ============
+         Built to hold a video of past custom work, not just a still.
+         Swap the .ph placeholder for:
+         <video class="media-hero__media" autoplay muted loop playsinline
+                poster="images/custom-hero-poster.jpg">
+           <source src="images/custom-hero.mp4" type="video/mp4">
+         </video> -->
+    <section class="media-hero custom-hero">
+      <div class="ph media-hero__media">Image / Video</div>
+      <div class="media-hero__content">
+        <div class="wrap custom-hero__label-wrap">
+          <p class="custom-hero__label">Custom</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ USE CASES — EDITABLE ============ -->
+    <section class="wrap section use-cases">
+      <p class="section__eyebrow">Use Cases</p>
+      <div class="use-case-grid">
+        <div class="use-case">Feature Wall Interior</div>
+        <div class="use-case">Dark Room Exhibition</div>
+        <div class="use-case">Soundproof Studio</div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ PROCESS — EDITABLE ============
+         Hover a step to reveal more detail — the box never changes size,
+         the description space is always reserved, just invisible until
+         hovered (or tapped, on touch devices). -->
+    <section class="wrap section process-section">
+      <p class="section__eyebrow">Process</p>
+      <h2 class="section__title">Our Creative Approach</h2>
+    </section>
+
+    <section class="process-grid" aria-label="Our process">
+      <div class="process-step">
+        <div class="process-step__inner">
+          <h3 class="process-step__title">Customise</h3>
+          <p class="process-step__desc">We start with a conversation about your space, your vision, and what the piece needs to do.</p>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="process-step__inner">
+          <h3 class="process-step__title">Design</h3>
+          <p class="process-step__desc">We sketch and model the tile pattern, colourway, and scale until it's right.</p>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="process-step__inner">
+          <h3 class="process-step__title">Source</h3>
+          <p class="process-step__desc">We match the design against our rescued material stock, prioritising what's already diverted from landfill.</p>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="process-step__inner">
+          <h3 class="process-step__title">Produce</h3>
+          <p class="process-step__desc">Every tile is cut, finished, and interlocked by hand in our Naarm studio.</p>
+        </div>
+      </div>
+      <div class="process-step">
+        <div class="process-step__inner">
+          <h3 class="process-step__title">Deliver</h3>
+          <p class="process-step__desc">We package, ship, and where needed, help with on-site installation.</p>
+        </div>
+      </div>
+    </section>
+
+    <p class="wrap process-footnote">More details about the process, like the minimum accepted budget, etc.<br>Depending on the complexity of your custom piece, allow 2–6 weeks to design and execute.</p>
+
+    <!-- ============ CAPABILITIES — EDITABLE ============ -->
+    <section class="wrap section capabilities">
+      <p class="section__eyebrow">Capabilities</p>
+      <h2 class="section__title">What We Can Build</h2>
+      <div class="capabilities__grid">
+        <div>
+          <h3 class="capabilities__label">Scale</h3>
+          <p class="capabilities__body">From a single accent panel to full feature walls and room-scale installations.</p>
+        </div>
+        <div>
+          <h3 class="capabilities__label">Materials</h3>
+          <p class="capabilities__body">Rescued textiles first, wherever the design allows — we'll always tell you what a piece is made from.</p>
+        </div>
+        <div>
+          <h3 class="capabilities__label">Finish</h3>
+          <p class="capabilities__body">Acoustic, blackout, or purely decorative — the interlocking system adapts to what the space needs.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CLOSING CTA — EDITABLE ============ -->
+    <section class="wrap closing-cta">
+      <div class="closing-cta__box">
+        <div class="closing-cta__main">
+          <h2 class="closing-cta__title">Custom Build a Piece<br>for Your Space</h2>
+          <p class="closing-cta__body">Share your vision and requirements with us.</p>
+          <a href="contact.html?category=custom-piece-enquiry" class="btn btn-filled btn-small">Custom Your Piece</a>
+        </div>
+        <div class="closing-cta__side">
+          <p class="closing-cta__side-label">Not ready to commission yet?</p>
+          <a href="learn.html" class="btn btn-outline btn-small">Book a Workshop</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ FOOTER — NAV LINKS + EDITABLE TEXT ============ -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <ul class="site-footer__nav">
+        <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Play</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="learn.html">Learn</a></li>
+        <li><a href="custom.html">Custom</a></li>
+        <li><a href="shop.html">Shop</a></li>
+        <li><a href="archive.html">Material Archive</a></li>
+        <li><a href="contact.html">Contact Us</a></li>
+      </ul>
+      <p class="site-footer__ack">We acknowledge the Wurundjeri people of the Kulin Nation, the traditional custodians of this land on which we work. We pay our respects to their Elders, past and present, and recognise their creativity and connection to this unceded land.</p>
+      <div class="site-footer__bottom">
+        <span>© 2025–2026 Unstitch | Naarm, Melbourne Australia</span>
+        <div class="site-footer__social" aria-label="Social media">
+          <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#111" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="#111" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="#111"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#111" stroke-width="1.6"/><path d="M7.5 10v6.2M7.5 7.3v.2M11.2 16.2V13c0-1.4.9-2.3 2-2.3s1.8.8 1.8 2.2v3.3" stroke="#111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ MOBILE BOTTOM NAV — NAV LINKS ============ -->
+  <nav class="mobile-nav" aria-label="Primary">
+    <div class="mobile-nav__row">
+      <a href="index.html" class="mobile-nav__item">
+        <img src="assets/logo-mark.svg" alt="">
+        <span>Home</span>
+      </a>
+      <a href="shop.html" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span>Shop</span>
+      </a>
+      <a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener" class="mobile-nav__item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 4h3v3H9a2 2 0 1 0 0 4H4V8a2 2 0 0 1 2-2h3V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 11h3a2 2 0 1 1 0 4h-3v3H9v-3H4v-3h5v-1h3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Play</span>
+      </a>
+      <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>More</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ MASCOT BUTTON ============ -->
+  <button class="mascot-btn" aria-label="Chat with us — coming soon" title="Chat — coming soon">
+    <img src="assets/mascot.svg" alt="">
+  </button>
+
+  <!-- ============ MENU SHEET — NAV LINKS ============ -->
+  <div class="menu-overlay" data-menu-overlay></div>
+  <aside class="menu-sheet" data-menu-sheet aria-label="Site menu">
+    <div class="menu-sheet__top">
+      <button class="icon-btn" data-menu-close aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <ul class="menu-sheet__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="https://www.unstitchx.com/playground" target="_blank" rel="noopener">Playground</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="learn.html">Learn</a></li>
+      <li><a href="custom.html" aria-current="page">Custom</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="archive.html">Material Archive</a></li>
+      <li><a href="contact.html">Contact Us</a></li>
+    </ul>
+    <p class="menu-sheet__foot">Naarm, Melbourne Australia</p>
+  </aside>
+
+  <script src="script.js"></script>
+
+  <style>
+    /* Page-specific layout for the custom page only. */
+
+    .custom-hero { min-height: 340px; }
+    .custom-hero .media-hero__media { padding-top: 56px; }
+    .custom-hero__label-wrap {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+    }
+    .custom-hero__label {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ---- use cases ---- */
+    .use-case-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .use-case {
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      font-size: 0.98rem;
+    }
+
+    /* ---- process ---- */
+    .process-section { padding-bottom: 8px; }
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+    }
+    .process-step {
+      border-right: 1px solid var(--ink);
+      height: 260px;
+      overflow: hidden;
+    }
+    .process-grid .process-step:last-child { border-right: none; }
+    .process-step__inner {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      gap: 14px;
+    }
+    .process-step__title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .process-step__desc {
+      font-size: 0.85rem;
+      color: #444;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .process-step:hover .process-step__desc,
+    .process-step:focus-within .process-step__desc { opacity: 1; }
+
+    .process-footnote {
+      padding-top: 24px;
+      padding-bottom: 8px;
+      color: #444;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    /* ---- capabilities ---- */
+    .capabilities__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 28px;
+    }
+    .capabilities__label {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+    }
+    .capabilities__body { color: #444; }
+
+    /* ---- closing CTA ---- */
+    .closing-cta { padding: 56px 0; }
+    .closing-cta__box {
+      border: 1px solid var(--ink);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .closing-cta__main, .closing-cta__side {
+      padding: 40px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .closing-cta__main { border-right: 1px solid var(--ink); justify-content: center; }
+    .closing-cta__side { justify-content: center; align-items: flex-start; }
+    .closing-cta__title {
+      font-size: clamp(1.3rem, 2.8vw, 1.7rem);
+      line-height: 1.25;
+    }
+    .closing-cta__body { color: #444; }
+    .closing-cta__side-label { color: #444; font-size: 0.92rem; }
+
+    @media (max-width: 768px) {
+      .use-case-grid { grid-template-columns: 1fr; }
+      .process-grid { grid-template-columns: repeat(2, 1fr); }
+      .process-step { height: auto; border-bottom: 1px solid var(--ink); }
+      .process-step:nth-child(2n) { border-right: none; }
+      .process-step__desc { opacity: 1; }
+      .capabilities__grid { grid-template-columns: 1fr; gap: 24px; }
+      .closing-cta__box { grid-template-columns: 1fr; }
+      .closing-cta__main { border-right: none; border-bottom: 1px solid var(--ink); }
+    }
+  </style>
+
+</body>
+</html>
