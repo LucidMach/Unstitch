@@ -1,0 +1,59 @@
+---
+interface Props {
+  phrases?: string[];
+}
+
+const { phrases = ["zero waste", "modular puzzle", "upcycle textile"] } = Astro.props;
+---
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker__track" data-ticker-track>
+    {phrases.map((phrase) => (
+      <>
+        <span>{phrase}</span>
+        <span>•</span>
+      </>
+    ))}
+  </div>
+</div>
+
+<script>
+  function initTicker() {
+    const track = document.querySelector<HTMLElement>('[data-ticker-track]');
+    if (!track) return;
+    
+    // Store original HTML if not already stored
+    if (!track.dataset.originalHtml) {
+      track.dataset.originalHtml = track.innerHTML;
+    }
+    const baseHTML = track.dataset.originalHtml;
+    
+    const buildTicker = () => {
+      track.innerHTML = baseHTML;
+      const needed = window.innerWidth * 2.2;
+      let copies = 1;
+      while (track.scrollWidth < needed || copies < 2) {
+        track.insertAdjacentHTML('beforeend', baseHTML);
+        copies++;
+      }
+      if (copies % 2 !== 0) {
+        track.insertAdjacentHTML('beforeend', baseHTML);
+        copies++;
+      }
+      const pxPerSecond = 60;
+      const totalWidth = track.scrollWidth / 2;
+      track.style.animationDuration = `${totalWidth / pxPerSecond}s`;
+    };
+
+    buildTicker();
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(buildTicker, 200);
+    });
+  }
+
+  // Support both initial load and client transitions
+  initTicker();
+  document.addEventListener('astro:page-load', initTicker);
+</script>

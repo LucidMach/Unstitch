@@ -1,0 +1,270 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Unstitch — Contact Us" description="Get in touch for school workshops, corporate bookings, surplus material partnerships, and bespoke commissions.">
+  <!-- ============ DECORATIVE BANNER ============ -->
+  <div class="contact-banner" aria-hidden="true"></div>
+
+  <main>
+    <section class="wrap contact-layout">
+      <!-- ============ LEFT: INTRO ============ -->
+      <div class="contact-intro">
+        <h1 class="contact-intro__title">Let's work together</h1>
+        <p class="contact-intro__subtitle">Studio Capacity & Enquiries</p>
+        <p class="contact-intro__note">
+          Whether you have surplus textile stock to divert, want to book a classroom workshop, or wish to commission a bespoke installation, we'd love to hear from you.
+        </p>
+        <div class="contact-meta mt-8">
+          <p class="text-sm font-semibold text-gray-500">Naarm / Melbourne, Australia</p>
+          <p class="text-sm text-gray-500 mt-1">Typical response time: 1–2 business days</p>
+        </div>
+      </div>
+
+      <!-- ============ RIGHT: FORM ============ -->
+      <div class="contact-form-wrap">
+        <form id="contact-form" class="contact-form">
+          <div class="form-group">
+            <label class="sr-only" for="cf-name">Full Name</label>
+            <input id="cf-name" name="name" class="contact-input" type="text" placeholder="Full Name" required />
+          </div>
+
+          <div class="form-group">
+            <label class="sr-only" for="cf-email">Email</label>
+            <input id="cf-email" name="email" class="contact-input" type="email" placeholder="Email" required />
+          </div>
+
+          <div class="form-group">
+            <label class="sr-only" for="cf-phone">Phone number</label>
+            <input id="cf-phone" name="phone" class="contact-input" type="tel" placeholder="Phone number (optional)" />
+          </div>
+
+          <div class="form-group">
+            <label class="sr-only" for="cf-subject">Subject</label>
+            <select id="cf-subject" name="subject" class="contact-input contact-input--select" data-subject-select required>
+              <option value="" disabled selected>Select Enquiry Subject</option>
+              <option value="general-enquiry">General Enquiry</option>
+              <option value="school-workshop-enquiry">School Workshop</option>
+              <option value="corporate-workshop-enquiry">Corporate Workshop</option>
+              <option value="venue-partnership-enquiry">Venue Partnership (Gallery / Museum / Council)</option>
+              <option value="surplus-material-enquiry">Surplus Material — Become a Partner</option>
+              <option value="custom-piece-enquiry">Custom Piece / Commission</option>
+            </select>
+          </div>
+
+          <!-- Dynamic Subject: School Workshop -->
+          <div class="contact-form__extra" data-subject-fields="school-workshop-enquiry" hidden>
+            <input name="schoolName" class="contact-input" type="text" placeholder="School / Institution Name" />
+            <input name="yearLevel" class="contact-input" type="text" placeholder="Target Year Level(s), e.g. Year 8–10" />
+            <input name="preferredDate" class="contact-input" type="date" placeholder="Preferred Date" />
+          </div>
+
+          <!-- Dynamic Subject: Corporate Workshop -->
+          <div class="contact-form__extra" data-subject-fields="corporate-workshop-enquiry" hidden>
+            <input name="companyName" class="contact-input" type="text" placeholder="Company / Studio Name" />
+            <input name="teamSize" class="contact-input" type="text" placeholder="Estimated Team Size" />
+          </div>
+
+          <!-- Dynamic Subject: Venue Partnership -->
+          <div class="contact-form__extra" data-subject-fields="venue-partnership-enquiry" hidden>
+            <input name="venueName" class="contact-input" type="text" placeholder="Venue / Organization Name" />
+            <input name="eventType" class="contact-input" type="text" placeholder="Event / Activation Type" />
+          </div>
+
+          <!-- Dynamic Subject: Surplus Material -->
+          <div class="contact-form__extra" data-subject-fields="surplus-material-enquiry" hidden>
+            <input name="materialType" class="contact-input" type="text" placeholder="Material Composition (e.g. Cotton Canvas, Denim)" />
+            <input name="estimatedVolume" class="contact-input" type="text" placeholder="Estimated Quantity / Weight (e.g. 50 kg)" />
+          </div>
+
+          <!-- Dynamic Subject: Custom Piece -->
+          <div class="contact-form__extra" data-subject-fields="custom-piece-enquiry" hidden>
+            <input name="projectScope" class="contact-input" type="text" placeholder="Project Scale (e.g. 3m Wall, Wearable)" />
+            <input name="targetTimeline" class="contact-input" type="text" placeholder="Target Completion Date" />
+          </div>
+
+          <div class="form-group">
+            <label class="sr-only" for="cf-message">Message</label>
+            <textarea id="cf-message" name="message" class="contact-input contact-textarea" placeholder="Tell us more about your project or enquiry..." rows="5" required></textarea>
+          </div>
+
+          <div class="contact-optin">
+            <label class="checkbox-label">
+              <input type="checkbox" name="marketingOptIn" />
+              <span>Keep me updated on upcoming drops and studio news</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-filled contact-form__submit w-full mt-4">Send Message</button>
+          <p class="form-feedback" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .contact-banner {
+    height: 120px;
+    background-image: url('/assets/floral-pattern.svg');
+    background-size: cover;
+    background-position: center;
+    border-bottom: 1px solid var(--ink);
+    opacity: 0.85;
+  }
+
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 64px;
+    padding-top: 64px;
+    padding-bottom: 80px;
+  }
+
+  .contact-intro__title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin-bottom: 12px;
+  }
+  .contact-intro__subtitle {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .contact-intro__note {
+    font-size: 1.02rem;
+    color: #444;
+    line-height: 1.6;
+    max-width: 44ch;
+  }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .contact-input {
+    width: 100%;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .contact-input--select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+  }
+  .contact-textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  .contact-form__extra {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: #faf8f9;
+    border: 1.5px dashed var(--accent);
+    border-radius: var(--radius);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    color: #555;
+    cursor: pointer;
+  }
+
+  @media (max-width: 768px) {
+    .contact-layout { grid-template-columns: 1fr; gap: 36px; padding-top: 36px; }
+  }
+</style>
+
+<script>
+  function initContactPage() {
+    const subjectSelect = document.querySelector<HTMLSelectElement>('[data-subject-select]');
+    if (!subjectSelect) return;
+
+    const extraBlocks = Array.from(document.querySelectorAll<HTMLElement>('[data-subject-fields]'));
+
+    const showFieldsFor = (value: string) => {
+      extraBlocks.forEach((block) => {
+        block.hidden = block.dataset.subjectFields !== value;
+      });
+    };
+
+    // Parse URL parameter
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get('category');
+    if (category && [...subjectSelect.options].some((o) => o.value === category)) {
+      subjectSelect.value = category;
+      showFieldsFor(category);
+    }
+
+    subjectSelect.addEventListener('change', () => showFieldsFor(subjectSelect.value));
+
+    const contactForm = document.getElementById('contact-form') as HTMLFormElement | null;
+    contactForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const feedback = contactForm.querySelector<HTMLElement>('.form-feedback');
+      const submitBtn = contactForm.querySelector<HTMLButtonElement>('.contact-form__submit');
+      if (!submitBtn || !feedback) return;
+
+      const originalLabel = submitBtn.textContent || 'Send Message';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending…';
+      feedback.textContent = '';
+      feedback.className = 'form-feedback';
+
+      const details: Record<string, any> = {};
+      const activeBlock = extraBlocks.find((b) => !b.hidden);
+      activeBlock?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea').forEach((el) => {
+        if (el.name && el.value) details[el.name] = el.value;
+      });
+
+      const payload = {
+        name: (contactForm.querySelector<HTMLInputElement>('#cf-name')?.value || '').trim(),
+        email: (contactForm.querySelector<HTMLInputElement>('#cf-email')?.value || '').trim(),
+        phone: (contactForm.querySelector<HTMLInputElement>('#cf-phone')?.value || '').trim(),
+        subject: subjectSelect.value,
+        message: (contactForm.querySelector<HTMLTextAreaElement>('#cf-message')?.value || '').trim(),
+        marketingOptIn: contactForm.querySelector<HTMLInputElement>('input[name="marketingOptIn"]')?.checked || false,
+        details,
+      };
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+        contactForm.reset();
+        showFieldsFor('');
+        feedback.textContent = "Thanks — we've received your enquiry and will be in touch soon.";
+        feedback.classList.add('form-feedback--success');
+      } catch (err: any) {
+        feedback.textContent = err.message || 'Something went wrong. Please try again.';
+        feedback.classList.add('form-feedback--error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    });
+  }
+
+  initContactPage();
+  document.addEventListener('astro:page-load', initContactPage);
+</script>

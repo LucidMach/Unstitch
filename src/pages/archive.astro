@@ -1,0 +1,573 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const materials = [
+  {
+    id: "001",
+    name: "Deadstock Technical Canvas",
+    origin: "Brunswick Upholstery Workshop, Naarm",
+    composition: "100% Heavyweight Cotton Canvas / Waxed Finish",
+    rescuedKg: "140 kg",
+    collection: "Modular Tote 01",
+    description: "Surplus cutting floor end-of-rolls diverted from commercial furniture fabrication. Precision laser-cut into modular interlocking tessellations.",
+    rawImg: "/Square.png",
+    productImg: "/Tote.png"
+  },
+  {
+    id: "002",
+    name: "Architectural Felt Remnants",
+    origin: "Acoustic Panel Manufacturer, Dandenong",
+    composition: "100% Recycled PET Non-Woven Felt",
+    rescuedKg: "220 kg",
+    collection: "Modular Bucket Bag",
+    description: "High-density offcuts from soundproofing wall installation panels. Inherently semi-rigid, water-repellent, and structural without synthetic backings.",
+    rawImg: "/SquareFlip.png",
+    productImg: "/BucketFlip.png"
+  },
+  {
+    id: "003",
+    name: "Post-Industrial Denim Offcuts",
+    origin: "Workwear Manufacturer, Richmond",
+    composition: "98% Cotton, 2% Elastane",
+    rescuedKg: "185 kg",
+    collection: "Origami Clutch",
+    description: "Edge rolls and pattern scraps from small-batch indigo workwear production, washed and reinforced using interlocking mechanical joints.",
+    rawImg: "/Hero.png",
+    productImg: "/Clutch.png"
+  },
+  {
+    id: "004",
+    name: "High-Tenacity Cordura Scraps",
+    origin: "Outdoor Equipment Studio, Collingwood",
+    composition: "100% 500D Nylon",
+    rescuedKg: "95 kg",
+    collection: "Crescent Moon Crossbody",
+    description: "Ultra-durable technical surplus from expedition backpack runs. Extreme abrasion resistance in an ultra-light modular framework.",
+    rawImg: "/Square.png",
+    productImg: "/Moon.png"
+  },
+  {
+    id: "005",
+    name: "Organic Heavy Twill",
+    origin: "Apparel Sampling Studio, Fitzroy",
+    composition: "100% Certified Organic Cotton",
+    rescuedKg: "110 kg",
+    collection: "DIY Tile Builder Kit",
+    description: "Deadstock bolt ends in unbleached natural cotton, die-cut into user-assembled modules for tactile makers and workshops.",
+    rawImg: "/SquareFlip.png",
+    productImg: "/Semi.png"
+  },
+  {
+    id: "006",
+    name: "Technical Ripstop Canvas",
+    origin: "Sailmaker & Canvas Works, Williamstown",
+    composition: "Polyester / Ripstop Grid",
+    rescuedKg: "160 kg",
+    collection: "Weekender Tote",
+    description: "Heavy marine-grade ripstop remnants with high tensile tear strength and weather protection.",
+    rawImg: "/Hero.png",
+    productImg: "/BigTote.png"
+  }
+];
+---
+
+<Layout title="Unstitch — Material Archive" description="Documenting every batch of rescued surplus textile turned into interlocking modular pieces.">
+  <main>
+    <!-- ============ ARCHIVE HERO ============ -->
+    <section class="media-hero archive-hero">
+      <div class="ph media-hero__media" style="background: #f7f4f6;">
+        <img src="/Hero.png" alt="Rescue Material Archive" class="w-full h-full object-contain p-8" onerror="this.style.display='none'" />
+      </div>
+      <div class="media-hero__content">
+        <div class="wrap archive-hero__label-wrap">
+          <p class="archive-hero__label">Rescue Material Files</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PARTNER CTA ============ -->
+    <section class="wrap partner-cta">
+      <p class="section__eyebrow">Have surplus material?</p>
+      <h2 class="partner-cta__title">Partner With Us</h2>
+      <p class="partner-cta__body">
+        Don't let fabric remnants, premium textiles, deadstock or factory offcuts go to waste. We collaborate with brands and manufacturers to give surplus textiles a circular second life.
+      </p>
+      <a href="/contact?category=surplus-material-enquiry" class="btn btn-outline btn-small mt-4">Become a Partner Today</a>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ MATERIAL GRID ============ -->
+    <section class="material-grid wrap" aria-label="Rescue material files">
+      {materials.map((m) => (
+        <button class="material-tile group" data-open-material={m.id} aria-haspopup="dialog">
+          <div class="material-tile__img material-tile__img--collection">
+            <img src={m.productImg} alt={m.name} class="w-full h-full object-contain p-4" />
+          </div>
+          <div class="material-tile__img material-tile__img--raw">
+            <img src={m.rawImg} alt={`Raw ${m.name}`} class="w-full h-full object-contain p-4 opacity-80" />
+            <div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-mono text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              View File #{m.id}
+            </div>
+          </div>
+          <div class="material-tile__meta">
+            <span class="material-tile__num">File #{m.id}</span>
+            <span class="material-tile__name">{m.name}</span>
+          </div>
+        </button>
+      ))}
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="archive-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+
+    <!-- ============ INTERACTIVE MODAL VIEWER ============ -->
+    <div class="material-overlay" data-material-overlay hidden></div>
+    <div class="material-shell" data-material-shell hidden role="dialog" aria-modal="true" aria-label="Material File Detail">
+      <button class="icon-btn material-close" data-material-close aria-label="Close file">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div class="material-scroll" data-material-scroll>
+        {materials.map((m) => (
+          <div class="material-modal" data-material={m.id} hidden>
+            <div class="material-modal__gallery">
+              <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
+                <span class="arrow-icon">←</span>
+              </button>
+              
+              <div class="material-modal__images">
+                <div class="modal-img-card">
+                  <img src={m.productImg} alt="Transformed Collection" />
+                  <p class="modal-img-caption">Transformed Collection: {m.collection}</p>
+                </div>
+                <div class="modal-img-card">
+                  <img src={m.rawImg} alt="Raw Material Offcut" />
+                  <p class="modal-img-caption">Rescued Source: {m.origin}</p>
+                </div>
+              </div>
+
+              <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
+                <span class="arrow-icon">→</span>
+              </button>
+            </div>
+
+            <div class="material-modal__info">
+              <p class="section__eyebrow">Material File #{m.id}</p>
+              <h2 class="material-modal__title">{m.name}</h2>
+              
+              <div class="material-modal__specs">
+                <div class="spec-row">
+                  <span class="spec-label">Source / Origin</span>
+                  <span class="spec-val">{m.origin}</span>
+                </div>
+                <div class="spec-row">
+                  <span class="spec-label">Composition</span>
+                  <span class="spec-val">{m.composition}</span>
+                </div>
+                <div class="spec-row">
+                  <span class="spec-label">Rescued Volume</span>
+                  <span class="spec-val">{m.rescuedKg}</span>
+                </div>
+                <div class="spec-row">
+                  <span class="spec-label">Application</span>
+                  <span class="spec-val">{m.collection}</span>
+                </div>
+              </div>
+
+              <p class="material-modal__desc">{m.description}</p>
+              
+              <div class="material-modal__actions mt-6">
+                <a href={`/contact?category=surplus-material-enquiry`} class="btn btn-filled">Partner on Similar Material</a>
+                <a href="/playground" class="btn btn-outline">Explore in 3D</a>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .archive-hero {
+    min-height: 380px;
+    background: #fbfbfb;
+    border-bottom: 1px solid var(--ink);
+  }
+  .archive-hero__label-wrap { padding-top: 24px; }
+  .archive-hero__label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Partner CTA */
+  .partner-cta {
+    padding: 48px var(--gutter);
+  }
+  .partner-cta__title {
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    margin: 6px 0 12px;
+  }
+  .partner-cta__body {
+    font-size: 1.05rem;
+    color: #444;
+    max-width: 60ch;
+    line-height: 1.6;
+  }
+
+  /* Material Grid */
+  .material-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding-top: 48px;
+    padding-bottom: 56px;
+  }
+  .material-tile {
+    position: relative;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .material-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .material-tile__img {
+    position: relative;
+    aspect-ratio: 1/1;
+    background: #fafafa;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .material-tile__img--raw {
+    display: none;
+  }
+  .material-tile:hover .material-tile__img--collection {
+    display: none;
+  }
+  .material-tile:hover .material-tile__img--raw {
+    display: block;
+  }
+  .material-tile__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .material-tile__num {
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .material-tile__name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* Modal Viewer */
+  .material-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .material-overlay.is-open { opacity: 1; }
+
+  .material-shell {
+    position: fixed;
+    inset: 32px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius);
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 48px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: scale(0.96) translateY(var(--drag-y, 0px));
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .material-shell.is-open {
+    opacity: 1;
+    transform: scale(1) translateY(var(--drag-y, 0px));
+  }
+  .material-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 10;
+    background: #ffffff;
+    border: 1.5px solid var(--ink);
+  }
+
+  .material-scroll {
+    overflow-y: auto;
+    height: 100%;
+    padding: 40px;
+  }
+
+  .material-modal {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  .material-modal__gallery {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .material-modal__images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+  .modal-img-card {
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .modal-img-card img {
+    aspect-ratio: 1/1;
+    object-fit: contain;
+    width: 100%;
+  }
+  .modal-img-caption {
+    font-size: 0.78rem;
+    color: #666;
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .material-modal__nav-zone {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #ffffff;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+  }
+  .material-modal__nav-zone:hover:not(:disabled) {
+    background: var(--accent);
+    color: #ffffff;
+  }
+  .material-modal__nav-zone:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .material-modal__nav-zone--prev { left: -22px; }
+  .material-modal__nav-zone--next { right: -22px; }
+
+  .material-modal__title {
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    margin: 8px 0 20px;
+  }
+
+  .material-modal__specs {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding: 16px 0;
+    margin-bottom: 20px;
+  }
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.92rem;
+  }
+  .spec-label { color: #666; font-weight: 500; }
+  .spec-val { font-weight: 600; text-align: right; }
+
+  .material-modal__desc {
+    font-size: 0.98rem;
+    color: #444;
+    line-height: 1.6;
+  }
+  .material-modal__actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 900px) {
+    .material-grid { grid-template-columns: 1fr; }
+    .material-modal { grid-template-columns: 1fr; gap: 24px; }
+    .material-shell { inset: 12px; }
+    .material-scroll { padding: 20px; }
+    .material-modal__images { grid-template-columns: 1fr; }
+    .material-modal__nav-zone--prev { left: 0; }
+    .material-modal__nav-zone--next { right: 0; }
+  }
+</style>
+
+<script>
+  function initArchivePage() {
+    const materialOverlay = document.querySelector<HTMLElement>('[data-material-overlay]');
+    const materialShell = document.querySelector<HTMLElement>('[data-material-shell]');
+    const materialScroll = document.querySelector<HTMLElement>('[data-material-scroll]');
+    const materialClose = document.querySelector<HTMLElement>('[data-material-close]');
+    const materialPrevZones = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-material-prev]'));
+    const materialNextZones = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-material-next]'));
+    const materialPanels = Array.from(document.querySelectorAll<HTMLElement>('.material-modal[data-material]'));
+
+    if (materialShell && materialPanels.length) {
+      let activeIndex = -1;
+      let lastTrigger: HTMLElement | null = null;
+
+      const showPanel = (index: number) => {
+        materialPanels.forEach((panel, i) => { panel.hidden = i !== index; });
+        activeIndex = index;
+        const atStart = index <= 0;
+        const atEnd = index >= materialPanels.length - 1;
+        materialPrevZones.forEach((btn) => { btn.disabled = atStart; });
+        materialNextZones.forEach((btn) => { btn.disabled = atEnd; });
+      };
+
+      const openMaterial = (id: string, trigger?: HTMLElement) => {
+        const index = materialPanels.findIndex((p) => p.dataset.material === id);
+        if (index === -1) return;
+        lastTrigger = trigger || null;
+        showPanel(index);
+        if (materialOverlay) { materialOverlay.hidden = false; }
+        materialShell.hidden = false;
+        requestAnimationFrame(() => {
+          materialOverlay?.classList.add('is-open');
+          materialShell.classList.add('is-open');
+        });
+        document.body.style.overflow = 'hidden';
+        document.querySelector('.mobile-nav')?.classList.add('is-hidden-for-modal');
+        document.querySelector('.mascot-btn')?.classList.add('is-hidden-for-modal');
+        materialClose?.focus();
+      };
+
+      const closeMaterial = () => {
+        materialOverlay?.classList.remove('is-open');
+        materialShell.classList.remove('is-open');
+        document.body.style.overflow = '';
+        document.querySelector('.mobile-nav')?.classList.remove('is-hidden-for-modal');
+        document.querySelector('.mascot-btn')?.classList.remove('is-hidden-for-modal');
+        setTimeout(() => {
+          if (materialOverlay) materialOverlay.hidden = true;
+          materialShell.hidden = true;
+        }, 220);
+        lastTrigger?.focus();
+      };
+
+      const step = (dir: number) => {
+        const next = activeIndex + dir;
+        if (next < 0 || next >= materialPanels.length) return;
+        showPanel(next);
+        if (materialScroll) materialScroll.scrollTop = 0;
+      };
+
+      document.querySelectorAll<HTMLElement>('[data-open-material]').forEach((tile) => {
+        tile.addEventListener('click', () => openMaterial(tile.dataset.openMaterial || '', tile));
+      });
+
+      materialClose?.addEventListener('click', closeMaterial);
+      materialOverlay?.addEventListener('click', closeMaterial);
+      materialPrevZones.forEach((btn) => btn.addEventListener('click', () => step(-1)));
+      materialNextZones.forEach((btn) => btn.addEventListener('click', () => step(1)));
+
+      document.addEventListener('keydown', (e) => {
+        if (materialShell.hidden) return;
+        if (e.key === 'Escape') closeMaterial();
+        if (e.key === 'ArrowLeft') step(-1);
+        if (e.key === 'ArrowRight') step(1);
+      });
+    }
+
+    // Forms
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initArchivePage();
+  document.addEventListener('astro:page-load', initArchivePage);
+</script>

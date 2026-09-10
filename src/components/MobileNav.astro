@@ -1,0 +1,36 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = "" } = Astro.props;
+---
+
+<nav class="mobile-nav" aria-label="Primary Mobile Navigation">
+  <div class="mobile-nav__row">
+    <a href="/" class="mobile-nav__item" aria-current={currentPath === "/" ? "page" : undefined}>
+      <img src="/assets/logo-mark.svg" alt="" />
+      <span>Home</span>
+    </a>
+    <a href="/shop" class="mobile-nav__item" aria-current={currentPath === "/shop" ? "page" : undefined}>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/>
+      </svg>
+      <span>Shop</span>
+    </a>
+    <a href="/playground" class="mobile-nav__item" aria-current={currentPath === "/playground" ? "page" : undefined}>
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M9 4h3v3H9a2 2 0 1 0 0 4H4V8a2 2 0 0 1 2-2h3V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M12 11h3a2 2 0 1 1 0 4h-3v3H9v-3H4v-3h5v-1h3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      </svg>
+      <span>Play</span>
+    </a>
+    <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span>More</span>
+    </button>
+  </div>
+</nav>

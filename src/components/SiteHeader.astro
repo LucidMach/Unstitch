@@ -1,0 +1,50 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = "" } = Astro.props;
+---
+
+<header class="site-header">
+  <div class="wrap site-header__row">
+    <div class="site-header__left">
+      <a href="/playground" class="header-play-link">Play</a>
+      <ul class="site-header__links">
+        <li><a href="/about" aria-current={currentPath === "/about" ? "page" : undefined}>About</a></li>
+        <li><a href="/learn" aria-current={currentPath === "/learn" ? "page" : undefined}>Learn</a></li>
+        <li><a href="/custom" aria-current={currentPath === "/custom" ? "page" : undefined}>Custom</a></li>
+        <li><a href="/shop" aria-current={currentPath === "/shop" ? "page" : undefined}>Shop</a></li>
+      </ul>
+    </div>
+    
+    <a href="/" class="logo" aria-label="Unstitch — home">
+      <img class="logo-full" src="/assets/logo-full.svg" alt="Unstitch" />
+      <img class="logo-mark" src="/assets/logo-mark.svg" alt="Unstitch" />
+    </a>
+
+    <div class="site-header__actions">
+      <button class="icon-btn" data-menu-open aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6h18M3 12h18M3 18h18" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  function initHeaderScroll() {
+    const header = document.querySelector('.site-header');
+    if (!header) return;
+    const SCROLL_THRESHOLD = 80;
+    const onScroll = () => {
+      header.classList.toggle('is-scrolled', window.scrollY > SCROLL_THRESHOLD);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  initHeaderScroll();
+  document.addEventListener('astro:page-load', initHeaderScroll);
+</script>

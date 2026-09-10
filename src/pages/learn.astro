@@ -1,0 +1,434 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Unstitch — Learn" description="Workshops and education on modular, zero-waste interlocking textile assembly.">
+  <main>
+    <!-- ============ HERO CAROUSEL ============ -->
+    <section class="media-hero learn-hero" data-carousel>
+      <div class="media-hero__content">
+        <div class="wrap learn-hero__label-wrap">
+          <p class="learn-hero__label">Learn</p>
+        </div>
+      </div>
+
+      <div class="carousel__track" data-carousel-track>
+        <!-- Slide 1 -->
+        <div class="carousel__slide is-active" data-carousel-slide>
+          <div class="ph media-hero__media" style="background: #eef2f5;">
+            <img src="/Hero.png" alt="Workshop preview" class="w-full h-full object-cover opacity-80" onerror="this.style.display='none'" />
+          </div>
+          <div class="media-hero__content">
+            <div class="wrap">
+              <div class="learn-hero__inner">
+                <p class="section__eyebrow">Up Next | Workshop</p>
+                <h1 class="learn-hero__title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h1>
+                <p class="learn-hero__body">Drop-in tile building all day, no experience needed.</p>
+                <a href="/contact?category=school-workshop-enquiry" class="btn btn-filled mt-4">Register Interest</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph media-hero__media" style="background: #f7f3f5;">
+            <img src="/assets/floral-pattern.svg" alt="Upcoming workshops" class="w-full h-full object-cover opacity-30" onerror="this.style.display='none'" />
+          </div>
+          <div class="media-hero__content">
+            <div class="wrap">
+              <div class="learn-hero__inner">
+                <p class="section__eyebrow">School & Studio Sessions</p>
+                <h1 class="learn-hero__title">Hands-on Circular Design<br />For Classrooms & Teams.</h1>
+                <p class="learn-hero__body">Custom curriculum-aligned workshops in STEM, textiles, and design thinking.</p>
+                <a href="/contact?category=corporate-workshop-enquiry" class="btn btn-outline mt-4">Book a Session</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="carousel__controls wrap">
+        <div class="carousel__dots" data-carousel-dots></div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ HOW THE TILES CONNECT ============ -->
+    <section class="wrap section how-it-works">
+      <div class="how-it-works__grid">
+        <div class="how-it-works__media">
+          <div class="ph" style="aspect-ratio: 4/3; background: url('/assets/floral-pattern.svg') center/cover;">
+            <img src="/SquareFlip.png" alt="Tile Connection Mechanics" class="w-3/4 h-3/4 object-contain" onerror="this.style.display='none'" />
+          </div>
+        </div>
+        <div class="how-it-works__content">
+          <p class="section__eyebrow">The Mechanics</p>
+          <h2 class="section__title">How the tiles connect</h2>
+          <p class="how-it-works__body">
+            Each modular textile tile is precision die-cut with engineered interlocking keyways. By flexing and slotting modules together, they form rigid or flexible 3D surfaces without sewing thread, rivets, or adhesives.
+          </p>
+          <a href="/playground" class="btn btn-outline mt-6">Try the 3D Interactive Folding Tool</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ WHO IS THIS FOR (ACCORDION) ============ -->
+    <section class="wrap section who-section">
+      <p class="section__eyebrow">Audiences</p>
+      <h2 class="section__title">Who is this for?</h2>
+
+      <div class="who-accordion">
+        <!-- Schools -->
+        <div class="accordion-item">
+          <button class="accordion-trigger" data-accordion-trigger="schools" aria-expanded="false">
+            <span class="accordion-trigger__title">Schools & Educators (Design & Technology)</span>
+            <span class="accordion-trigger__icon">+</span>
+          </button>
+          <div class="accordion-panel" data-accordion-panel="schools">
+            <div class="accordion-panel__inner">
+              <p>Tailored curriculum modules for Year 7–12 design, STEM, and sustainability classes. Students learn geometry, modular tessellation, material lifecycles, and rapid prototyping without sewing machines.</p>
+              <a href="/contact?category=school-workshop-enquiry" class="btn btn-outline btn-small mt-4">Enquire for Schools</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Public Makers -->
+        <div class="accordion-item">
+          <button class="accordion-trigger" data-accordion-trigger="public" aria-expanded="false">
+            <span class="accordion-trigger__title">Makers, Crafters & Community Groups</span>
+            <span class="accordion-trigger__icon">+</span>
+          </button>
+          <div class="accordion-panel" data-accordion-panel="public">
+            <div class="accordion-panel__inner">
+              <p>Weekend drop-ins, festival activations, and community workshops. Anyone from absolute beginners to experienced textile artists can create bags, accessories, and sculptural objects.</p>
+              <a href="/contact?category=general-enquiry" class="btn btn-outline btn-small mt-4">Join Community List</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corporate -->
+        <div class="accordion-item">
+          <button class="accordion-trigger" data-accordion-trigger="corporate" aria-expanded="false">
+            <span class="accordion-trigger__title">Corporate & Design Teams (Team Building)</span>
+            <span class="accordion-trigger__icon">+</span>
+          </button>
+          <div class="accordion-panel" data-accordion-panel="corporate">
+            <div class="accordion-panel__inner">
+              <p>Engaging, tactile hands-on workshops that challenge teams to collaborate on 3D spatial problem solving and circular design principles.</p>
+              <a href="/contact?category=corporate-workshop-enquiry" class="btn btn-outline btn-small mt-4">Book Team Workshop</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ PARTNERS TICKER ============ -->
+    <section class="wrap section partners-section">
+      <p class="section__eyebrow text-center mb-8">Supported by & Collaborating With</p>
+      <div class="partners-grid">
+        <div class="partner-logo">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
+        </div>
+        <div class="partner-logo">
+          <img src="/assets/partners/zero-waste-festival-logo.png" alt="Zero Waste Festival" />
+        </div>
+        <div class="partner-logo">
+          <img src="/assets/partners/datta-vic-logo.jpeg" alt="DATTA Vic" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="learn-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .learn-hero {
+    min-height: 480px;
+    background: #fbfbfb;
+    border-bottom: 1px solid var(--ink);
+  }
+  .learn-hero__label-wrap { padding-top: 24px; }
+  .learn-hero__label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .learn-hero__inner {
+    padding: 80px 0 60px;
+    max-width: 580px;
+  }
+  .learn-hero__title {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    margin: 8px 0 16px;
+  }
+  .learn-hero__body {
+    font-size: 1.05rem;
+    color: #444;
+    line-height: 1.6;
+  }
+
+  /* Carousel */
+  .carousel__track {
+    position: relative;
+    width: 100%;
+    min-height: 480px;
+  }
+  .carousel__slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .carousel__slide.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+  }
+  .carousel__controls {
+    padding: 16px var(--gutter);
+    display: flex;
+    justify-content: flex-end;
+  }
+  .carousel__dots {
+    display: flex;
+    gap: 8px;
+  }
+  :global(.carousel__dot) {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  :global(.carousel__dot.is-active) {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.2);
+  }
+
+  /* How it works */
+  .how-it-works__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .how-it-works__body {
+    font-size: 1.02rem;
+    color: #444;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+
+  /* Accordion */
+  .who-accordion {
+    border-top: 1px solid var(--ink);
+  }
+  .accordion-item {
+    border-bottom: 1px solid var(--ink);
+  }
+  .accordion-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 4px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    transition: color 0.15s ease;
+  }
+  .accordion-trigger:hover {
+    color: var(--accent);
+  }
+  .accordion-trigger__icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    font-weight: 400;
+    transition: transform 0.25s ease;
+  }
+  .accordion-trigger[aria-expanded="true"] .accordion-trigger__icon {
+    transform: rotate(45deg);
+  }
+  .accordion-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+  .accordion-panel.is-open {
+    grid-template-rows: 1fr;
+  }
+  .accordion-panel__inner {
+    overflow: hidden;
+    padding: 0 4px 22px;
+    font-size: 0.98rem;
+    color: #444;
+    line-height: 1.6;
+  }
+
+  /* Partners */
+  .partners-grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    padding: 20px 0;
+  }
+  .partner-logo img {
+    height: 54px;
+    width: auto;
+    object-fit: contain;
+    filter: grayscale(100%);
+    opacity: 0.75;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
+  .partner-logo img:hover {
+    filter: none;
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .how-it-works__grid { grid-template-columns: 1fr; gap: 24px; }
+    .learn-hero__inner { padding: 40px 0; }
+    .partners-grid { gap: 28px; }
+    .partner-logo img { height: 42px; }
+  }
+</style>
+
+<script>
+  function initLearnPage() {
+    // Carousel
+    document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((carousel) => {
+      const slides = Array.from(carousel.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
+      if (slides.length < 2) return;
+      const dotsWrap = carousel.querySelector<HTMLElement>('[data-carousel-dots]');
+      if (!dotsWrap) return;
+      dotsWrap.innerHTML = '';
+      let index = Math.max(0, slides.findIndex((s) => s.classList.contains('is-active')));
+      let timer: ReturnType<typeof setInterval> | null = null;
+
+      const dots = slides.map((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'carousel__dot';
+        dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+        dot.addEventListener('click', () => goTo(i));
+        dotsWrap.appendChild(dot);
+        return dot;
+      });
+
+      const render = () => {
+        slides.forEach((s, i) => s.classList.toggle('is-active', i === index));
+        dots.forEach((d, i) => d.classList.toggle('is-active', i === index));
+      };
+
+      const goTo = (i: number) => {
+        index = (i + slides.length) % slides.length;
+        render();
+        resetTimer();
+      };
+
+      const resetTimer = () => {
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => goTo(index + 1), 6000);
+      };
+
+      carousel.addEventListener('mouseenter', () => { if (timer) clearInterval(timer); });
+      carousel.addEventListener('mouseleave', resetTimer);
+
+      render();
+      resetTimer();
+    });
+
+    // Accordions
+    document.querySelectorAll<HTMLButtonElement>('[data-accordion-trigger]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const key = trigger.dataset.accordionTrigger;
+        const panel = document.querySelector<HTMLElement>(`[data-accordion-panel="${key}"]`);
+        const isOpen = panel?.classList.contains('is-open');
+
+        document.querySelectorAll<HTMLElement>('[data-accordion-panel]').forEach((p) => p.classList.remove('is-open'));
+        document.querySelectorAll<HTMLButtonElement>('[data-accordion-trigger]').forEach((t) => t.setAttribute('aria-expanded', 'false'));
+
+        if (panel && !isOpen) {
+          panel.classList.add('is-open');
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // Forms
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initLearnPage();
+  document.addEventListener('astro:page-load', initLearnPage);
+</script>

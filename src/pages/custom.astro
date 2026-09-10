@@ -1,0 +1,280 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Unstitch — Custom" description="Commission custom zero-waste modular textile installations, spatial structures, and acoustic panels.">
+  <main>
+    <!-- ============ CUSTOM HERO ============ -->
+    <section class="media-hero custom-hero">
+      <div class="ph media-hero__media" style="background: #f3f0f2;">
+        <img src="/Textile.glb" alt="Custom 3D Architecture" class="hidden" />
+        <div class="flex flex-col items-center justify-center p-8 text-center">
+          <p class="text-sm font-semibold tracking-widest uppercase text-[#b784a7] mb-2">Bespoke Modular Installations</p>
+          <h1 class="text-3xl md:text-5xl font-bold max-w-xl">Spatial & Textile Commissions</h1>
+        </div>
+      </div>
+      <div class="media-hero__content">
+        <div class="wrap custom-hero__label-wrap">
+          <p class="custom-hero__label">Custom</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ USE CASES ============ -->
+    <section class="wrap section use-cases">
+      <p class="section__eyebrow">Use Cases</p>
+      <div class="use-case-grid">
+        <div class="use-case">Feature Wall Interior</div>
+        <div class="use-case">Dark Room Exhibition</div>
+        <div class="use-case">Soundproof Studio</div>
+        <div class="use-case">Sculptural Pavilion</div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ 5-STEP PROCESS ============ -->
+    <section class="wrap section process-section">
+      <p class="section__eyebrow">Our Methodology</p>
+      <h2 class="section__title">How we work together</h2>
+
+      <div class="process-grid">
+        <div class="process-step">
+          <span class="process-step__num">01</span>
+          <h3 class="process-step__title">Consultation</h3>
+          <p class="process-step__desc">We assess spatial constraints, aesthetic goals, acoustic requirements, and functional objectives.</p>
+        </div>
+
+        <div class="process-step">
+          <span class="process-step__num">02</span>
+          <h3 class="process-step__title">Material Sourcing</h3>
+          <p class="process-step__desc">We match your project with verified surplus, deadstock, or specialized post-consumer technical textiles.</p>
+        </div>
+
+        <div class="process-step">
+          <span class="process-step__num">03</span>
+          <h3 class="process-step__title">Parametric Modeling</h3>
+          <p class="process-step__desc">Our algorithmic design engine generates precise module cut-patterns and structural folding schematics.</p>
+        </div>
+
+        <div class="process-step">
+          <span class="process-step__num">04</span>
+          <h3 class="process-step__title">Die-Cutting</h3>
+          <p class="process-step__desc">Zero-waste nesting and die-cutting in our Naarm workshop to prepare all interlocking pieces.</p>
+        </div>
+
+        <div class="process-step">
+          <span class="process-step__num">05</span>
+          <h3 class="process-step__title">Assembly & Install</h3>
+          <p class="process-step__desc">Rapid on-site mechanical interlocking without glue, fasteners, or permanent disruption.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ CAPABILITIES & CTAs ============ -->
+    <section class="wrap section capabilities-section">
+      <div class="capabilities-grid">
+        <div>
+          <p class="section__eyebrow">Scale & Customization</p>
+          <h2 class="section__title">Customised to any spatial dimension.</h2>
+          <p class="capabilities__body">
+            From single bespoke accessories to multi-meter acoustic wall panelling, our interlocking module geometry can be tuned for stiffness, flexibility, light transmission, and sound absorption.
+          </p>
+        </div>
+        <div class="capabilities-actions">
+          <div class="action-card">
+            <h3>Commission a Project</h3>
+            <p>Start a conversation about an interior installation, exhibition, or bespoke textile piece.</p>
+            <a href="/contact?category=custom-piece-enquiry" class="btn btn-filled mt-4">Enquire Now</a>
+          </div>
+          <div class="action-card">
+            <h3>Experience First</h3>
+            <p>Test out interlocking mechanics in our digital playground or attend an upcoming workshop.</p>
+            <a href="/playground" class="btn btn-outline mt-4">Open Playground</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="custom-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .custom-hero {
+    min-height: 400px;
+    background: #fbfbfb;
+    border-bottom: 1px solid var(--ink);
+  }
+  .custom-hero__label-wrap { padding-top: 24px; }
+  .custom-hero__label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Use cases */
+  .use-case-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .use-case {
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: var(--paper);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .use-case:hover {
+    transform: translateY(-2px);
+    background: #faf8f9;
+  }
+
+  /* Process */
+  .process-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .process-step {
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    min-height: 220px;
+    transition: all 0.2s ease;
+  }
+  .process-step:hover {
+    background: #faf8f9;
+    border-color: var(--accent);
+  }
+  .process-step__num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .process-step__title {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  .process-step__desc {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.5;
+  }
+
+  /* Capabilities */
+  .capabilities-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .capabilities__body {
+    font-size: 1.02rem;
+    color: #444;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+  .capabilities-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .action-card {
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 24px;
+    background: #fafafa;
+  }
+  .action-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 6px;
+  }
+  .action-card p {
+    font-size: 0.92rem;
+    color: #555;
+  }
+
+  @media (max-width: 900px) {
+    .use-case-grid { grid-template-columns: repeat(2, 1fr); }
+    .process-grid { grid-template-columns: 1fr; }
+    .capabilities-grid { grid-template-columns: 1fr; gap: 32px; }
+  }
+</style>
+
+<script>
+  function initForms() {
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initForms();
+  document.addEventListener('astro:page-load', initForms);
+</script>

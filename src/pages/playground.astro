@@ -3,8 +3,20 @@ import PlayCanvas from "@/components/playCanvas";
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout showNavbar={false}>
-  <div class="h-full w-full flex flex-col justify-center items-center">
-    <PlayCanvas client:idle />
+<Layout title="Unstitch — 3D Textile Playground" showNavbar={false} showTicker={false} showFooter={false}>
+  <div class="relative h-screen w-screen overflow-hidden flex flex-col justify-center items-center">
+    <!-- Top-left exit/back pill -->
+    <a
+      href="/"
+      class="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur-md border border-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-neutral-100 transition-colors"
+      style="border-radius: var(--radius);"
+    >
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Studio
+    </a>
+
+    <PlayCanvas client:load />
   </div>
 </Layout>

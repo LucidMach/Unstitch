@@ -1,0 +1,178 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Unstitch — Shop" description="Browse zero-waste modular textile collections and limited edition rescued material drops.">
+  <main>
+    <!-- ============ DROP HERO ============ -->
+    <section class="media-hero drop-hero">
+      <div class="ph media-hero__media" style="background: #f4eff1;">
+        <img src="/Hero.png" alt="Material Drop 001" class="w-full h-full object-contain p-8" onerror="this.style.display='none'" />
+      </div>
+
+      <div class="media-hero__content">
+        <div class="wrap">
+          <div class="drop-hero__inner">
+            <p class="section__eyebrow">Drop Live</p>
+            <h1 class="drop-hero__title">Material 001</h1>
+            <p class="drop-hero__body">
+              Crafted from rescued deadstock technical canvas and high-density circular felt. Each module is modularly reconfigurable.
+            </p>
+            <div class="flex gap-4 mt-6 flex-wrap">
+              <a href="#latest-drop" class="btn btn-filled">Shop the Collection</a>
+              <a href="/shop-countdown" class="btn btn-outline">View Drop Countdown</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LATEST DROP ============ -->
+    <section class="wrap section" id="latest-drop">
+      <h2 class="section__title">Latest Drop Collection</h2>
+      <div class="product-grid">
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/Tote.png" alt="Modular Tote" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Modular Tote 01</h3>
+          <p class="product-card__price">$180.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/BucketFlip.png" alt="Bucket Bag" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Modular Bucket Bag</h3>
+          <p class="product-card__price">$165.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/Clutch.png" alt="Origami Clutch" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Origami Clutch</h3>
+          <p class="product-card__price">$120.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/Moon.png" alt="Crescent Moon Bag" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Crescent Moon Crossbody</h3>
+          <p class="product-card__price">$145.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/Square.png" alt="Modular Square Kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">DIY Tile Builder Kit (50 pcs)</h3>
+          <p class="product-card__price">$95.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1; background: #fafafa;">
+            <img src="/BigTote.png" alt="Overnight Weekender" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Weekender Tote</h3>
+          <p class="product-card__price">$220.00 AUD</p>
+          <button class="btn btn-outline btn-small product-card__cta" onclick="alert('Added to bag!')">Add to Bag</button>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="shop-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .drop-hero {
+    min-height: 480px;
+    background: #fcf9fa;
+    border-bottom: 1px solid var(--ink);
+  }
+  .drop-hero__inner {
+    padding: 80px 0 60px;
+    max-width: 540px;
+  }
+  .drop-hero__title {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    margin: 8px 0 16px;
+  }
+  .drop-hero__body {
+    font-size: 1.05rem;
+    color: #444;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .drop-hero__inner { padding: 40px 0; }
+  }
+</style>
+
+<script>
+  function initForms() {
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initForms();
+  document.addEventListener('astro:page-load', initForms);
+</script>

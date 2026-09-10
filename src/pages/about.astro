@@ -1,0 +1,160 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Unstitch — About" description="We're a Melbourne-based creative studio designing zero-waste interlocking textile modules.">
+  <main>
+    <!-- ============ THE HOUSE OF TILES ============ -->
+    <section class="wrap section about-section">
+      <p class="section__eyebrow">The House of Tiles</p>
+      <h1 class="about-section__title">We're a Melbourne-based creative studio.</h1>
+      <p class="about-section__usp">Zero-waste modular textile systems.</p>
+      <p class="about-section__note">Founded in Naarm / Melbourne by a collective of designers, technologists, and makers rethinking textile assembly.</p>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ WHY THE PLANNED OBSOLESCENCE ============ -->
+    <section class="wrap section about-section">
+      <p class="section__eyebrow">Why the Planned Obsolescence?</p>
+      <h2 class="about-section__title">Every tile is reversible, reusable, and reconfigurable.</h2>
+      <p class="about-section__usp">No stitches. No glue. No waste.</p>
+      <p class="about-section__note">Traditional garments and soft goods are permanently sewn together, making repair difficult and recycling nearly impossible. Unstitch replaces permanent seams with mechanical interlocking joints.</p>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ WHAT WE DO ============ -->
+    <section class="wrap section about-section">
+      <p class="section__eyebrow">What We Do</p>
+      <h2 class="about-section__title">Empowering makers, educators, and design studios.</h2>
+      <p class="about-section__usp">Interactive design tools, hands-on workshops, and rescued material drops.</p>
+    </section>
+
+    <section class="about-links" aria-label="What we do">
+      <a href="/learn" class="about-link">Learn</a>
+      <a href="/custom" class="about-link">Custom</a>
+      <a href="/shop" class="about-link">Shop</a>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ THE X-FACTORY ============ -->
+    <section class="wrap section about-section">
+      <p class="section__eyebrow">The X-Factory</p>
+      <h2 class="about-section__title">Transforming deadstock textiles into modular architecture.</h2>
+      <p class="about-section__usp">Circular manufacturing in Naarm.</p>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="about-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .about-section { padding-top: 48px; padding-bottom: 24px; }
+  .about-section__title {
+    font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+    margin: 6px 0 8px;
+    max-width: 24ch;
+  }
+  .about-section__usp {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    color: var(--accent);
+    margin-top: 8px;
+  }
+  .about-section__note {
+    margin-top: 16px;
+    color: #555;
+    max-width: 54ch;
+    line-height: 1.6;
+  }
+
+  .about-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  .about-link {
+    padding: 40px 20px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    border-right: 1px solid var(--ink);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .about-links .about-link:last-child { border-right: none; }
+  .about-link:hover { background: #faf8f9; color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .about-links { grid-template-columns: 1fr; }
+    .about-link { border-right: none; border-bottom: 1px solid var(--ink); }
+    .about-links .about-link:last-child { border-bottom: none; }
+  }
+</style>
+
+<script>
+  function initForms() {
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initForms();
+  document.addEventListener('astro:page-load', initForms);
+</script>

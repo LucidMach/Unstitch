@@ -1,35 +1,53 @@
 ---
+import "../styles/brand.css";
 import "../styles/global.css";
-import NavBar from "../components/navbar";
+import Ticker from "../components/Ticker.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import MenuSheet from "../components/MenuSheet.astro";
+import MobileNav from "../components/MobileNav.astro";
+import MascotButton from "../components/MascotButton.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 
 interface Props {
-  showNavbar?: boolean;
   title?: string;
+  description?: string;
+  showNavbar?: boolean;
+  showTicker?: boolean;
+  showFooter?: boolean;
+  currentPath?: string;
 }
 
-const { showNavbar = true, title = "Unstitched" } = Astro.props;
+const {
+  title = "Unstitch — One tile. Endless possibilities.",
+  description = "Zero-waste interlocking modular textile puzzle system.",
+  showNavbar = true,
+  showTicker = true,
+  showFooter = true,
+  currentPath = Astro.url.pathname,
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon-adaptive.svg" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
     <title>{title}</title>
   </head>
   <body>
-    {showNavbar && <NavBar client:visible />}
+    {showTicker && <Ticker />}
+    {showNavbar && (
+      <>
+        <SiteHeader currentPath={currentPath} />
+        <MenuSheet currentPath={currentPath} />
+        <MobileNav currentPath={currentPath} />
+        <MascotButton />
+      </>
+    )}
     <slot />
+    {showFooter && <SiteFooter />}
   </body>
-
-  <style>
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
 </html>

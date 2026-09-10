@@ -1,9 +1,0 @@
-{
-  "redirects": [
-    {
-      "source": "/shop.html",
-      "destination": "/shop-countdown.html",
-      "permanent": false
-    }
-  ]
-}

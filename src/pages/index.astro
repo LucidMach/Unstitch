@@ -1,10 +1,260 @@
 ---
-import Router from "@/components/router";
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout>
-  <div class="h-full w-full flex flex-col justify-center items-center">
-    <Router client:visible />
-  </div>
+<Layout title="Unstitch — One tile. Endless possibilities.">
+  <main>
+    <!-- ============ HERO ============ -->
+    <section class="wrap hero">
+      <div class="hero__copy">
+        <p class="hero__eyebrow">Interlocking Textile Module System</p>
+        <h1 class="hero__title">One tile.<br />Endless possibilities.</h1>
+        <p class="hero__body">
+          Imagine building 3D textile creations without needing to sew or stitch.
+        </p>
+        <div class="hero__ctas">
+          <a href="/playground" class="btn btn-filled">Explore the Playground</a>
+          <a href="/shop" class="btn btn-outline">Join the Next Drop</a>
+        </div>
+      </div>
+      <div class="hero__media">
+        <div class="ph hero__ph" style="aspect-ratio: 1 / 1;">
+          <img src="/Hero.png" alt="Unstitch 3D Textile Module System" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ LATEST DROP ============ -->
+    <section class="wrap section">
+      <h2 class="section__title">Latest Drop</h2>
+      <div class="product-grid">
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1;">
+            <img src="/Tote.png" alt="Tote Collection" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Modular Tote</h3>
+          <p class="product-card__price">$0.00</p>
+          <a href="/shop" class="btn btn-outline btn-small product-card__cta">Explore Collection</a>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1;">
+            <img src="/BucketFlip.png" alt="Bucket Bag Collection" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Bucket Bag</h3>
+          <p class="product-card__price">$0.00</p>
+          <a href="/shop" class="btn btn-outline btn-small product-card__cta">Explore Collection</a>
+        </article>
+
+        <article class="product-card">
+          <div class="ph" style="aspect-ratio: 1 / 1;">
+            <img src="/Clutch.png" alt="Clutch Collection" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+          <h3 class="product-card__name">Origami Clutch</h3>
+          <p class="product-card__price">$0.00</p>
+          <a href="/shop" class="btn btn-outline btn-small product-card__cta">Explore Collection</a>
+        </article>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ WORKSHOP CALLOUT ============ -->
+    <section class="wrap workshop">
+      <div class="workshop__copy">
+        <p class="section__eyebrow">Up Next — Workshop</p>
+        <h2 class="workshop__title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h2>
+        <p class="workshop__body">Drop-in tile building all day, no experience needed. Workshop sessions also run for schools and office team-building.</p>
+      </div>
+      <a href="/learn" class="btn btn-filled workshop__cta">Book a Workshop</a>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ ABOUT BLURB ============ -->
+    <section class="wrap about-blurb">
+      <h2 class="about-blurb__title">We're a Melbourne-based creative studio.</h2>
+      <p class="about-blurb__body">We design zero-waste, interlocking textile tiles that click together without sewing — made for makers, schools, and studios across Naarm.</p>
+    </section>
+
+    <!-- ============ LEARN / CUSTOM / SHOP NAV TILES ============ -->
+    <section class="explore-grid">
+      <a href="/learn" class="explore-tile">
+        <div class="ph explore-tile__media">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Learn" class="w-32 h-32 object-contain opacity-70" onerror="this.style.display='none'" />
+        </div>
+        <span class="explore-tile__label">Learn</span>
+      </a>
+      <a href="/custom" class="explore-tile">
+        <div class="ph explore-tile__media">
+          <img src="/assets/floral-pattern.svg" alt="Custom" class="w-32 h-32 object-contain opacity-70" onerror="this.style.display='none'" />
+        </div>
+        <span class="explore-tile__label">Custom</span>
+      </a>
+      <a href="/shop" class="explore-tile">
+        <div class="ph explore-tile__media">
+          <img src="/Square.png" alt="Shop" class="w-32 h-32 object-contain opacity-80" onerror="this.style.display='none'" />
+        </div>
+        <span class="explore-tile__label">Shop</span>
+      </a>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="home-signup">
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
 </Layout>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding-top: 56px;
+    padding-bottom: 64px;
+  }
+  .hero__eyebrow {
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 14px;
+  }
+  .hero__title {
+    font-size: clamp(2.1rem, 4.4vw, 3.2rem);
+    margin-bottom: 18px;
+  }
+  .hero__body {
+    font-size: 1.02rem;
+    color: #333;
+    max-width: 42ch;
+    margin-bottom: 28px;
+  }
+  .hero__ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero__ph {
+    border-radius: var(--radius);
+    background: #fafafa;
+    border: 1.5px solid var(--ink);
+    overflow: hidden;
+  }
+
+  .workshop {
+    padding-top: 56px;
+    padding-bottom: 56px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .workshop__title {
+    font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+    margin: 6px 0 18px;
+  }
+  .workshop__body { max-width: 52ch; color: #333; }
+  .workshop__cta { flex-shrink: 0; }
+
+  .about-blurb { padding-top: 56px; padding-bottom: 32px; }
+  .about-blurb__title {
+    font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+    margin-bottom: 14px;
+  }
+  .about-blurb__body { max-width: 60ch; color: #333; }
+
+  .explore-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  .explore-tile {
+    border-right: 1px solid var(--ink);
+    padding: 0 0 20px;
+    display: block;
+    transition: background 0.2s ease;
+  }
+  .explore-tile:hover {
+    background: #faf8f9;
+  }
+  .explore-tile:last-child { border-right: none; }
+  .explore-tile__media { aspect-ratio: 4 / 3; border: none; border-radius: 0; background: #fcfcfc; }
+  .explore-tile__label {
+    display: block;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-top: 18px;
+  }
+
+  @media (max-width: 768px) {
+    .hero { grid-template-columns: 1fr; padding-top: 32px; padding-bottom: 44px; }
+    .hero__media { order: -1; }
+    .workshop { flex-direction: column; align-items: flex-start; }
+    .explore-grid { grid-template-columns: 1fr; }
+    .explore-tile { border-right: none; border-bottom: 1px solid var(--ink); padding-bottom: 24px; }
+    .explore-tile:last-child { border-bottom: none; }
+  }
+</style>
+
+<script>
+  function initForms() {
+    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+      let feedback = form.nextElementSibling as HTMLElement;
+      if (!feedback || !feedback.classList.contains('form-feedback')) {
+        feedback = document.createElement('p');
+        feedback.className = 'form-feedback';
+        feedback.setAttribute('role', 'status');
+        form.insertAdjacentElement('afterend', feedback);
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+          form.reset();
+          feedback.textContent = "You're on the list.";
+          feedback.classList.add('form-feedback--success');
+        } catch (err: any) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initForms();
+  document.addEventListener('astro:page-load', initForms);
+</script>

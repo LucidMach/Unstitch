@@ -1,0 +1,60 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = "" } = Astro.props;
+---
+
+<div class="menu-overlay" data-menu-overlay></div>
+<aside class="menu-sheet" data-menu-sheet aria-label="Site menu">
+  <div class="menu-sheet__top">
+    <button class="icon-btn" data-menu-close aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <ul class="menu-sheet__links">
+    <li><a href="/" aria-current={currentPath === "/" ? "page" : undefined}>Home</a></li>
+    <li><a href="/playground" aria-current={currentPath === "/playground" ? "page" : undefined}>Playground</a></li>
+    <li><a href="/about" aria-current={currentPath === "/about" ? "page" : undefined}>About</a></li>
+    <li><a href="/learn" aria-current={currentPath === "/learn" ? "page" : undefined}>Learn</a></li>
+    <li><a href="/custom" aria-current={currentPath === "/custom" ? "page" : undefined}>Custom</a></li>
+    <li><a href="/shop" aria-current={currentPath === "/shop" ? "page" : undefined}>Shop</a></li>
+    <li><a href="/archive" aria-current={currentPath === "/archive" ? "page" : undefined}>Material Archive</a></li>
+    <li><a href="/contact" aria-current={currentPath === "/contact" ? "page" : undefined}>Contact Us</a></li>
+  </ul>
+  <p class="menu-sheet__foot">Naarm, Melbourne Australia</p>
+</aside>
+
+<script>
+  function initMenuSheet() {
+    const overlay = document.querySelector<HTMLElement>('[data-menu-overlay]');
+    const sheet = document.querySelector<HTMLElement>('[data-menu-sheet]');
+    const openers = document.querySelectorAll<HTMLElement>('[data-menu-open]');
+    const closers = document.querySelectorAll<HTMLElement>('[data-menu-close]');
+
+    const openMenu = () => {
+      overlay?.classList.add('is-open');
+      sheet?.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    };
+
+    const closeMenu = () => {
+      overlay?.classList.remove('is-open');
+      sheet?.classList.remove('is-open');
+      document.body.style.overflow = '';
+    };
+
+    openers.forEach((btn) => btn.addEventListener('click', openMenu));
+    closers.forEach((btn) => btn.addEventListener('click', closeMenu));
+    overlay?.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+    });
+  }
+
+  initMenuSheet();
+  document.addEventListener('astro:page-load', initMenuSheet);
+</script>
