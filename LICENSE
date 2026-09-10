@@ -1,0 +1,70 @@
+# UNSTITCH DUAL & SOURCE-AVAILABLE LICENSE
+
+Copyright (c) 2025–2026 Unstitch. All rights reserved.
+
+This repository uses a multi-tier split license structure to encourage open development of the web platform while protecting Unstitch's proprietary 3D modeling playground, parametric tile algorithms, physical product designs, and brand identity.
+
+---
+
+## 1. General Website Code & UI Components (MIT License)
+
+The general website structure, layout templates, styling system, and generic UI components in this repository (excluding the items specified in Sections 2 and 3 below) are licensed under the **MIT License**:
+
+```text
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+## 2. 3D Modeling Playground & Tile Geometry Engine (Non-Commercial & Evaluation License)
+
+All source code, geometric algorithms, parametric folding logic, state machines, node graph calculations, and GLTF parsing logic relating to the **3D Modeling Playground** (including but not limited to files located in `src/components/scene/`, `src/components/playCanvas.tsx`, `src/components/Rig.tsx`, `src/components/tex-tile.tsx`, `src/components/fold-control.tsx`, `src/components/base-control.tsx`, `src/components/ghost-arrow.tsx`, `src/components/spinFlatform.tsx`, `src/hooks/use-play-canvas.ts`, `src/types/tile.ts`, `parse_glb.js`, and `parse_glb_bbox.js`) are subject to the following terms:
+
+### A. Permitted Uses
+- **Personal & Academic Evaluation**: You may view, clone, run, and modify the 3D Playground code locally solely for non-commercial personal experimentation, educational study, academic research, and portfolio evaluation.
+- **Contributions**: You may submit pull requests, bug fixes, or performance improvements to this repository for consideration by the Unstitch maintainers.
+
+### B. Prohibited Uses
+- **No Commercial Exploitation**: You may NOT use, distribute, sublicense, host, embed, or deploy the 3D Playground code, geometry engine, or folding algorithms in any commercial software, SaaS product, client project, paid service, or revenue-generating platform without prior written authorization from Unstitch.
+- **No Derivative Commercial Engines**: You may NOT extract, reverse-engineer, or adapt the interlocking textile geometry calculations or folding state engine to create competing 3D modeling tools or textile simulation software.
+- **No Unauthorized Physical Production**: You may NOT utilize the parametric algorithms or geometry outputs to mass-produce or sell commercial physical interlocking modular textile goods without a commercial license.
+
+---
+
+## 3. Brand Assets, 3D Models & Physical Product Designs (All Rights Reserved)
+
+All brand assets, visual media, 3D binary models, and physical product designs are **All Rights Reserved** and are NOT licensed under the MIT License or open-source terms:
+
+- **Trademarks & Brand Identity**: The names "Unstitch", "Unstitch Studio", "House of Tiles", and all logos, wordmarks (`logo-full.svg`, `logo-mark.svg`), mascots (`mascot.svg`), and brand graphics (`src/assets/`, `public/assets/`).
+- **3D Binary Models**: 3D GLTF/GLB models (`public/Textile.glb`, `public/Textile-Components.glb`, and any associated mesh geometries).
+- **Product Photography & Renderings**: Product imagery, collection renders, and mockups (`public/*.png`).
+- **Proprietary Module & Bag Designs**: The physical mechanical die-cut interlocking patterns, dimensions, and specifications for Unstitch bag collections ("Modular Tote", "Bucket Bag", "Origami Clutch", "Crescent Moon", "DIY Tile Builder Kit", "Weekender").
+
+No right is granted to use Unstitch trademarks or proprietary product designs for any commercial or public purpose without explicit written consent.
+
+---
+
+## 4. Commercial Licensing & Enquiries
+
+For commercial licenses, custom spatial/architectural installations, enterprise workshop bookings, or partnership inquiries, please contact:
+
+**Unstitch Studio**  
+Email: [unstitchxfactory@gmail.com](mailto:unstitchxfactory@gmail.com)  
+Website: [https://www.unstitchx.com](https://www.unstitchx.com)  
+Naarm / Melbourne, Australia

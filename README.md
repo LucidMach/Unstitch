@@ -1,55 +1,89 @@
-# Astro Starter Kit: Basics
+# Unstitch — One tile. Endless possibilities.
 
-```sh
-pnpm create astro@latest -- --template basics
+> **Zero-Waste Modular Textile Puzzle System & 3D Modeling Playground**  
+> Naarm / Melbourne, Australia — [unstitchx.com](https://www.unstitchx.com)
+
+---
+
+## 🌟 Overview
+
+**Unstitch** is a circular design studio and modular textile system. We design zero-waste, interlocking textile modules that mechanically click and fold together without sewing thread, glue, or permanent seams.
+
+This repository contains:
+1. **Interactive Web Platform**: Multi-page Astro 6 application showcasing drops, material archives, custom commissions, and workshops.
+2. **3D Modeling Playground**: Parametric 3D textile simulation engine built with Three.js and React Three Fiber, allowing users to assemble, tessellate, and fold modular 3D structures in real time.
+3. **Circular Textile Architecture**: Interactive rescue material archive documenting surplus and deadstock textile batches diverted from landfill.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Astro 6](https://astro.build) (SSG / Island Architecture)
+- **UI & 3D Components**: [React 19](https://react.dev), [React Three Fiber](https://r3f.docs.pmnd.rs), [Three.js](https://threejs.org), [Drei](https://github.com/pmndrs/drei)
+- **Styling**: Vanilla CSS Brand Design System + [Tailwind CSS v4](https://tailwindcss.com)
+- **Animation & Motion**: [GSAP](https://gsap.com), [Framer Motion](https://www.framer.com/motion)
+- **State Management**: [Jotai](https://jotai.org)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 20+
+- [pnpm](https://pnpm.io) (`npm install -g pnpm`)
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/LucidMach/Unstitch.git
+cd Unstitch
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+```
+Open [http://localhost:4321](http://localhost:4321) in your browser.
+
+### Build
+```bash
+# Build static production distribution
+pnpm build
+
+# Preview the production build
+pnpm preview
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+---
 
-## 🚀 Project Structure
+## 🧩 3D Playground Mechanics
 
-Inside of your Astro project, you'll see the following folders and files:
+The 3D Playground (`/playground`) uses parametric matrix transformations to simulate physical interlocking textile tessellation:
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
+- **Tiling Logic**:
+  - Modular tiles alternate 90° rotations along the tessellation grid (`[0, +90, 0, +90, ...]`).
+  - Unit nodes align tightly with adjacent keyway slots on orthogonal axes (`w`, `a`, `s`, `d`).
+- **Folding & Bending Mechanics**:
+  - Non-destructive rotational folding along single-connected mechanical seams.
+  - Interactive angle controls, ghost node history tracking, and GLTF mesh analysis.
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+---
 
-## 🧞 Commands
+## 📄 Licensing & Intellectual Property
 
-All commands are run from the root of the project, from a terminal:
+This repository is published under a **Split / Source-Available License** to allow community inspection while protecting proprietary commercial assets:
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+1. **General Website Code & UI Components**: Licensed under the **[MIT License](file:///Users/lucidmach/Unstitch/LICENSE)**.
+2. **3D Modeling Playground & Geometric Folding Engine** (`src/components/playCanvas.tsx`, `src/components/scene/`, `src/hooks/use-play-canvas.ts`, `src/types/tile.ts`, `parse_glb*.js`): **Proprietary & Source-Available for Non-Commercial / Evaluation Use Only**. Commercial deployment, hosting, or embedding in commercial products without prior written authorization is strictly prohibited.
+3. **Brand Assets, 3D Models & Physical Product Designs** (`public/*.glb`, `.png` renders, logos, trademarks, and physical interlocking die-cut patterns): **All Rights Reserved**.
 
-## 👀 Want to learn more?
+See the full legal terms in the **[LICENSE](file:///Users/lucidmach/Unstitch/LICENSE)** file.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+---
 
-# Unstitch Playground Logic
-Tiling Logic:
-- new tile is rotated 90deg alternatively [0, +90, 0, +90, ...]
-- overlap is such that the center unit node is tightly adjacent
-- only overlap for the outer nodes of the unit - w, a, s, d
+## 📬 Contact & Inquiries
 
-Bending Logic:
-- bending can happen if only one side is connected
+- **General & Workshop Enquiries**: [unstitchxfactory@gmail.com](mailto:unstitchxfactory@gmail.com)
+- **Commercial Licensing & Partnerships**: [unstitchxfactory@gmail.com](mailto:unstitchxfactory@gmail.com)
+- **Website**: [https://www.unstitchx.com](https://www.unstitchx.com)

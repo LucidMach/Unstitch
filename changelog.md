@@ -58,6 +58,14 @@ Comprehensive comparison, contrast analysis, and integration of the brand assets
 - `api/subscribe.js`: Vercel serverless function for newsletter signups with email validation, duplicate protection, and optional `@vercel/postgres` persistence.
 - `api/contact.js`: Vercel serverless function for contact submissions with subject validation, dynamic `details` JSON extraction, PostgreSQL storage, and Resend email dispatch.
 
+#### Licensing & Legal Framework
+- `LICENSE`: Established a multi-tier split license structure:
+  - **MIT License** for general website shell, styling, and UI components.
+  - **Source-Available Non-Commercial & Evaluation License** for the 3D Modeling Playground, parametric geometry calculations, and tile folding engine.
+  - **All Rights Reserved** for trademarks, brand logos, 3D GLTF models, and proprietary physical module/bag designs.
+- `package.json`: Updated `"license": "SEE LICENSE IN LICENSE"`.
+- `README.md`: Added project overview and licensing section.
+
 #### Static Assets
 - `public/assets/`: Migrated brand assets (`logo-full.svg`, `logo-mark.svg`, `white-logo-mark.svg`, `mascot.svg`, `floral-pattern.svg`, `favicon-adaptive.svg`, and partner logos for Monash University, Zero Waste Festival, DATTA Vic) for consistent public serving.
 
