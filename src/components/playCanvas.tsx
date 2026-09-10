@@ -7,29 +7,55 @@
  * of this repository. Commercial use or redistribution is prohibited.
  */
 
-import React from "react";
+import React, { Suspense, useRef, useState, useEffect } from "react";
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, GizmoHelper, GizmoViewcube } from "@react-three/drei";
+import { OrbitControls, Grid, GizmoHelper, GizmoViewcube, Html } from "@react-three/drei";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, FolderOpen } from "lucide-react";
+import { Save, FolderOpen, Share2, ArrowLeft, Compass, RotateCcw, Eye } from "lucide-react";
 
 import { usePlayCanvas } from "../hooks/use-play-canvas";
 import { ITEM_SCALE } from "../constants/layout";
 import { getLayoutConstants } from "../constants/layout";
 import TileNode from "./scene/TileNode";
-import { SaveDialog, LoadDialog, ConfirmDialog } from "./ui/Dialogs";
+import { SaveDialog, LoadDialog, ShareDialog, ConfirmDialog } from "./ui/Dialogs";
 import { HelpGuide } from "./ui/HelpGuide";
 import { AngleSlider } from "./ui/AngleSlider";
 import { Button } from "./ui/button";
 import ActionBar from "./action-bar";
 
+const CanvasLoader: React.FC = () => (
+  <Html center>
+    <div className="flex flex-col items-center gap-2.5 bg-white/95 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-neutral-200 shadow-xl pointer-events-none">
+      <div className="w-5 h-5 border-2 border-[#A36E93] border-t-transparent rounded-full animate-spin" />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-600">Loading Textile Model...</span>
+    </div>
+  </Html>
+);
+
 const PlayCanvas: React.FC = () => {
   const pc = usePlayCanvas();
   const { OFFSET_MAJOR } = getLayoutConstants(pc.overlap);
+  const controlsRef = useRef<any>(null);
+  const modelGroupRef = useRef<THREE.Group>(null);
+  const [previewSnapshot, setPreviewSnapshot] = useState<string | null>(null);
+
+  const handleOpenShare = () => {
+    try {
+      const canvasEl = document.querySelector('.playground-root canvas') as HTMLCanvasElement;
+      if (canvasEl) {
+        const dataUrl = canvasEl.toDataURL('image/png');
+        setPreviewSnapshot(dataUrl);
+      }
+    } catch (err) {
+      console.warn('Could not capture canvas snapshot:', err);
+    }
+    pc.setShowShareDialog(true);
+  };
 
   const selectedTile = pc.tiles.find(t => t.id === pc.selectedTileId);
   
-  // Ghost tiles generation moved to local for easy access to state
+  // Ghost tiles generation
   const getGhostTiles = (parent: any) => {
     const { position: p, rotation: r } = parent;
     const offsets = [
@@ -87,9 +113,9 @@ const PlayCanvas: React.FC = () => {
 
   const rootTile = pc.tiles.find(t => t.id === "root");
 
-  const [isMobile, setIsMobile] = React.useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -98,64 +124,196 @@ const PlayCanvas: React.FC = () => {
 
   const cameraPosition: [number, number, number] = isMobile ? [0, 500, 0] : [0, 300, 0];
 
+  const setViewTop = () => {
+    if (!controlsRef.current) return;
+    controlsRef.current.object.position.set(0, 350, 0.001);
+    controlsRef.current.target.set(0, 0, 0);
+    controlsRef.current.update();
+    pc.showToast("Top View (Flat Layout)");
+  };
+
+  const setViewIso = () => {
+    if (!controlsRef.current) return;
+    controlsRef.current.object.position.set(180, 240, 180);
+    controlsRef.current.target.set(0, 0, 0);
+    controlsRef.current.update();
+    pc.showToast("Isometric 3D View");
+  };
+
+  const setViewReset = () => {
+    if (!controlsRef.current) return;
+    controlsRef.current.object.position.set(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+    controlsRef.current.target.set(0, 0, 0);
+    controlsRef.current.update();
+    pc.showToast("Camera Reset");
+  };
+
   return (
     <div className="flex flex-col justify-center items-center h-full w-full bg-white/10 relative" onPointerDown={pc.handlePointerDown} onPointerUp={pc.handlePointerUp}>
-      <Canvas shadows camera={{ position: cameraPosition, fov: 45 }} className="w-full h-full bg-zinc-50">
-        <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
+      <Canvas shadows gl={{ preserveDrawingBuffer: true }} camera={{ position: cameraPosition, fov: 45 }} className="w-full h-full bg-zinc-50">
+        <OrbitControls 
+          ref={controlsRef} 
+          makeDefault 
+          enabled={!pc.isFolding}
+          minPolarAngle={0} 
+          maxPolarAngle={Math.PI / 2.05} 
+        />
         <ambientLight intensity={0.7} />
         <directionalLight position={[50, 100, 50]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
         <Grid infiniteGrid cellSize={ITEM_SCALE[0]/10} sectionSize={ITEM_SCALE[0]} fadeDistance={1000} sectionColor="#d1d5db" cellColor="#e5e7eb" />
-        {/* empty mess to hangle unselection */}
+        
+        {/* Transparent backdrop plane to handle deselection */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} onPointerDown={pc.handleBackgroundClick}>
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial visible={false} />
         </mesh>
+        
         <GizmoHelper alignment="top-right" margin={[80, 80]}><GizmoViewcube /></GizmoHelper>
-        {rootTile && (
-          <group position={pc.worldTransform.position} quaternion={pc.worldTransform.quaternion}>
-            {renderRecursive(rootTile, [0, 0, 0])}
-          </group>
-        )}
+        
+        <Suspense fallback={<CanvasLoader />}>
+          {rootTile && (
+            <group ref={modelGroupRef} position={pc.worldTransform.position} quaternion={pc.worldTransform.quaternion}>
+              {renderRecursive(rootTile, [0, 0, 0])}
+            </group>
+          )}
+        </Suspense>
       </Canvas>
 
-      {/* Top Bar Actions */}
-      <div className="absolute top-5 sm:top-7 left-4 sm:left-7 flex flex-wrap items-center gap-3 z-50 pointer-events-auto">
-          <Button onClick={()=>window.history.back()} className="hover:bg-pink-100 bg-white/50 backdrop-blur-md shadow-lg border border-zinc-200/50 w-10 h-10 p-0 text-zinc-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/></svg>
+      {/* Unified Top Navigation & Studio Actions */}
+      <div className="absolute top-4 sm:top-6 left-4 sm:left-6 flex flex-wrap items-center gap-2 sm:gap-2.5 z-50 pointer-events-auto max-w-[calc(100vw-140px)] sm:max-w-none">
+        {/* Back to Studio Link Pill */}
+        <a
+          href="/"
+          className="flex items-center gap-2 bg-white/95 backdrop-blur-md border border-neutral-200 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-neutral-800 shadow-md hover:bg-neutral-100 hover:border-neutral-400 transition-all group shrink-0"
+        >
+          <ArrowLeft size={16} className="text-neutral-500 group-hover:text-neutral-900 group-hover:-translate-x-0.5 transition-all" />
+          <span>Studio</span>
+        </a>
+
+        {/* Project Management Actions Pill */}
+        <div className="flex bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 overflow-hidden shrink-0">
+          <Button 
+            variant="ghost" 
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
+            onClick={() => pc.setShowSaveDialog(true)}
+          >
+            <Save size={15} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Save</span>
           </Button>
-          <div className="flex bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-zinc-200 overflow-hidden">
-              <Button variant="ghost" className="h-10 px-3 sm:px-4 rounded-none border-r border-zinc-200 text-zinc-600 hover:text-pink-600 hover:bg-pink-50 transition-colors gap-1.5 sm:gap-2" onClick={() => pc.setShowSaveDialog(true)}>
-                  <Save size={16} /><span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Save</span>
-              </Button>
-              <Button variant="ghost" className="h-10 px-3 sm:px-4 rounded-none text-zinc-600 hover:text-pink-600 hover:bg-pink-50 transition-colors gap-1.5 sm:gap-2" onClick={() => pc.setShowLoadDialog(true)}>
-                  <FolderOpen size={16} /><span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Load</span>
-              </Button>
-          </div>
+
+          <Button 
+            variant="ghost" 
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
+            onClick={() => pc.setShowLoadDialog(true)}
+          >
+            <FolderOpen size={15} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Load</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-none text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
+            onClick={handleOpenShare}
+          >
+            <Share2 size={15} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Share</span>
+          </Button>
+        </div>
+
+        {/* Viewport Camera Presets */}
+        <div className="hidden md:flex bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 overflow-hidden shrink-0">
+          <button 
+            title="Isometric 3D View"
+            onClick={setViewIso}
+            className="h-9 sm:h-10 px-3 border-r border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1 text-[11px] font-bold uppercase"
+          >
+            <Compass size={14} />
+            <span>3D</span>
+          </button>
+          <button 
+            title="Top Flat 2D Layout View"
+            onClick={setViewTop}
+            className="h-9 sm:h-10 px-3 border-r border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1 text-[11px] font-bold uppercase"
+          >
+            <Eye size={14} />
+            <span>Flat</span>
+          </button>
+          <button 
+            title="Reset Camera"
+            onClick={setViewReset}
+            className="h-9 sm:h-10 px-2.5 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center"
+          >
+            <RotateCcw size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Toast Notification */}
       <AnimatePresence>
-          {pc.toastMessage && (
-              <motion.div initial={{ opacity: 0, y: -20, x: "-50%" }} animate={{ opacity: 1, y: 0, x: "-50%" }} exit={{ opacity: 0, y: -20, x: "-50%" }} className="absolute top-24 sm:top-28 left-1/2 z-[100] bg-pink-500 text-white px-5 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-[0_4px_20px_rgba(236,72,153,0.4)] pointer-events-none">
-                  {pc.toastMessage}
-              </motion.div>
-          )}
+        {pc.toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: "-50%" }} 
+            animate={{ opacity: 1, y: 0, x: "-50%" }} 
+            exit={{ opacity: 0, y: -20, x: "-50%" }} 
+            className="absolute top-5 sm:top-6 left-1/2 z-[100] bg-neutral-900/95 text-white px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-2xl border border-neutral-800 pointer-events-none"
+          >
+            {pc.toastMessage}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Angle Slider Overlay */}
-      {(() => {
-        const sliderTile = pc.selectedTileId === "root" && pc.activeRootHinge ? pc.tiles.find(t => t.id === pc.activeRootHinge) : (pc.selectedTileId !== "root" ? selectedTile : null);
-        if (!sliderTile) return null;
-        return <AngleSlider foldAngle={sliderTile.foldAngle} typedAngle={pc.typedAngle} setTypedAngle={pc.setTypedAngle} updateFoldAngle={(a) => pc.updateFoldAngle(sliderTile.id, a)} recordMove={pc.recordMove} />;
-      })()}
+      <AnimatePresence>
+        {(() => {
+          const sliderTile = pc.selectedTileId === "root" && pc.activeRootHinge ? pc.tiles.find(t => t.id === pc.activeRootHinge) : (pc.selectedTileId !== "root" ? selectedTile : null);
+          if (!sliderTile) return null;
+          return (
+            <AngleSlider 
+              key={sliderTile.id}
+              foldAngle={sliderTile.foldAngle} 
+              typedAngle={pc.typedAngle} 
+              setTypedAngle={pc.setTypedAngle} 
+              updateFoldAngle={(a) => pc.updateFoldAngle(sliderTile.id, a)} 
+              recordMove={pc.recordMove} 
+            />
+          );
+        })()}
+      </AnimatePresence>
 
       <ActionBar historyCount={pc.history.length} redoCount={pc.redoStack.length} canDelete={!!selectedTile && selectedTile.id !== "root"} onReset={() => pc.setShowResetConfirm(true)} onUndo={pc.handleUndo} onRedo={pc.handleRedo} onDelete={() => selectedTile && pc.setDeleteConfirmId(selectedTile.id)} />
 
       <HelpGuide show={pc.showHelp} setShow={pc.setShowHelp} isTouch={pc.isTouch} />
 
-      <SaveDialog show={pc.showSaveDialog} onClose={() => pc.setShowSaveDialog(false)} projectName={pc.projectName} setProjectName={pc.setProjectName} onSave={pc.handleSaveProject} currentProjectId={pc.currentProjectId} projects={pc.projects} />
+      <SaveDialog 
+        show={pc.showSaveDialog} 
+        onClose={() => pc.setShowSaveDialog(false)} 
+        projectName={pc.projectName} 
+        setProjectName={pc.setProjectName} 
+        onSave={pc.handleSaveProject} 
+        currentProjectId={pc.currentProjectId} 
+        projects={pc.projects}
+        onExportJSON={pc.exportJSON}
+        onExportGLTF={() => pc.exportGLTF(modelGroupRef.current)}
+      />
       
-      <LoadDialog show={pc.showLoadDialog} onClose={() => pc.setShowLoadDialog(false)} projects={pc.projects} onLoad={pc.handleLoadProject} onDelete={pc.handleDeleteProject} />
+      <LoadDialog 
+        show={pc.showLoadDialog} 
+        onClose={() => pc.setShowLoadDialog(false)} 
+        projects={pc.projects} 
+        onLoad={pc.handleLoadProject} 
+        onDelete={pc.handleDeleteProject} 
+        onImportJSON={pc.importJSON} 
+      />
+
+      <ShareDialog
+        show={pc.showShareDialog}
+        onClose={() => pc.setShowShareDialog(false)}
+        projectName={pc.projectName}
+        setProjectName={pc.setProjectName}
+        designData={pc.getDesignData()}
+        previewImage={previewSnapshot}
+        onShareSuccess={() => pc.showToast("Design sent to your email!")}
+      />
 
       <ConfirmDialog show={!!pc.deleteConfirmId} title="delete tile?" message={pc.deleteConfirmId && Object.keys(pc.tiles.find(t => t.id === pc.deleteConfirmId)?.children || {}).length > 0 ? "This tile has others attached. Deleting it will remove the entire branch." : "Are you sure you want to delete this tile?"} confirmLabel="delete" onConfirm={() => { pc.deleteTile(pc.deleteConfirmId!); pc.setDeleteConfirmId(null); }} onCancel={() => pc.setDeleteConfirmId(null)} />
 

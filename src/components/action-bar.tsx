@@ -59,7 +59,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
     return (
         <motion.div 
             layout
-            className="absolute bottom-5 sm:bottom-7 flex gap-2 sm:gap-3 pointer-events-auto items-center px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl"
+            className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 pointer-events-auto items-center p-1.5 sm:p-2 bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200 shadow-xl z-40"
         >
             {/* Reset Button */}
             <AnimatePresence mode="popLayout">
@@ -73,9 +73,10 @@ const ActionBar: React.FC<ActionBarProps> = ({
                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     >
                         <Button
-                            variant="secondary"
+                            variant="ghost"
                             size="icon"
-                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200"
+                            title="Reset all"
+                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-neutral-100 text-neutral-700 rounded-xl"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onReset();
@@ -92,36 +93,34 @@ const ActionBar: React.FC<ActionBarProps> = ({
             {/* Undo Button */}
             <motion.div layout>
                 <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200 disabled:opacity-30"
+                    title="Undo"
+                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-neutral-100 text-neutral-700 disabled:opacity-30 rounded-xl"
                     disabled={historyCount === 0}
                     onClick={(e) => {
                         e.stopPropagation();
                         onUndo();
                     }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
                     </svg>
                 </Button>
             </motion.div>
 
-            {/* Dynamic History Preview with Layout Animation */}
+            {/* Dynamic History Preview */}
             <motion.div 
                 layout
-                className="relative flex items-center px-3 sm:px-4 py-1 bg-white/50 backdrop-blur-md rounded-full border border-zinc-200/50 shadow-inner h-9 sm:h-10 min-w-[120px] sm:min-w-[180px] justify-center overflow-hidden"
+                className="relative flex items-center px-3 sm:px-4 bg-neutral-100/80 rounded-xl h-9 sm:h-10 min-w-[100px] sm:min-w-[140px] justify-center overflow-hidden"
             >
-                {/* Fixed Icon and Separator on the left */}
-                <div className="absolute left-3 sm:left-4 flex items-center gap-2 sm:gap-3">
-                    <div className="flex items-center text-zinc-400/80">
-                        <History className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px]" strokeWidth={2.5} />
-                    </div>
-                    <div className="w-[1px] h-3 sm:h-4 bg-zinc-300/60" />
+                {/* Fixed Icon on the left */}
+                <div className="absolute left-2.5 sm:left-3 flex items-center text-neutral-400">
+                    <History className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
                 </div>
 
                 {/* Centered Dots Container */}
-                <div className="flex gap-2 sm:gap-2.5 items-center h-full translate-x-3 sm:translate-x-0">
+                <div className="flex gap-2 sm:gap-2.5 items-center h-full translate-x-2 sm:translate-x-1.5">
                     <AnimatePresence mode="popLayout" initial={false}>
                         {visibleDots.map((dot) => (
                             <motion.div
@@ -129,24 +128,20 @@ const ActionBar: React.FC<ActionBarProps> = ({
                                 layout
                                 initial={{ opacity: 0, scale: 0.2, x: 20 }}
                                 animate={{ 
-                                    opacity: dot.type === 'empty' ? 0.2 : 1, 
-                                    scale: dot.type === 'current' ? 1.3 : dot.type === 'empty' ? 0.75 : 1, 
+                                    opacity: dot.type === 'empty' ? 0.25 : 1, 
+                                    scale: dot.type === 'current' ? 1.35 : dot.type === 'empty' ? 0.75 : 1, 
                                     x: 0,
-                                    backgroundColor: dot.type === 'current' ? "#ec4899" : dot.type === 'past' ? "#a1a1aa" : dot.type === 'empty' ? "transparent" : "#e4e4e7"
+                                    backgroundColor: dot.type === 'current' ? "#A36E93" : dot.type === 'past' ? "#525252" : dot.type === 'empty' ? "#d4d4d4" : "#a3a3a3"
                                 }}
                                 exit={{ opacity: 0, scale: 0.2, x: -20 }}
                                 transition={{ 
                                     layout: { type: "spring", stiffness: 400, damping: 30 },
                                     opacity: { duration: 0.2 },
                                     scale: { type: "spring", stiffness: 500, damping: 25 },
-                                    backgroundColor: { duration: 0.4 }
+                                    backgroundColor: { duration: 0.3 }
                                 }}
                                 className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 relative ${
-                                    dot.type === 'current' ? "shadow-[0_0_12px_rgba(236,72,153,0.8)] z-10" : "z-0"
-                                } ${
-                                    dot.type === 'future' ? "border-2 border-zinc-300" : ""
-                                } ${
-                                    dot.type === 'empty' ? "border-2 border-zinc-200" : ""
+                                    dot.type === 'current' ? "shadow-[0_0_8px_rgba(163,110,147,0.85)] z-10" : "z-0"
                                 }`}
                             />
                         ))}
@@ -157,16 +152,17 @@ const ActionBar: React.FC<ActionBarProps> = ({
             {/* Redo Button */}
             <motion.div layout>
                 <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-pink-100 bg-white/80 shadow-sm border-zinc-200 disabled:opacity-30"
+                    title="Redo"
+                    className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer hover:bg-neutral-100 text-neutral-700 disabled:opacity-30 rounded-xl"
                     disabled={redoCount === 0}
                     onClick={(e) => {
                         e.stopPropagation();
                         onRedo();
                     }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" style={{ transform: 'scaleX(-1)' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'scaleX(-1)' }}>
                         <path d="M17.026 22.957c10.957-11.421-2.326-20.865-10.384-13.309l2.464 2.352h-9.106v-8.947l2.232 2.229c14.794-13.203 31.51 7.051 14.794 17.675z"/>
                     </svg>
                 </Button>
@@ -186,7 +182,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
                         <Button
                             variant="destructive"
                             size="icon"
-                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer shadow-lg"
+                            title="Delete selected tile"
+                            className="w-9 h-9 sm:w-10 sm:h-10 cursor-pointer rounded-xl bg-red-600 hover:bg-red-700 text-white border-none shadow-sm"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onDelete();

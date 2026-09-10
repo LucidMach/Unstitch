@@ -29,15 +29,17 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart, onFoldEn
   const initialAngle = useRef(0);
 
   useEffect(() => {
-    if (hovered) {
-      document.body.style.cursor = 'pointer';
+    if (active) {
+      document.body.style.cursor = 'grabbing';
+    } else if (hovered) {
+      document.body.style.cursor = 'grab';
     } else {
       document.body.style.cursor = 'auto';
     }
     return () => {
       document.body.style.cursor = 'auto';
     };
-  }, [hovered]);
+  }, [hovered, active]);
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
@@ -86,9 +88,9 @@ export default function FoldControl({ axis, angle, onFold, onFoldStart, onFoldEn
   const radius = 6;
   const tube = 0.5;
 
-  const baseColor = isGhost && !isSelected ? "#9ca3af" : "#60a5fa"; // gray-400 for ghost, blue-400 for normal
-  const activeColor = isGhost && !isSelected ? "#6b7280" : "#3b82f6"; // gray-500 for ghost active, blue-500 for normal active
-  const opacity = (isGhost && !isSelected) ? (hovered ? 0.7 : 0.3) : (hovered ? 0.9 : 0.5);
+  const baseColor = isGhost && !isSelected ? "#9ca3af" : "#A36E93"; 
+  const activeColor = isGhost && !isSelected ? "#6b7280" : "#8e5c80"; 
+  const opacity = (isGhost && !isSelected) ? (hovered ? 0.7 : 0.3) : (hovered ? 0.95 : 0.7);
 
   return (
     <group rotation={euler} position={[0, 0, 0]}>

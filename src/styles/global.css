@@ -55,13 +55,13 @@
   --secondary-foreground: #111111;
   --muted: #f4eff1;
   --muted-foreground: #666666;
-  --accent: #b784a7;
+  --accent: #A36E93;
   --accent-foreground: #ffffff;
-  --accent-pale: #e9dae5;
+  --accent-pale: #eedfe9;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: #b784a7;
+  --ring: #A36E93;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -74,7 +74,7 @@
   --sidebar-accent: #f4eff1;
   --sidebar-accent-foreground: #111111;
   --sidebar-border: #e5e5e5;
-  --sidebar-ring: #b784a7;
+  --sidebar-ring: #A36E93;
 }
 
 .dark {

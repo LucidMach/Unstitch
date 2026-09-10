@@ -41,6 +41,7 @@ export const usePlayCanvas = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projects, setProjects] = useState<{ id: string; name: string; timestamp: number }[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export const usePlayCanvas = () => {
         transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
         activeRootHinge,
         selectedTileId
-    }, ...prev].slice(0, 10));
+    }, ...prev].slice(0, 30));
     setRedoStack([]);
   };
 
@@ -224,7 +225,7 @@ export const usePlayCanvas = () => {
         transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
         activeRootHinge,
         selectedTileId
-    }, ...prev].slice(0, 5));
+    }, ...prev].slice(0, 15));
     setHistory(prev => prev.slice(1));
     setTiles(previous.tiles);
     setWorldTransform(previous.transform);
@@ -240,7 +241,7 @@ export const usePlayCanvas = () => {
         transform: { position: worldTransform.position.clone(), quaternion: worldTransform.quaternion.clone() },
         activeRootHinge,
         selectedTileId
-    }, ...prev].slice(0, 5));
+    }, ...prev].slice(0, 30));
     setRedoStack(prev => prev.slice(1));
     setTiles(next.tiles);
     setWorldTransform(next.transform);
@@ -310,12 +311,115 @@ export const usePlayCanvas = () => {
     setShowResetConfirm(false);
   };
 
+  const getDesignData = () => ({
+    version: 1,
+    timestamp: Date.now(),
+    projectName: projectName || "Unstitch 3D Creation",
+    tiles,
+    worldTransform: {
+      position: [worldTransform.position.x, worldTransform.position.y, worldTransform.position.z],
+      quaternion: [worldTransform.quaternion.x, worldTransform.quaternion.y, worldTransform.quaternion.z, worldTransform.quaternion.w]
+    },
+    overlap
+  });
+
+  const exportJSON = () => {
+    try {
+      const data = getDesignData();
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+      const link = document.createElement("a");
+      link.href = jsonString;
+      const safeName = (projectName || "unstitch-design").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      link.download = `${safeName}-${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Design file exported (.json)");
+    } catch (e) {
+      showToast("Error exporting JSON design file.");
+    }
+  };
+
+  const importJSON = (data: any) => {
+    try {
+      if (data && Array.isArray(data.tiles)) {
+        recordMove();
+        setTiles(data.tiles);
+        if (data.worldTransform?.position && data.worldTransform?.quaternion) {
+          const pos = data.worldTransform.position;
+          const quat = data.worldTransform.quaternion;
+          setWorldTransform({
+            position: new THREE.Vector3(pos[0], pos[1], pos[2]),
+            quaternion: new THREE.Quaternion(quat[0], quat[1], quat[2], quat[3])
+          });
+        }
+        if (data.projectName) setProjectName(data.projectName);
+        setShowLoadDialog(false);
+        showToast("Design imported successfully!");
+      } else {
+        showToast("Invalid Unstitch design file.");
+      }
+    } catch (e) {
+      showToast("Error importing design file.");
+    }
+  };
+
+  const exportGLTF = (modelGroup: THREE.Object3D | null) => {
+    if (!modelGroup) {
+      showToast("3D Model not ready for export");
+      return;
+    }
+    showToast("Generating 3D model export...");
+    import("three-stdlib").then(({ GLTFExporter }) => {
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        modelGroup,
+        (result) => {
+          if (result instanceof ArrayBuffer) {
+            const blob = new Blob([result], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const safeName = (projectName || "unstitch-3d-model").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            link.download = `${safeName}.glb`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } else {
+            const output = JSON.stringify(result, null, 2);
+            const blob = new Blob([output], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const safeName = (projectName || "unstitch-3d-model").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            link.download = `${safeName}.gltf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }
+          showToast("3D Model exported successfully!");
+        },
+        (error) => {
+          console.error("GLTF Export error:", error);
+          showToast("Failed to export 3D model.");
+        },
+        { binary: true }
+      );
+    }).catch(err => {
+      console.error("Failed to load exporter:", err);
+      showToast("3D Exporter unavailable.");
+    });
+  };
+
   return {
     tiles, setTiles, history, redoStack, activeRootHinge, setActiveRootHinge,
     selectedTileId, setSelectedTileId, deleteConfirmId, setDeleteConfirmId,
     showResetConfirm, setShowResetConfirm, isFolding, setIsFolding,
     worldTransform, setWorldTransform, overlap, setOverlap,
     toastMessage, showSaveDialog, setShowSaveDialog, showLoadDialog, setShowLoadDialog,
+    showShareDialog, setShowShareDialog, getDesignData, exportJSON, importJSON, exportGLTF,
     projectName, setProjectName, projects, currentProjectId,
     showHelp, setShowHelp, typedAngle, setTypedAngle, isTouch,
     dragStartData, isDragging, handlePointerDown, handlePointerUp,

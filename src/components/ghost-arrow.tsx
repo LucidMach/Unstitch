@@ -18,14 +18,20 @@ interface GhostArrowProps {
 
 export function GhostArrow({ position, rotation = [0, 0, 0], onClick }: GhostArrowProps) {
   return (
-    <group position={position} rotation={rotation} onClick={onClick}>
+    <group 
+      position={position} 
+      rotation={rotation} 
+      onClick={onClick}
+      onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+      onPointerOut={(e) => { e.stopPropagation(); document.body.style.cursor = 'auto'; }}
+    >
       {/* Pyramid pointing along Z axis */}
       {/* Rotation Math.PI / 2 on X aligns the cone to point along +Z (default cone points +Y) */}
       {/* Rotate Y by PI/4 to align flat sides with the cardinal directions if desired, or edges. 
           Since 4 segments, it's a square pyramid. */}
       <mesh rotation={[Math.PI / 2, Math.PI / 4, 0]}>
         <coneGeometry args={[12, 12, 6]} />
-        <meshStandardMaterial color="#ec4899" transparent opacity={0.6} emissive="#ec4899" emissiveIntensity={0.5} />
+        <meshStandardMaterial color="#A36E93" transparent opacity={0.8} emissive="#A36E93" emissiveIntensity={0.5} />
       </mesh>
     </group>
   );

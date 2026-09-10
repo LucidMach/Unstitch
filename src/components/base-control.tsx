@@ -31,13 +31,13 @@ export default function BaseControl({ position, rotation, onClick }: BaseControl
     >
         <mesh position={[0, 2, 0]}>
             <sphereGeometry args={[2, 16, 16]} />
-            <meshStandardMaterial color={hovered ? "#ec4899" : "#fbcfe8"} />
+            <meshStandardMaterial color={hovered ? "#8e5c80" : "#A36E93"} />
         </mesh>
         <Text
             position={[0, 5, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
             fontSize={2}
-            color={hovered ? "#db2777" : "#ec4899"}
+            color={hovered ? "#8e5c80" : "#A36E93"}
             anchorX="center"
             anchorY="middle"
         >

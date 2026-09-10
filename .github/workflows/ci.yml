@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -33,9 +33,13 @@ jobs:
 
       - name: Run Test Suite
         run: pnpm test
+        env:
+          DATABASE_URL: "postgresql://ci_mock:ci_mock@ep-ci-mock.ap-southeast-2.aws.neon.tech/unstitch_ci?sslmode=require"
+          RESEND_API_KEY: "re_ci_mock_key"
 
       - name: Typecheck Astro & TypeScript
         run: npx astro check
 
       - name: Build Astro Project
         run: pnpm build
+

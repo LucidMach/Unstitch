@@ -3,6 +3,14 @@ import prisma from '../../src/lib/prisma.js';
 import contactHandler from '../../api/contact.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
+vi.mock('resend', () => ({
+  Resend: vi.fn().mockImplementation(() => ({
+    emails: {
+      send: vi.fn().mockResolvedValue({ id: 'mock-email-id' }),
+    },
+  })),
+}));
+
 // Helper to mock Express/Vercel res object
 function createMockRes() {
   const res: any = {

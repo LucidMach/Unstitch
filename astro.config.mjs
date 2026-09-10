@@ -56,6 +56,8 @@ function apiDevMiddleware() {
               handler = (await import('./api/subscribe.js')).default;
             } else if (endpoint === '/api/contact') {
               handler = (await import('./api/contact.js')).default;
+            } else if (endpoint === '/api/share') {
+              handler = (await import('./api/share.js')).default;
             }
 
             if (handler) {

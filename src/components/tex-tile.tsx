@@ -32,15 +32,27 @@ export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ..
   const { nodes, materials } = useGLTF("/Textile-Components.glb") as unknown as GLTFResult;
 
   const ghostMaterial = new THREE.MeshStandardMaterial({
-    color: "#ec4899",
+    color: "#A36E93",
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.6,
   });
 
   const components = [nodes.Unit, nodes.S, nodes.W, nodes.D, nodes.A];
 
   return (
-    <group {...props} dispose={null}>
+    <group 
+      {...props} 
+      dispose={null}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+        props.onPointerOver?.(e);
+      }}
+      onPointerOut={(e) => {
+        document.body.style.cursor = 'auto';
+        props.onPointerOut?.(e);
+      }}
+    >
       {components.map((node, index) => {
         if (!node || node.name === "") return null;
         if (hiddenMeshes.includes('S') && node === nodes.S) return null;
@@ -49,7 +61,7 @@ export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ..
         if (hiddenMeshes.includes('A') && node === nodes.A) return null;
         
         return (
-          <mesh
+           <mesh
             key={index}
             castShadow={!ghost}
             receiveShadow={!ghost}
@@ -69,7 +81,7 @@ export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ..
         >
           <boxGeometry args={[1, 1, 1]} />
           <meshBasicMaterial visible={false} />
-          <Edges color="hotpink" scale={2.1} />
+          <Edges color="#A36E93" scale={2.1} />
         </mesh>
       )}
     </group>
