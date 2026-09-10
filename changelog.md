@@ -88,6 +88,11 @@ Comprehensive comparison, contrast analysis, and integration of the brand assets
 
 ---
 
+### Fixed
+- **Accent Color Palette Resolution**: Fixed an issue where `--accent: oklch(0.97 0 0)` in `src/styles/global.css` was overriding the brand's Opera Mauve (`--accent: #b784a7`) due to stylesheet import ordering. Updated `global.css` tokens and ensured `brand.css` takes final precedence in `Layout.astro`.
+
+---
+
 ### Verification
 - Ran `pnpm build` (`ASTRO_TELEMETRY_DISABLED=1`):
   - **10 static routes** successfully compiled in `6.63s` with zero errors or warnings:
