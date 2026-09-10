@@ -5,7 +5,7 @@ import ComingSoon from "./comingSoon";
 import VertCarousel from "./vertCarousel";
 
 const Router: React.FC = () => {
-  const [selected, setSelected] = useAtom(selectAtom);
+  const [selected] = useAtom(selectAtom);
 
   if (sections[selected] === "Home")
     return (

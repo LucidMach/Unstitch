@@ -45,7 +45,7 @@ export const usePlayCanvas = () => {
   const [projectName, setProjectName] = useState("");
   const [projects, setProjects] = useState<{ id: string; name: string; timestamp: number }[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(true);
   const [typedAngle, setTypedAngle] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
 
@@ -108,7 +108,7 @@ export const usePlayCanvas = () => {
       }
   };
 
-  const handleBackgroundClick = (e: ThreeEvent<MouseEvent>) => {
+  const handleBackgroundClick = (_e: ThreeEvent<MouseEvent>) => {
       if (isDragging.current) return;
       setSelectedTileId(null);
       setActiveRootHinge(null);

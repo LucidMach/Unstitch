@@ -7,7 +7,6 @@
  * of this repository. Commercial use or redistribution is prohibited.
  */
 
-import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { useState } from "react";

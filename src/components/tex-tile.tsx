@@ -46,11 +46,15 @@ export function TexTile({ ghost = false, selected = false, hiddenMeshes = [], ..
       onPointerOver={(e) => {
         e.stopPropagation();
         document.body.style.cursor = 'pointer';
-        props.onPointerOver?.(e);
+        if (typeof props.onPointerOver === 'function') {
+          props.onPointerOver(e);
+        }
       }}
       onPointerOut={(e) => {
         document.body.style.cursor = 'auto';
-        props.onPointerOut?.(e);
+        if (typeof props.onPointerOut === 'function') {
+          props.onPointerOut(e);
+        }
       }}
     >
       {components.map((node, index) => {

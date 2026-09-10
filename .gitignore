@@ -3,6 +3,8 @@ dist/
 
 # generated types
 .astro/
+.pnpm-store/
+.vscode/
 
 # dependencies
 node_modules/

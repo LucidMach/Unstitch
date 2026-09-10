@@ -8,7 +8,7 @@
  */
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef, type JSX } from "react";
+import { useRef } from "react";
 import { Mesh } from "three";
 
 interface props {

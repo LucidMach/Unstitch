@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube, Html } from "@react-three/drei";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, FolderOpen, Share2, ArrowLeft, Compass, RotateCcw, Eye } from "lucide-react";
+import { Save, FolderOpen, Share2, ArrowLeft, Compass, Eye } from "lucide-react";
 
 import { usePlayCanvas } from "../hooks/use-play-canvas";
 import { ITEM_SCALE } from "../constants/layout";
@@ -122,30 +122,22 @@ const PlayCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const cameraPosition: [number, number, number] = isMobile ? [0, 500, 0] : [0, 300, 0];
+  const cameraPosition: [number, number, number] = isMobile ? [240, 320, 240] : [160, 220, 160];
 
-  const setViewTop = () => {
+  const setView2D = () => {
     if (!controlsRef.current) return;
     controlsRef.current.object.position.set(0, 350, 0.001);
     controlsRef.current.target.set(0, 0, 0);
     controlsRef.current.update();
-    pc.showToast("Top View (Flat Layout)");
+    pc.showToast("2D Top View");
   };
 
-  const setViewIso = () => {
-    if (!controlsRef.current) return;
-    controlsRef.current.object.position.set(180, 240, 180);
-    controlsRef.current.target.set(0, 0, 0);
-    controlsRef.current.update();
-    pc.showToast("Isometric 3D View");
-  };
-
-  const setViewReset = () => {
+  const setView3D = () => {
     if (!controlsRef.current) return;
     controlsRef.current.object.position.set(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
     controlsRef.current.target.set(0, 0, 0);
     controlsRef.current.update();
-    pc.showToast("Camera Reset");
+    pc.showToast("3D Isometric View");
   };
 
   return (
@@ -220,30 +212,23 @@ const PlayCanvas: React.FC = () => {
           </Button>
         </div>
 
-        {/* Viewport Camera Presets */}
+        {/* Viewport Camera Mode Pill (3D / 2D) */}
         <div className="hidden md:flex bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 overflow-hidden shrink-0">
           <button 
-            title="Isometric 3D View"
-            onClick={setViewIso}
-            className="h-9 sm:h-10 px-3 border-r border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1 text-[11px] font-bold uppercase"
+            title="Switch to 3D View"
+            onClick={setView3D}
+            className="h-9 sm:h-10 px-3.5 border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider"
           >
             <Compass size={14} />
             <span>3D</span>
           </button>
           <button 
-            title="Top Flat 2D Layout View"
-            onClick={setViewTop}
-            className="h-9 sm:h-10 px-3 border-r border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1 text-[11px] font-bold uppercase"
+            title="Switch to 2D Top View"
+            onClick={setView2D}
+            className="h-9 sm:h-10 px-3.5 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider"
           >
             <Eye size={14} />
-            <span>Flat</span>
-          </button>
-          <button 
-            title="Reset Camera"
-            onClick={setViewReset}
-            className="h-9 sm:h-10 px-2.5 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors flex items-center"
-          >
-            <RotateCcw size={14} />
+            <span>2D</span>
           </button>
         </div>
       </div>

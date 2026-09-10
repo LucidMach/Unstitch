@@ -72,7 +72,7 @@ function generateShareEmailHtml({ projectName, email, tileCount, foldCount, hasP
                   <div style="background-color: #ffffff; border-left: 3px solid #A36E93; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px; border-top: 1px solid #f0f0f0; border-right: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;">
                     <p style="margin: 0 0 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #111111; letter-spacing: 0.05em;">How to Re-Load Your Design</p>
                     <p style="margin: 0; font-size: 13px; color: #555555; line-height: 1.5;">
-                      Open the <a href="https://unstitch.com/playground" style="color: #A36E93; text-decoration: underline; font-weight: 600;">Unstitch Playground</a>, click <strong>Load</strong> in the top bar, and choose <strong>Import .JSON File</strong> with your attached file.
+                      Open the <a href="https://unstitchx.com/playground" style="color: #A36E93; text-decoration: underline; font-weight: 600;">Unstitch Playground</a>, click <strong>Load</strong> in the top bar, and choose <strong>Import .JSON File</strong> with your attached file.
                     </p>
                   </div>
 
