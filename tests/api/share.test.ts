@@ -2,6 +2,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import shareHandler from '../../api/share.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
+const mockSend = vi.fn().mockResolvedValue({ data: { id: 'mock-share-email-id' }, error: null });
+
+vi.mock('resend', () => ({
+  Resend: class {
+    emails = {
+      send: (...args: any[]) => mockSend(...args),
+    };
+  },
+}));
+
 function createMockRes() {
   const res: any = {
     statusCode: 200,
@@ -36,7 +46,8 @@ function createMockRes() {
 describe('Share API Handler (/api/share)', () => {
   beforeEach(() => {
     limiter.reset();
-    vi.restoreAllMocks();
+    mockSend.mockReset();
+    mockSend.mockResolvedValue({ data: { id: 'mock-share-email-id' }, error: null });
   });
 
   const validPayload = {
@@ -118,6 +129,10 @@ describe('Share API Handler (/api/share)', () => {
   it('handles Resend email error responses gracefully', async () => {
     const originalApiKey = process.env.RESEND_API_KEY;
     process.env.RESEND_API_KEY = 're_test_key_123';
+    mockSend.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Invalid API key or network error', name: 'application_error' },
+    });
 
     const req = {
       method: 'POST',
@@ -126,9 +141,37 @@ describe('Share API Handler (/api/share)', () => {
     };
     const res = createMockRes();
 
-    // Since mock Resend or unresolvable test network might happen, test the response
     await shareHandler(req, res);
-    expect([200, 500]).toContain(res.statusCode);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toContain('Invalid API key or network error');
+
+    process.env.RESEND_API_KEY = originalApiKey;
+  });
+
+  it('retries with fallback sender if primary sender is not verified', async () => {
+    const originalApiKey = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = 're_test_key_123';
+    mockSend
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'domain not verified', statusCode: 403, name: 'validation_error' },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'fallback-email-id' },
+        error: null,
+      });
+
+    const req = {
+      method: 'POST',
+      body: validPayload,
+      headers: { 'x-forwarded-for': '192.168.1.6' },
+    };
+    const res = createMockRes();
+
+    await shareHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockSend).toHaveBeenCalledTimes(2);
 
     process.env.RESEND_API_KEY = originalApiKey;
   });
