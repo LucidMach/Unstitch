@@ -105,6 +105,7 @@ import Layout from "../layouts/Layout.astro";
     <section class="wrap signup">
       <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
       <form class="signup__form" data-subscribe-form="home-signup">
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="signup-name">Your name</label>
         <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
         <label class="sr-only" for="signup-email">Your email</label>
@@ -224,10 +225,12 @@ import Layout from "../layouts/Layout.astro";
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]');
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]:not([name="_gotcha"])');
         const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const gotchaInput = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
         const name = nameInput ? nameInput.value.trim() : '';
         const email = emailInput ? emailInput.value.trim() : '';
+        const _gotcha = gotchaInput ? gotchaInput.value : '';
 
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
         feedback.textContent = '';
@@ -237,10 +240,10 @@ import Layout from "../layouts/Layout.astro";
           const res = await fetch('/api/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined }),
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined, _gotcha }),
           });
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+          if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));
 
           form.reset();
           feedback.textContent = "You're on the list.";

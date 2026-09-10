@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { countryCodes } from "../lib/constants/countryCodes.js";
 ---
 
 <Layout title="Unstitch — Contact Us" description="Get in touch for school workshops, corporate bookings, surplus material partnerships, and bespoke commissions.">
@@ -24,6 +25,9 @@ import Layout from "../layouts/Layout.astro";
       <!-- ============ RIGHT: FORM ============ -->
       <div class="contact-form-wrap">
         <form id="contact-form" class="contact-form">
+          <!-- Honeypot spam trap -->
+          <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
+
           <div class="form-group">
             <label class="sr-only" for="cf-name">Full Name</label>
             <input id="cf-name" name="name" class="contact-input" type="text" placeholder="Full Name" required />
@@ -36,7 +40,66 @@ import Layout from "../layouts/Layout.astro";
 
           <div class="form-group">
             <label class="sr-only" for="cf-phone">Phone number</label>
-            <input id="cf-phone" name="phone" class="contact-input" type="tel" placeholder="Phone number (optional)" />
+            <div class="phone-group">
+              <!-- Searchable Country Code Combobox -->
+              <div class="country-picker" data-country-picker>
+                <input type="hidden" id="cf-country-code" name="countryCode" value="+61" />
+                <button
+                  type="button"
+                  class="contact-input country-picker__trigger"
+                  data-picker-trigger
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-label="Select Country Dial Code"
+                >
+                  <span class="country-picker__selected-flag" data-selected-flag>🇦🇺</span>
+                  <span class="country-picker__selected-code" data-selected-code>+61</span>
+                  <svg class="country-picker__arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+
+                <div class="country-picker__dropdown" data-picker-dropdown hidden>
+                  <div class="country-picker__search-wrap">
+                    <svg class="country-picker__search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <input
+                      type="text"
+                      class="country-picker__search-input"
+                      data-picker-search
+                      placeholder="Search country or code..."
+                      autocomplete="off"
+                      aria-label="Search Country"
+                    />
+                  </div>
+
+                  <ul class="country-picker__list" data-picker-list role="listbox">
+                    {countryCodes.map((c, index) => (
+                      <li
+                        class={`country-picker__item ${index === 0 ? 'is-selected' : ''}`}
+                        role="option"
+                        data-code={c.code}
+                        data-dial={c.dialCode}
+                        data-name={c.name.toLowerCase()}
+                        data-flag={c.flag}
+                        tabindex="0"
+                      >
+                        <span class="country-picker__flag">{c.flag}</span>
+                        <span class="country-picker__name">{c.name}</span>
+                        <span class="country-picker__dial">{c.dialCode}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div class="country-picker__empty" data-picker-empty hidden>
+                    No countries found
+                  </div>
+                </div>
+              </div>
+
+              <input id="cf-phone" name="phoneNumber" class="contact-input phone-group__number" type="tel" placeholder="Phone number (optional)" inputmode="tel" />
+            </div>
           </div>
 
           <div class="form-group">
@@ -176,6 +239,135 @@ import Layout from "../layouts/Layout.astro";
     border-radius: var(--radius);
   }
 
+  .phone-group {
+    display: flex;
+    gap: 8px;
+    position: relative;
+  }
+  .country-picker {
+    position: relative;
+    flex: 0 0 135px;
+  }
+  .country-picker__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+    padding: 14px 12px;
+    background: var(--paper);
+    color: var(--ink);
+    text-align: left;
+  }
+  .country-picker__selected-flag {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .country-picker__selected-code {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .country-picker__arrow {
+    transition: transform 0.2s ease;
+    opacity: 0.7;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .country-picker.is-open .country-picker__arrow {
+    transform: rotate(180deg);
+  }
+
+  .country-picker__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 290px;
+    max-width: calc(100vw - 48px);
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+    z-index: 60;
+    overflow: hidden;
+  }
+
+  .country-picker__search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2dedf;
+    background: #fdfbfb;
+  }
+  .country-picker__search-icon {
+    color: #888;
+    flex-shrink: 0;
+  }
+  .country-picker__search-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    color: var(--ink);
+  }
+
+  .country-picker__list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .country-picker__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .country-picker__item:hover,
+  .country-picker__item:focus {
+    background: #faf2f3;
+    outline: none;
+  }
+  .country-picker__item.is-selected {
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .country-picker__flag {
+    font-size: 1.05rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .country-picker__name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .country-picker__dial {
+    color: #666;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .country-picker__empty {
+    padding: 16px 12px;
+    text-align: center;
+    color: #777;
+    font-size: 0.85rem;
+  }
+
+  .phone-group__number {
+    flex: 1;
+  }
+
   .checkbox-label {
     display: flex;
     align-items: center;
@@ -188,6 +380,12 @@ import Layout from "../layouts/Layout.astro";
   @media (max-width: 768px) {
     .contact-layout { grid-template-columns: 1fr; gap: 36px; padding-top: 36px; }
   }
+
+  @media (max-width: 480px) {
+    .country-picker {
+      flex: 0 0 120px;
+    }
+  }
 </style>
 
 <script>
@@ -195,6 +393,102 @@ import Layout from "../layouts/Layout.astro";
     const subjectSelect = document.querySelector<HTMLSelectElement>('[data-subject-select]');
     if (!subjectSelect) return;
 
+    // ============ SEARCHABLE COUNTRY PICKER ============
+    const countryPicker = document.querySelector<HTMLElement>('[data-country-picker]');
+    if (countryPicker) {
+      const trigger = countryPicker.querySelector<HTMLButtonElement>('[data-picker-trigger]');
+      const dropdown = countryPicker.querySelector<HTMLElement>('[data-picker-dropdown]');
+      const searchInput = countryPicker.querySelector<HTMLInputElement>('[data-picker-search]');
+      const items = Array.from(countryPicker.querySelectorAll<HTMLLIElement>('.country-picker__item'));
+      const emptyState = countryPicker.querySelector<HTMLElement>('[data-picker-empty]');
+      const hiddenInput = countryPicker.querySelector<HTMLInputElement>('#cf-country-code');
+      const selectedFlag = countryPicker.querySelector<HTMLElement>('[data-selected-flag]');
+      const selectedCode = countryPicker.querySelector<HTMLElement>('[data-selected-code]');
+      const phoneInput = document.getElementById('cf-phone') as HTMLInputElement | null;
+
+      const toggleDropdown = (open?: boolean) => {
+        const isOpen = open !== undefined ? open : dropdown?.hidden;
+        if (!dropdown || !trigger) return;
+
+        if (isOpen) {
+          dropdown.hidden = false;
+          countryPicker.classList.add('is-open');
+          trigger.setAttribute('aria-expanded', 'true');
+          if (searchInput) {
+            searchInput.value = '';
+            filterItems('');
+            setTimeout(() => searchInput.focus(), 30);
+          }
+        } else {
+          dropdown.hidden = true;
+          countryPicker.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      };
+
+      const filterItems = (query: string) => {
+        const q = query.toLowerCase().trim();
+        let visibleCount = 0;
+
+        items.forEach((item) => {
+          const name = item.dataset.name || '';
+          const dial = item.dataset.dial || '';
+          const code = (item.dataset.code || '').toLowerCase();
+          const matches = !q || name.includes(q) || dial.includes(q) || code.includes(q);
+
+          item.hidden = !matches;
+          if (matches) visibleCount++;
+        });
+
+        if (emptyState) emptyState.hidden = visibleCount > 0;
+      };
+
+      trigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown();
+      });
+
+      searchInput?.addEventListener('input', () => {
+        filterItems(searchInput.value);
+      });
+
+      searchInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          toggleDropdown(false);
+          trigger?.focus();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const firstVisible = items.find((i) => !i.hidden);
+          if (firstVisible) selectItem(firstVisible);
+        }
+      });
+
+      const selectItem = (item: HTMLLIElement) => {
+        const dial = item.dataset.dial || '+61';
+        const flag = item.dataset.flag || '🇦🇺';
+
+        if (hiddenInput) hiddenInput.value = dial;
+        if (selectedFlag) selectedFlag.textContent = flag;
+        if (selectedCode) selectedCode.textContent = dial;
+
+        items.forEach((i) => i.classList.toggle('is-selected', i === item));
+        toggleDropdown(false);
+        phoneInput?.focus();
+      };
+
+      items.forEach((item) => {
+        item.addEventListener('click', () => selectItem(item));
+      });
+
+      // Close on outside click
+      document.addEventListener('click', (e) => {
+        if (!countryPicker.contains(e.target as Node)) {
+          toggleDropdown(false);
+        }
+      });
+    }
+
+    // ============ SUBJECT EXTRA FIELDS ============
     const extraBlocks = Array.from(document.querySelectorAll<HTMLElement>('[data-subject-fields]'));
 
     const showFieldsFor = (value: string) => {
@@ -213,6 +507,7 @@ import Layout from "../layouts/Layout.astro";
 
     subjectSelect.addEventListener('change', () => showFieldsFor(subjectSelect.value));
 
+    // ============ FORM SUBMISSION ============
     const contactForm = document.getElementById('contact-form') as HTMLFormElement | null;
     contactForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -232,13 +527,18 @@ import Layout from "../layouts/Layout.astro";
         if (el.name && el.value) details[el.name] = el.value;
       });
 
+      const countryCode = (contactForm.querySelector<HTMLInputElement>('#cf-country-code')?.value || '+61').trim();
+      const phoneNumber = (contactForm.querySelector<HTMLInputElement>('#cf-phone')?.value || '').trim();
+
       const payload = {
         name: (contactForm.querySelector<HTMLInputElement>('#cf-name')?.value || '').trim(),
         email: (contactForm.querySelector<HTMLInputElement>('#cf-email')?.value || '').trim(),
-        phone: (contactForm.querySelector<HTMLInputElement>('#cf-phone')?.value || '').trim(),
+        countryCode: phoneNumber ? countryCode : undefined,
+        phoneNumber: phoneNumber || undefined,
         subject: subjectSelect.value,
         message: (contactForm.querySelector<HTMLTextAreaElement>('#cf-message')?.value || '').trim(),
         marketingOptIn: contactForm.querySelector<HTMLInputElement>('input[name="marketingOptIn"]')?.checked || false,
+        _gotcha: (contactForm.querySelector<HTMLInputElement>('input[name="_gotcha"]')?.value || ''),
         details,
       };
 
@@ -249,7 +549,9 @@ import Layout from "../layouts/Layout.astro";
           body: JSON.stringify(payload),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+        if (!res.ok) {
+          throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));
+        }
 
         contactForm.reset();
         showFieldsFor('');
