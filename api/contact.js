@@ -1,7 +1,7 @@
 // /api/contact.js
 // Vercel Serverless Function for contact form submissions
 
-const NOTIFY_EMAIL = 'unstitchxfactory@gmail.com';
+const NOTIFY_EMAIL = 'hello@unstitchx.com';
 
 const ALLOWED_SUBJECTS = new Set([
   'general-enquiry',
@@ -22,7 +22,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = req.body || {};
+    let body = req.body || {};
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
 
     const cleanName = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : '';
     const cleanEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase().slice(0, 200) : '';
@@ -47,29 +54,48 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Please choose a subject.' });
     }
 
-    if (process.env.POSTGRES_URL) {
-      try {
-        const { sql } = await import('@vercel/postgres');
-        await sql`
-          CREATE TABLE IF NOT EXISTS contact_submissions (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL,
-            phone TEXT,
-            subject TEXT NOT NULL,
-            message TEXT NOT NULL,
-            marketing_opt_in BOOLEAN DEFAULT FALSE,
-            details JSONB DEFAULT '{}'::jsonb,
-            created_at TIMESTAMPTZ DEFAULT NOW()
-          );
-        `;
+    let prisma;
+    try {
+      const dbModule = await import('../src/lib/prisma.js');
+      prisma = dbModule.prisma;
+    } catch {
+      prisma = null;
+    }
 
-        await sql`
-          INSERT INTO contact_submissions (name, email, phone, subject, message, marketing_opt_in, details)
-          VALUES (${cleanName}, ${cleanEmail}, ${cleanPhone}, ${cleanSubject}, ${cleanMessage}, ${marketingOptIn}, ${JSON.stringify(details)}::jsonb);
-        `;
+    if (prisma) {
+      try {
+        await prisma.contactSubmission.create({
+          data: {
+            name: cleanName,
+            email: cleanEmail,
+            phone: cleanPhone || null,
+            subject: cleanSubject,
+            message: cleanMessage,
+            marketingOptIn,
+            details,
+          },
+        });
+        console.log('✓ Successfully saved contact submission via Prisma to Neon Postgres:', cleanEmail);
+
+        if (marketingOptIn) {
+          await prisma.subscriber.upsert({
+            where: { email: cleanEmail },
+            update: {
+              signupCount: { increment: 1 },
+              name: cleanName || undefined,
+              source: 'contact-form',
+            },
+            create: {
+              name: cleanName || null,
+              email: cleanEmail,
+              source: 'contact-form',
+              signupCount: 1,
+            },
+          });
+          console.log('✓ Auto-subscribed contact user to newsletter via Prisma:', cleanEmail);
+        }
       } catch (dbErr) {
-        console.warn('Contact Postgres save failed:', dbErr);
+        console.error('Neon Postgres contact save failed:', dbErr);
       }
     } else {
       console.log('Contact submission received (dev/mock):', {
@@ -90,9 +116,12 @@ export default async function handler(req, res) {
           .map(([k, v]) => `${k}: ${v}`)
           .join('\n');
 
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch <hello@unstitchx.com>';
+        const toEmail = process.env.CONTACT_NOTIFY_EMAIL || NOTIFY_EMAIL;
+
         await resend.emails.send({
-          from: 'Unstitch Website <onboarding@resend.dev>',
-          to: NOTIFY_EMAIL,
+          from: fromEmail,
+          to: toEmail,
           reply_to: cleanEmail,
           subject: `New enquiry — ${subjectLabel(cleanSubject)}`,
           text: [

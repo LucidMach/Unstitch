@@ -8,7 +8,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, email, source } = req.body || {};
+    let body = req.body || {};
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
+
+    const { name, email, source } = body;
 
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const cleanName = typeof name === 'string' ? name.trim() : '';
@@ -18,26 +27,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
-    if (process.env.POSTGRES_URL) {
-      try {
-        const { sql } = await import('@vercel/postgres');
-        await sql`
-          CREATE TABLE IF NOT EXISTS subscribers (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            email TEXT UNIQUE NOT NULL,
-            source TEXT,
-            created_at TIMESTAMPTZ DEFAULT NOW()
-          );
-        `;
+    let prisma;
+    try {
+      const dbModule = await import('../src/lib/prisma.js');
+      prisma = dbModule.prisma;
+    } catch {
+      prisma = null;
+    }
 
-        await sql`
-          INSERT INTO subscribers (name, email, source)
-          VALUES (${cleanName || null}, ${cleanEmail}, ${source || null})
-          ON CONFLICT (email) DO NOTHING;
-        `;
+    if (prisma) {
+      try {
+        await prisma.subscriber.upsert({
+          where: { email: cleanEmail },
+          update: {
+            signupCount: { increment: 1 },
+            name: cleanName || undefined,
+            source: source || undefined,
+          },
+          create: {
+            name: cleanName || null,
+            email: cleanEmail,
+            source: source || null,
+            signupCount: 1,
+          },
+        });
+        console.log('✓ Successfully saved subscriber via Prisma to Neon Postgres:', cleanEmail);
       } catch (dbErr) {
-        console.warn('Postgres connection/insert error:', dbErr);
+        console.error('Neon Postgres connection/insert error:', dbErr);
       }
     } else {
       console.log('Subscriber received (dev/mock):', { cleanName, cleanEmail, source });
@@ -49,3 +65,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Something went wrong. Please try again shortly.' });
   }
 }
+

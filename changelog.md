@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-09-10
 
+### Added
+- **Prisma ORM on top of Neon PostgreSQL**:
+  - `prisma/schema.prisma`: Data models for `Subscriber` and `ContactSubmission` mapped to PostgreSQL tables (`subscribers`, `contact_submissions`).
+  - `prisma.config.ts`: Prisma configuration for Neon connection pooling.
+  - `src/lib/prisma.js`: Singleton Prisma Client utilizing `@prisma/adapter-neon` serverless WebSocket adapter with global caching and `.env.local` fallback.
+  - Updated `api/subscribe.js` and `api/contact.js` to use Prisma Client queries (`upsert`, `create`) with strict schema validation.
+  - Added Prisma CLI scripts to `package.json`: `postinstall`, `db:generate`, `db:push`, `db:studio`.
+
 ### Summary
 Comprehensive comparison, contrast analysis, and integration of the brand assets, multi-page website architecture, and serverless backend functions contributed by Yi Jing Ang (`be1a8e736dd171f83a6fa3b2fc8b3edbcb034d3a` & `aa123265941c5d0d4f6aef91ff25a4941b0c0ab4`) into the existing **Astro 6 + React 19 + Three.js** application.
 
@@ -55,8 +63,8 @@ Comprehensive comparison, contrast analysis, and integration of the brand assets
 - `src/pages/contact.astro` (`/contact`): Multi-category contact enquiry form with URL parameter preselection (`?category=...`), dynamic subject field sets, and async submission.
 
 #### Serverless Backend Endpoints
-- `api/subscribe.js`: Vercel serverless function for newsletter signups with email validation, duplicate protection, and optional `@vercel/postgres` persistence.
-- `api/contact.js`: Vercel serverless function for contact submissions with subject validation, dynamic `details` JSON extraction, PostgreSQL storage, and Resend email dispatch.
+- `api/subscribe.js`: Vercel serverless function for newsletter signups with email validation, duplicate protection, and `@neondatabase/serverless` (Neon Postgres) persistence.
+- `api/contact.js`: Vercel serverless function for contact submissions with subject validation, dynamic `details` JSON extraction, `@neondatabase/serverless` (Neon Postgres) storage, and Resend email dispatch.
 
 #### Licensing & Legal Framework
 - `LICENSE`: Established a multi-tier split license structure:
