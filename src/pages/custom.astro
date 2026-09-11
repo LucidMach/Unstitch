@@ -7,7 +7,6 @@ import Layout from "../layouts/Layout.astro";
     <!-- ============ CUSTOM HERO ============ -->
     <section class="media-hero custom-hero">
       <div class="ph media-hero__media" style="background: #f3f0f2;">
-        <img src="/Textile.glb" alt="Custom 3D Architecture" class="hidden" />
         <div class="text-center px-6">
           <p class="text-sm font-semibold tracking-widest uppercase text-[#A36E93] mb-2">Bespoke Modular Installations</p>
           <h1 class="text-3xl md:text-5xl font-bold uppercase tracking-tight text-neutral-900">Custom Commissions</h1>
@@ -166,7 +165,8 @@ import Layout from "../layouts/Layout.astro";
     flex-direction: column;
     background: var(--paper);
     min-height: 220px;
-    transition: all 0.2s ease;
+    overflow: hidden;
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
   .process-step:hover {
     background: #faf8f9;
@@ -187,6 +187,13 @@ import Layout from "../layouts/Layout.astro";
     font-size: 0.88rem;
     color: #555;
     line-height: 1.5;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .process-step:hover .process-step__desc,
+  .process-step:focus-within .process-step__desc { opacity: 1; }
+  @media (hover: none) {
+    .process-step__desc { opacity: 1; }
   }
 
   /* Capabilities */

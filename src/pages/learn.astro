@@ -77,54 +77,84 @@ import Layout from "../layouts/Layout.astro";
 
     <div class="stitch" aria-hidden="true"></div>
 
-    <!-- ============ WHO IS THIS FOR (ACCORDION) ============ -->
+    <!-- ============ WHO IS THIS FOR (ACCORDION) ============
+         DOM order is tab→panel→tab→panel→tab→panel — the natural mobile
+         layout (each panel opens directly under its own tab). Desktop
+         rearranges the same markup into "3 tabs in a row, one shared
+         panel row below" purely with CSS grid-area — see the
+         (min-width: 769px) block in the styles below. -->
     <section class="wrap section who-section">
       <p class="section__eyebrow">Audiences</p>
       <h2 class="section__title">Who is this for?</h2>
+    </section>
 
-      <div class="who-accordion">
-        <!-- Schools -->
-        <div class="accordion-item">
-          <button class="accordion-trigger" data-accordion-trigger="schools" aria-expanded="false">
-            <span class="accordion-trigger__title">Schools & Educators (Design & Technology)</span>
-            <span class="accordion-trigger__icon">+</span>
-          </button>
-          <div class="accordion-panel" data-accordion-panel="schools">
-            <div class="accordion-panel__inner">
-              <p>Tailored curriculum modules for Year 7–12 design, STEM, and sustainability classes. Students learn geometry, modular tessellation, material lifecycles, and rapid prototyping without sewing machines.</p>
-              <a href="/contact?category=school-workshop-enquiry" class="btn btn-outline btn-small mt-4">Enquire for Schools</a>
-            </div>
-          </div>
-        </div>
+    <section class="who-accordion" aria-label="Who this is for">
 
-        <!-- Public Makers -->
-        <div class="accordion-item">
-          <button class="accordion-trigger" data-accordion-trigger="public" aria-expanded="false">
-            <span class="accordion-trigger__title">Makers, Crafters & Community Groups</span>
-            <span class="accordion-trigger__icon">+</span>
-          </button>
-          <div class="accordion-panel" data-accordion-panel="public">
-            <div class="accordion-panel__inner">
-              <p>Weekend drop-ins, festival activations, and community workshops. Anyone from absolute beginners to experienced textile artists can create bags, accessories, and sculptural objects.</p>
-              <a href="/contact?category=general-enquiry" class="btn btn-outline btn-small mt-4">Join Community List</a>
-            </div>
-          </div>
-        </div>
+      <button class="who-tab who-tab--schools" data-accordion-trigger="schools" aria-expanded="false">
+        <span class="who-tab__label">Schools & Educators</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
 
-        <!-- Corporate -->
-        <div class="accordion-item">
-          <button class="accordion-trigger" data-accordion-trigger="corporate" aria-expanded="false">
-            <span class="accordion-trigger__title">Corporate & Design Teams (Team Building)</span>
-            <span class="accordion-trigger__icon">+</span>
-          </button>
-          <div class="accordion-panel" data-accordion-panel="corporate">
-            <div class="accordion-panel__inner">
-              <p>Engaging, tactile hands-on workshops that challenge teams to collaborate on 3D spatial problem solving and circular design principles.</p>
-              <a href="/contact?category=corporate-workshop-enquiry" class="btn btn-outline btn-small mt-4">Book Team Workshop</a>
+      <div class="who-panel who-panel--schools" data-accordion-panel="schools">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>Schools & Educators</strong></p>
+            <p class="who-panel__body">Tailored curriculum modules for Year 7–12 design, STEM, and sustainability classes. Students learn geometry, modular tessellation, material lifecycles, and rapid prototyping without sewing machines.</p>
+            <div class="who-panel__ctas">
+              <a href="/contact?category=school-workshop-enquiry" class="btn btn-outline btn-small">Enquire for Schools</a>
             </div>
           </div>
         </div>
       </div>
+
+      <button class="who-tab who-tab--public" data-accordion-trigger="public" aria-expanded="false">
+        <span class="who-tab__label">Makers & Community</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
+
+      <div class="who-panel who-panel--public" data-accordion-panel="public">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>Makers, Crafters & Community Groups</strong></p>
+            <p class="who-panel__body">Weekend drop-ins, festival activations, and community workshops. Anyone from absolute beginners to experienced textile artists can create bags, accessories, and sculptural objects.</p>
+            <div class="who-panel__ctas">
+              <a href="/contact?category=general-enquiry" class="btn btn-outline btn-small">Join Community List</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="who-tab who-tab--corporate" data-accordion-trigger="corporate" aria-expanded="false">
+        <span class="who-tab__label">Corporate & Design Teams</span>
+        <span class="who-tab__cta">Learn more</span>
+      </button>
+
+      <div class="who-panel who-panel--corporate" data-accordion-panel="corporate">
+        <div class="who-panel__clip">
+          <div class="who-panel__edge" aria-hidden="true"></div>
+          <div class="ph who-panel__media">Image</div>
+          <div class="wrap who-panel__inner">
+            <p class="who-panel__label">For <strong>Corporate & Design Teams</strong></p>
+            <p class="who-panel__body">Engaging, tactile hands-on workshops that challenge teams to collaborate on 3D spatial problem solving and circular design principles.</p>
+            <div class="who-panel__ctas">
+              <a href="/contact?category=corporate-workshop-enquiry" class="btn btn-filled btn-small">Book Team Workshop</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop-only: sits in its own row between the tabs and
+           whichever panel is open, so the transition is a zigzag rather
+           than a straight line. Hidden on mobile, and hidden on desktop
+           too whenever a panel is expanded (see .is-any-open in the
+           script below) — each panel's own __edge already provides the
+           zigzag seamlessly against its image at that point. -->
+      <div class="who-accordion__closed-zigzag stitch" aria-hidden="true"></div>
+
     </section>
 
     <div class="stitch" aria-hidden="true"></div>
@@ -244,53 +274,113 @@ import Layout from "../layouts/Layout.astro";
     margin-top: 12px;
   }
 
-  /* Accordion */
+  /* ==========================================================================
+     WHO IS THIS FOR / ACCORDION
+     Mobile-first: plain stacked flow, DOM order tab→panel→tab→panel...
+     so each panel opens directly under its own tab. Desktop rearranges
+     the exact same markup into "3 tabs in a row, shared panel row
+     below" using grid-area — see the (min-width: 769px) block below.
+     ========================================================================== */
+  .who-section { padding-bottom: 24px; }
+
   .who-accordion {
     border-top: 1px solid var(--ink);
   }
-  .accordion-item {
-    border-bottom: 1px solid var(--ink);
-  }
-  .accordion-trigger {
+  .who-tab {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 22px 4px;
-    background: none;
     border: none;
+    border-bottom: 1px solid var(--ink);
+    background: none;
+    padding: 18px var(--gutter);
     text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: background 0.2s ease;
+  }
+  .who-tab:hover { background: #fafafa; }
+  .who-tab[aria-expanded="true"] { background: #f0f0f0; }
+  .who-tab__label {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 1.25rem;
-    transition: color 0.15s ease;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
-  .accordion-trigger:hover {
-    color: var(--accent);
+  .who-tab__cta {
+    font-size: 0.82rem;
+    text-decoration: underline;
+    color: #555;
   }
-  .accordion-trigger__icon {
-    font-size: 1.6rem;
-    line-height: 1;
-    font-weight: 400;
-    transition: transform 0.25s ease;
-  }
-  .accordion-trigger[aria-expanded="true"] .accordion-trigger__icon {
-    transform: rotate(45deg);
-  }
-  .accordion-panel {
+  .who-tab[aria-expanded="true"] .who-tab__cta { color: var(--accent); }
+
+  .who-panel {
     display: grid;
     grid-template-rows: 0fr;
     transition: grid-template-rows 0.3s ease;
+    position: relative;
+    top: -16px;
   }
-  .accordion-panel.is-open {
-    grid-template-rows: 1fr;
+  .who-panel.is-open { grid-template-rows: 1fr; }
+  .who-panel__clip { position: relative; overflow: hidden; min-height: 0; }
+  .who-panel__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    opacity: 0.7;
   }
-  .accordion-panel__inner {
-    overflow: hidden;
-    padding: 0 4px 22px;
-    font-size: 0.98rem;
-    color: #444;
-    line-height: 1.6;
+  /* Seamless zigzag top edge — drawn straight onto the panel's own
+     image (grey fill in the "peaks" to match the active tab's grey
+     background, the image shows through in the "valleys"). Only
+     visible once the panel has actual height. */
+  .who-panel__edge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 16px;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='16'%3E%3Cpolygon points='0,0 100,0 100,13 75,3 50,13 25,3 0,13' fill='%23f0f0f0'/%3E%3Cpolyline points='0,13 25,3 50,13 75,3 100,13' fill='none' stroke='%23111111' stroke-width='2.5'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+  }
+  .who-panel__inner { position: relative; z-index: 2; padding: 32px 24px; }
+  .who-panel__label {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  .who-panel__body { color: #333; max-width: 60ch; margin-bottom: 16px; }
+  .who-panel__ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+
+  /* The "closed" zigzag only needs to exist on desktop: mobile hides it
+     entirely, since each panel's own seamless edge already covers that
+     job there. Must span all 3 grid columns explicitly — without it,
+     CSS grid auto-places a lone unplaced item into just the first
+     column instead of the full row. It's also only meant to be visible
+     when nothing is expanded (see .is-any-open, toggled by script). */
+  .who-accordion__closed-zigzag { display: none; grid-column: 1 / -1; }
+
+  @media (min-width: 769px) {
+    .who-accordion {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-areas:
+        "tab1 tab2 tab3"
+        "panel panel panel";
+    }
+    .who-tab { border-bottom: none; border-right: 1px solid var(--ink); justify-content: flex-start; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+    .who-tab--schools { grid-area: tab1; }
+    .who-tab--public { grid-area: tab2; border-left: 1px solid var(--ink); }
+    .who-tab--corporate { grid-area: tab3; border-left: 1px solid var(--ink); border-right: none; }
+    .who-panel--schools, .who-panel--public, .who-panel--corporate {
+      grid-area: panel;
+    }
+    .who-accordion__closed-zigzag { display: block; }
+    .who-accordion.is-any-open .who-accordion__closed-zigzag { display: none; }
   }
 
   /* Partners */
@@ -373,6 +463,7 @@ import Layout from "../layouts/Layout.astro";
         const key = trigger.dataset.accordionTrigger;
         const panel = document.querySelector<HTMLElement>(`[data-accordion-panel="${key}"]`);
         const isOpen = panel?.classList.contains('is-open');
+        const accordion = trigger.closest<HTMLElement>('.who-accordion');
 
         document.querySelectorAll<HTMLElement>('[data-accordion-panel]').forEach((p) => p.classList.remove('is-open'));
         document.querySelectorAll<HTMLButtonElement>('[data-accordion-trigger]').forEach((t) => t.setAttribute('aria-expanded', 'false'));
@@ -380,6 +471,9 @@ import Layout from "../layouts/Layout.astro";
         if (panel && !isOpen) {
           panel.classList.add('is-open');
           trigger.setAttribute('aria-expanded', 'true');
+          accordion?.classList.add('is-any-open');
+        } else {
+          accordion?.classList.remove('is-any-open');
         }
       });
     });
