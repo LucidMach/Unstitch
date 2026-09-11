@@ -7,6 +7,46 @@ import Layout from "../layouts/Layout.astro";
   <div class="playground-root relative h-screen w-screen overflow-hidden flex flex-col justify-center items-center">
     <PlayCanvas client:load />
   </div>
+
+  <!-- ============ ZERO WASTE FESTIVAL RAFFLE ENTRY ============
+       Persistent button (not an auto-popup) since this is a one-off —
+       people who want to enter can, without it interrupting anyone who
+       just wants to play. EDITABLE: swap the copy if the raffle period
+       ends or the event changes. -->
+  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog">
+    Enter Raffle
+  </button>
+
+  <div id="raffle-overlay" class="raffle-overlay" hidden></div>
+
+  <div id="raffle-dialog" class="raffle-dialog" role="dialog" aria-modal="true" aria-labelledby="raffle-title" hidden>
+    <button id="raffle-close-btn" class="raffle-dialog__close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+
+    <div id="raffle-form-state">
+      <p class="section__eyebrow">Zero Waste Festival</p>
+      <h2 id="raffle-title" class="raffle-dialog__title">Enter the Raffle Draw</h2>
+      <p class="raffle-dialog__body">Playing at our stand today? Pop in your name and email for a chance to win one of Unstitch's latest drops.</p>
+
+      <form id="raffle-form" data-subscribe-form="zwf-raffle-draw">
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
+        <label class="sr-only" for="raffle-name">Your name</label>
+        <input id="raffle-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" required />
+        <label class="sr-only" for="raffle-email">Your email</label>
+        <input id="raffle-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled raffle-dialog__submit">Enter Draw</button>
+      </form>
+      <p class="form-feedback" role="status"></p>
+    </div>
+
+    <div id="raffle-success-state" hidden>
+      <p class="section__eyebrow">Zero Waste Festival</p>
+      <h2 class="raffle-dialog__title">You're in!</h2>
+      <p class="raffle-dialog__body">e'll be drawing live on our socials on Wednesday 16/09 at 6pm and we'll be in touch if you win. Enjoy the rest of the playground and the festival!</p>
+      <button type="button" class="btn btn-outline" id="raffle-done-btn">Back to Playground</button>
+    </div>
+  </div>
 </Layout>
 
 <style is:global>
@@ -33,4 +73,200 @@ import Layout from "../layouts/Layout.astro";
   .no-custom-cursor canvas:active {
     cursor: grabbing !important;
   }
+
+  /* ---- raffle entry: persistent button + popup ---- */
+  .raffle-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 60;
+    background: rgba(109, 119, 26);
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+    padding: 14px 22px;
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .raffle-fab:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .raffle-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(17, 17, 17, 0.5);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .raffle-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .raffle-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 80;
+    width: min(420px, 92vw);
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .raffle-dialog.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .raffle-dialog__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .raffle-dialog__close svg { width: 18px; height: 18px; }
+  .raffle-dialog__title {
+    font-size: 1.4rem;
+    margin: 6px 0 12px;
+  }
+  .raffle-dialog__body {
+    color: #444;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  #raffle-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #raffle-form .signup__input {
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+  }
+  .raffle-dialog__submit { margin-top: 4px; }
+
+  @media (max-width: 480px) {
+    .raffle-fab {
+      position: fixed;
+      top: 10px;
+      right: 16px;
+      bottom: auto;
+      padding: 4px 12px;
+      font-size: 0.62rem;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
 </style>
+
+<script>
+  function initRaffle() {
+    const openBtn = document.getElementById('raffle-open-btn');
+    const closeBtn = document.getElementById('raffle-close-btn');
+    const doneBtn = document.getElementById('raffle-done-btn');
+    const overlay = document.getElementById('raffle-overlay');
+    const dialog = document.getElementById('raffle-dialog');
+    const formState = document.getElementById('raffle-form-state');
+    const successState = document.getElementById('raffle-success-state');
+    const form = document.getElementById('raffle-form') as HTMLFormElement | null;
+    if (!openBtn || !closeBtn || !overlay || !dialog || !form) return;
+
+    const open = () => {
+      overlay.hidden = false;
+      dialog.hidden = false;
+      requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+        dialog.classList.add('is-open');
+      });
+      document.body.style.overflow = 'hidden';
+    };
+
+    const close = () => {
+      overlay.classList.remove('is-open');
+      dialog.classList.remove('is-open');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        overlay.hidden = true;
+        dialog.hidden = true;
+        // Reset to the form view for next time, after the fade-out finishes.
+        if (formState && successState) {
+          formState.hidden = false;
+          successState.hidden = true;
+        }
+        form.reset();
+      }, 220);
+    };
+
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    doneBtn?.addEventListener('click', close);
+    overlay.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !dialog.hidden) close();
+    });
+
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const originalLabel = submitBtn ? submitBtn.textContent : '';
+    const feedback = form.nextElementSibling as HTMLElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = form.querySelector<HTMLInputElement>('#raffle-name');
+      const emailInput = form.querySelector<HTMLInputElement>('#raffle-email');
+      const gotchaInput = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const email = emailInput ? emailInput.value.trim() : '';
+      const _gotcha = gotchaInput ? gotchaInput.value : '';
+
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Entering…'; }
+      if (feedback) { feedback.textContent = ''; feedback.className = 'form-feedback'; }
+
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, source: 'zwf-raffle-draw', _gotcha }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));
+
+        if (formState && successState) {
+          formState.hidden = true;
+          successState.hidden = false;
+        }
+      } catch (err: any) {
+        if (feedback) {
+          feedback.textContent = err.message || 'Something went wrong. Please try again.';
+          feedback.classList.add('form-feedback--error');
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+      }
+    });
+  }
+
+  initRaffle();
+  document.addEventListener('astro:page-load', initRaffle);
+</script>

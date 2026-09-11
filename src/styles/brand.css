@@ -192,7 +192,6 @@ button { font-family: inherit; cursor: pointer; }
   letter-spacing: 0.04em;
   color: #6b6b6b;
   margin-bottom: 10px;
-  text-transform: uppercase;
 }
 
 /* ==========================================================================
@@ -215,8 +214,8 @@ button { font-family: inherit; cursor: pointer; }
    SIGNUP BAR
    ========================================================================== */
 .signup {
-  padding-top: 44px;
-  padding-bottom: 44px;
+  padding-top: 28px;
+  padding-bottom: 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -259,18 +258,15 @@ button { font-family: inherit; cursor: pointer; }
   border: none;
   border-radius: 0;
 }
-.signup__form input ~ input,
-.signup__form input ~ button {
+.signup__form input:not([name="_gotcha"]) ~ input:not([name="_gotcha"]),
+.signup__form input:not([name="_gotcha"]) ~ button {
   border-left: 1.5px solid var(--ink);
 }
 
 .form-feedback {
   margin-top: 10px;
   font-size: 0.85rem;
-  width: 100%;
 }
-.form-feedback--success { color: #2f6b3f; }
-.form-feedback--error { color: #a83232; }
 
 @media (max-width: 768px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -400,19 +396,11 @@ button { font-family: inherit; cursor: pointer; }
 
 .header-play-link {
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   line-height: 1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent);
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  transition: all 0.2s ease;
-}
-.header-play-link:hover {
-  background: var(--accent);
-  color: #ffffff;
 }
 
 .site-header__links {
