@@ -154,10 +154,13 @@ export default async function handler(req, res) {
   let hasPreview = false;
   if (previewImage && previewImage.includes('base64,')) {
     try {
+      const mimeMatch = previewImage.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1].toLowerCase() : 'image/jpeg';
+      const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
       const base64Data = previewImage.split('base64,')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       attachments.push({
-        filename: `${safeFilename}-preview.png`,
+        filename: `${safeFilename}-preview.${ext}`,
         content: imageBuffer,
         content_id: 'preview-image',
       });

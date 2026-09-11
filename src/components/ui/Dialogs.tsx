@@ -179,6 +179,21 @@ export const ShareDialog: React.FC<{
     setIsSubmitting(true);
 
     try {
+      // Safety guard: ensure total payload string size stays well below serverless limits (3.5MB threshold)
+      let safePreviewImage = previewImage || undefined;
+      const initialPayload = JSON.stringify({
+        email: email.trim(),
+        projectName: projectName.trim() || 'Unstitch 3D Creation',
+        designData,
+        previewImage: safePreviewImage,
+      });
+
+      // If payload is somehow oversized (> 3MB), omit preview image to ensure the 3D model JSON file delivers safely
+      if (initialPayload.length > 3 * 1024 * 1024) {
+        console.warn('Share payload exceeded safe size limit; omitting high-res preview snapshot.');
+        safePreviewImage = undefined;
+      }
+
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,7 +201,7 @@ export const ShareDialog: React.FC<{
           email: email.trim(),
           projectName: projectName.trim() || 'Unstitch 3D Creation',
           designData,
-          previewImage: previewImage || undefined,
+          previewImage: safePreviewImage,
         }),
       });
 
@@ -195,6 +210,9 @@ export const ShareDialog: React.FC<{
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error('Endpoint /api/share not recognized. Please restart your dev server (pnpm dev).');
+        }
+        if (res.status === 413) {
+          throw new Error('The creation data is too large for the mail server (Payload Too Large). Try sharing a slightly smaller assembly.');
         }
         throw new Error(data.error || `Failed to send email (status ${res.status}). Please try again.`);
       }

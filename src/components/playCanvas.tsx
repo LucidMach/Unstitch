@@ -33,6 +33,47 @@ const CanvasLoader: React.FC = () => (
   </Html>
 );
 
+function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | null {
+  try {
+    const { width, height } = canvasEl;
+    if (!width || !height) return null;
+
+    // Downscale retina/high-DPI canvas to crisp preview dimensions (max 800px)
+    const maxDim = 800;
+    let targetWidth = width;
+    let targetHeight = height;
+
+    if (targetWidth > maxDim || targetHeight > maxDim) {
+      if (targetWidth > targetHeight) {
+        targetHeight = Math.max(1, Math.round((targetHeight * maxDim) / targetWidth));
+        targetWidth = maxDim;
+      } else {
+        targetWidth = Math.max(1, Math.round((targetWidth * maxDim) / targetHeight));
+        targetHeight = maxDim;
+      }
+    }
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = targetWidth;
+    offscreen.height = targetHeight;
+    const ctx = offscreen.getContext('2d');
+    if (!ctx) {
+      return canvasEl.toDataURL('image/jpeg', 0.82);
+    }
+
+    // Fill soft brand background in case WebGL canvas has transparent areas
+    ctx.fillStyle = '#faf9f6';
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(canvasEl, 0, 0, targetWidth, targetHeight);
+
+    // JPEG 82% quality yields ~40KB-90KB crisp preview, well within server limits
+    return offscreen.toDataURL('image/jpeg', 0.82);
+  } catch (err) {
+    console.warn('Could not capture optimized canvas snapshot:', err);
+    return null;
+  }
+}
+
 const PlayCanvas: React.FC = () => {
   const pc = usePlayCanvas();
   const { OFFSET_MAJOR } = getLayoutConstants(pc.overlap);
@@ -44,8 +85,10 @@ const PlayCanvas: React.FC = () => {
     try {
       const canvasEl = document.querySelector('.playground-root canvas') as HTMLCanvasElement;
       if (canvasEl) {
-        const dataUrl = canvasEl.toDataURL('image/png');
-        setPreviewSnapshot(dataUrl);
+        const dataUrl = captureOptimizedCanvasSnapshot(canvasEl);
+        if (dataUrl) {
+          setPreviewSnapshot(dataUrl);
+        }
       }
     } catch (err) {
       console.warn('Could not capture canvas snapshot:', err);

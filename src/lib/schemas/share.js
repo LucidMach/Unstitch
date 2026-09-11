@@ -29,6 +29,7 @@ export const ShareSchema = z.object({
     }),
   previewImage: z
     .string()
+    .max(4 * 1024 * 1024, 'Preview image exceeds maximum allowed size')
     .optional()
     .refine((val) => !val || val.startsWith('data:image/'), {
       message: 'Preview image must be a valid base64 image data URL',

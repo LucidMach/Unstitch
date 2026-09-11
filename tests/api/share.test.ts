@@ -175,4 +175,34 @@ describe('Share API Handler (/api/share)', () => {
 
     process.env.RESEND_API_KEY = originalApiKey;
   });
+
+  it('correctly handles JPEG image attachments', async () => {
+    const originalApiKey = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = 're_test_key_123';
+
+    const req = {
+      method: 'POST',
+      body: {
+        ...validPayload,
+        previewImage: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP...',
+      },
+      headers: { 'x-forwarded-for': '192.168.1.7' },
+    };
+    const res = createMockRes();
+
+    await shareHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: expect.arrayContaining([
+          expect.objectContaining({
+            filename: 'textile-hexagon-preview.jpg',
+          }),
+        ]),
+      })
+    );
+
+    process.env.RESEND_API_KEY = originalApiKey;
+  });
 });

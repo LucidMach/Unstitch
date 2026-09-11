@@ -57,4 +57,21 @@ describe('ShareSchema validation', () => {
     const result = ShareSchema.safeParse({ ...baseValidPayload, previewImage: 'https://example.com/image.jpg' });
     expect(result.success).toBe(false);
   });
+
+  it('accepts JPEG data URL preview images', () => {
+    const result = ShareSchema.safeParse({
+      ...baseValidPayload,
+      previewImage: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP...',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects oversized preview images exceeding 4MB string length', () => {
+    const hugeImage = 'data:image/jpeg;base64,' + 'A'.repeat(4.5 * 1024 * 1024);
+    const result = ShareSchema.safeParse({
+      ...baseValidPayload,
+      previewImage: hugeImage,
+    });
+    expect(result.success).toBe(false);
+  });
 });
