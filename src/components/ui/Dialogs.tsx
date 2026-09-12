@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Plus, FolderOpen, Trash2, Box, FileCode, Upload, AlertCircle, Share2, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from './button';
@@ -162,10 +162,23 @@ export const ShareDialog: React.FC<{
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  useEffect(() => {
+    if (!show) {
+      setIsSuccess(false);
+      setErrorMsg(null);
+    }
+  }, [show]);
+
   const tileCount = Array.isArray(designData?.tiles) ? designData.tiles.length : 1;
   const foldCount = Array.isArray(designData?.tiles) 
     ? designData.tiles.filter((t: any) => Math.abs(t.foldAngle || 0) > 0.01).length 
     : 0;
+
+  const handleClose = () => {
+    setIsSuccess(false);
+    setErrorMsg(null);
+    onClose();
+  };
 
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,10 +232,6 @@ export const ShareDialog: React.FC<{
 
       setIsSuccess(true);
       onShareSuccess?.();
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-      }, 2000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Something went wrong while sending the email.');
     } finally {
@@ -231,7 +240,7 @@ export const ShareDialog: React.FC<{
   };
 
   return (
-    <Dialog show={show} onClose={onClose}>
+    <Dialog show={show} onClose={handleClose}>
       <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
         <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
           <div className="space-y-0.5">
@@ -239,7 +248,7 @@ export const ShareDialog: React.FC<{
             <p className="text-xs text-neutral-500">Email yourself the 3D model JSON & preview</p>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             className="p-1.5 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors"
           >
             <X size={18} />
@@ -247,14 +256,23 @@ export const ShareDialog: React.FC<{
         </div>
 
         {isSuccess ? (
-          <div className="py-8 text-center space-y-3">
+          <div className="py-6 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-[#eedfe9] text-[#A36E93] flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
-            <h4 className="text-sm font-bold text-neutral-900">Design Emailed Successfully!</h4>
-            <p className="text-xs text-neutral-500 max-w-xs mx-auto">
-              Check your inbox at <strong>{email}</strong> for your 3D model file and render preview.
-            </p>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-neutral-900">Design Emailed Successfully!</h4>
+              <p className="text-xs text-neutral-500 max-w-xs mx-auto">
+                Check your inbox at <strong>{email}</strong> for your 3D model file and render preview.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={handleClose}
+              className="bg-neutral-900 hover:bg-black text-white rounded-xl px-6 py-2.5 font-bold text-xs uppercase tracking-wider mx-auto transition-all"
+            >
+              Done
+            </Button>
           </div>
         ) : (
           <form onSubmit={handleShare} className="space-y-4">

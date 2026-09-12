@@ -3,7 +3,17 @@ import PlayCanvas from "@/components/playCanvas";
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Unstitch — 3D Textile Playground" showNavbar={false} showTicker={false} showFooter={false} useCustomCursor={false}>
+<Layout
+  title="3D Textile Playground | Unstitch — Interactive Modular Studio"
+  description="Design, simulate, and fold parametric 3D modular textile creations in real-time in the Unstitch browser playground. No sewing, stitching, or glue required."
+  keywords="3D textile simulation, parametric textiles, interactive 3D modeler, modular fabric builder, zero waste 3D design, Unstitch playground"
+  image="/OneTileGif.gif"
+  imageAlt="3D modular textile builder preview in Unstitch Playground"
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+  useCustomCursor={false}
+>
   <div class="playground-root relative h-screen w-screen overflow-hidden flex flex-col justify-center items-center">
     <PlayCanvas client:load />
   </div>

@@ -11,6 +11,12 @@ import SiteFooter from "../components/SiteFooter.astro";
 interface Props {
   title?: string;
   description?: string;
+  keywords?: string;
+  image?: string;
+  imageAlt?: string;
+  ogType?: "website" | "article" | "product";
+  noindex?: boolean;
+  jsonLd?: Record<string, any> | Array<Record<string, any>>;
   showNavbar?: boolean;
   showTicker?: boolean;
   showFooter?: boolean;
@@ -19,32 +25,127 @@ interface Props {
 }
 
 const {
-  title = "Unstitch — One tile. Endless possibilities.",
-  description = "Zero-waste interlocking modular textile puzzle system.",
+  title = "Unstitch — One tile. Endless possibilities. | Modular Textile System",
+  description = "Zero-waste interlocking modular textile puzzle system from Melbourne (Naarm). Build 3D textile creations without sewing, stitching, or glue.",
+  keywords,
+  image = "/Hero.png",
+  imageAlt = "Unstitch modular interlocking textile creations",
+  ogType = "website",
+  noindex = false,
+  jsonLd,
   showNavbar = true,
   showTicker = true,
   showFooter = true,
   currentPath = Astro.url.pathname,
   useCustomCursor = true,
 } = Astro.props;
+
+const siteUrl = (Astro.site ? Astro.site.toString() : "https://www.unstitchx.com").replace(/\/+$/, "");
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const ogImageUrl = image.startsWith("http://") || image.startsWith("https://") 
+  ? image 
+  : new URL(image, siteUrl).href;
+
+const baseKeywords = "unstitch, modular textiles, zero waste design, circular fashion, interlocking textile puzzle, sustainable textile design, Naarm Melbourne studio, deadstock textile, parametric design, 3D textile playground";
+const resolvedKeywords = keywords ? `${keywords}, ${baseKeywords}` : baseKeywords;
+
+const baseSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${siteUrl}/#organization`,
+      "name": "Unstitch",
+      "alternateName": "Unstitch Studio",
+      "url": siteUrl,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${siteUrl}/Logomark.png`,
+        "caption": "Unstitch Logomark"
+      },
+      "sameAs": [
+        "https://www.instagram.com/unstitchxfactory/",
+        "https://www.linkedin.com/company/unstitchx/"
+      ],
+      "description": "Melbourne-based circular design studio designing zero-waste interlocking modular textile systems from rescued deadstock materials.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Melbourne",
+        "addressRegion": "VIC",
+        "addressCountry": "AU"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      "url": siteUrl,
+      "name": "Unstitch",
+      "publisher": {
+        "@id": `${siteUrl}/#organization`
+      },
+      "description": "Zero-waste interlocking modular textile puzzle system."
+    },
+    {
+      "@type": "WebPage",
+      "@id": `${canonicalUrl}#webpage`,
+      "url": canonicalUrl,
+      "name": title,
+      "isPartOf": {
+        "@id": `${siteUrl}/#website`
+      },
+      "description": description,
+      "inLanguage": "en-AU"
+    }
+  ]
+};
 ---
 
 <!doctype html>
-<html lang="en" class={!useCustomCursor ? "no-custom-cursor" : ""}>
+<html lang="en" dir="ltr" class={!useCustomCursor ? "no-custom-cursor" : ""}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon-adaptive.svg" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={description} />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
-    <meta property="og:type" content="website" />
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={resolvedKeywords} />
+    <meta name="author" content="Unstitch Studio" />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
+    <meta name="theme-color" content="#111111" />
+    <meta name="color-scheme" content="light" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon-adaptive.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/Logomark.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="Unstitch" />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta property="og:locale" content="en_AU" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalUrl} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={imageAlt} />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json" set:html={JSON.stringify(baseSchema)} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
     {showTicker && <Ticker />}

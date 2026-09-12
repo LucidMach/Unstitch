@@ -107,6 +107,7 @@ function apiDevMiddleware() {
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://www.unstitchx.com',
   integrations: [react()],
 
   vite: {

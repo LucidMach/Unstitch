@@ -1,0 +1,9 @@
+# Robots.txt for Unstitch (https://www.unstitchx.com)
+User-agent: *
+Allow: /
+
+# Disallow internal API endpoints from being indexed
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://www.unstitchx.com/sitemap.xml

@@ -1,0 +1,23 @@
+{
+  "name": "Unstitch — Interlocking Modular Textile System",
+  "short_name": "Unstitch",
+  "description": "Zero-waste interlocking modular textile puzzle system from Melbourne (Naarm).",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/assets/favicon-adaptive.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/Logomark.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
