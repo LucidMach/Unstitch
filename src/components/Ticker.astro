@@ -8,10 +8,14 @@ const { phrases = ["zero waste", "modular puzzle", "upcycle textile"] } = Astro.
 
 <div class="ticker" aria-hidden="true">
   <div class="ticker__track" data-ticker-track>
-    {phrases.map((phrase) => (
+    {Array.from({ length: 6 }).map(() => (
       <>
-        <span>{phrase}</span>
-        <span>•</span>
+        {phrases.map((phrase) => (
+          <>
+            <span>{phrase}</span>
+            <span>•</span>
+          </>
+        ))}
       </>
     ))}
   </div>
@@ -22,35 +26,63 @@ const { phrases = ["zero waste", "modular puzzle", "upcycle textile"] } = Astro.
     const track = document.querySelector<HTMLElement>('[data-ticker-track]');
     if (!track) return;
     
-    // Store original HTML if not already stored
+    // Store original single unit if not stored
     if (!track.dataset.originalHtml) {
-      track.dataset.originalHtml = track.innerHTML;
+      const spans = track.querySelectorAll('span');
+      if (spans.length > 0) {
+        // Build base unit from first phrase repetition (e.g. 3 phrases + 3 bullets = 6 spans)
+        const baseCount = Math.max(2, Math.floor(spans.length / 6));
+        const baseSpans = Array.from(spans).slice(0, spans.length / 6 || spans.length);
+        track.dataset.originalHtml = baseSpans.map(s => s.outerHTML).join('');
+      } else {
+        track.dataset.originalHtml = track.innerHTML;
+      }
     }
     const baseHTML = track.dataset.originalHtml;
     
     const buildTicker = () => {
-      track.innerHTML = baseHTML;
-      const needed = window.innerWidth * 2.2;
-      let copies = 1;
-      while (track.scrollWidth < needed || copies < 2) {
-        track.insertAdjacentHTML('beforeend', baseHTML);
-        copies++;
+      if (!track || !baseHTML) return;
+      
+      const winWidth = window.innerWidth || document.documentElement.clientWidth || 1024;
+      const needed = winWidth * 2.2;
+      
+      // Start with 2 base units
+      track.innerHTML = baseHTML + baseHTML;
+      let copies = 2;
+      const MAX_COPIES = 16;
+      
+      let currentWidth = track.scrollWidth;
+      
+      // If layout hasn't resolved yet (e.g. 0 on early WebKit), default to 6 copies
+      if (currentWidth <= 0) {
+        for (let i = 0; i < 4; i++) {
+          track.insertAdjacentHTML('beforeend', baseHTML);
+        }
+        copies = 6;
+      } else {
+        while (track.scrollWidth < needed && copies < MAX_COPIES) {
+          track.insertAdjacentHTML('beforeend', baseHTML);
+          copies++;
+        }
+        if (copies % 2 !== 0 && copies < MAX_COPIES) {
+          track.insertAdjacentHTML('beforeend', baseHTML);
+          copies++;
+        }
       }
-      if (copies % 2 !== 0) {
-        track.insertAdjacentHTML('beforeend', baseHTML);
-        copies++;
-      }
+
       const pxPerSecond = 60;
-      const totalWidth = track.scrollWidth / 2;
-      track.style.animationDuration = `${totalWidth / pxPerSecond}s`;
+      const halfWidth = Math.max((track.scrollWidth || winWidth) / 2, 300);
+      track.style.animationDuration = `${halfWidth / pxPerSecond}s`;
     };
 
-    buildTicker();
+    // Use requestAnimationFrame to ensure layout is ready
+    requestAnimationFrame(buildTicker);
+
     let resizeTimer: ReturnType<typeof setTimeout>;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(buildTicker, 200);
-    });
+    }, { passive: true });
   }
 
   // Support both initial load and client transitions
