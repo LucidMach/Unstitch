@@ -1,0 +1,435 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+/**
+ * Slow Bloom product page — static content for now (mirrors the figures
+ * in prisma/seed.ts / the cost calculator). Once the product/cart API
+ * exists, this should read the real Product/Drop rows instead of these
+ * constants, so stock, price, and copy stay in sync with the database
+ * automatically.
+ */
+const product = {
+  name: "Slow Bloom",
+  eyebrow: "2026 RESET x Zero Waste Festival",
+  dropCode: "D001",
+  priceCents: 2900, // AUD 29 — the real confirmed retail price.
+  totalUnits: 10, // Whole batch size for this drop.
+  tilesPerKit: 22,
+  colourPalette: ["#E8D8C3", "#B7C4A4", "#D98E73"],
+  materialRigidity: "Soft / low-rigidity",
+  ageRangeMin: 4,
+  ageRangeMax: 99,
+};
+
+const included = [
+  { label: "3 Designs" },
+  { label: "Furoshiki Wrap" },
+  { label: "Unstitch Mail" },
+  { label: "Tiles" },
+  { label: "Product Passport" },
+  { label: "Gift Message" },
+];
+---
+
+<Layout
+  title="Slow Bloom — Modular Textile Kit | Unstitch"
+  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
+  keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
+  image="/SlowBloom.png"
+  imageAlt="Slow Bloom modular textile kit"
+  ogType="product"
+>
+  <main>
+    <!-- ============ PRODUCT HERO ============ -->
+    <section class="wrap section product-hero">
+      <p class="section__eyebrow">Latest Drop</p>
+
+      <div class="product-hero__grid">
+        <div class="product-hero__media">
+          <!-- Same floral-pattern underlay + placeholder pattern as the
+               homepage's "Latest Drop" card — swap in the real product
+               photo at /SlowBloom.png whenever it's ready, no markup
+               change needed. -->
+          <div class="ph product-hero__image" style="aspect-ratio: 1 / 1; background: url('/assets/floral-pattern.svg') center/cover;">
+            <img src="/SlowBloom.png" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+
+          <!-- Kit specs: colour palette, material rigidity, ages, piece
+               count — sits directly under the hero image. -->
+          <div class="product-specs" aria-label="Kit specifications">
+            <div class="product-specs__row">
+              <span class="product-specs__label">Colour palette</span>
+              <span class="product-specs__swatches">
+                {product.colourPalette.map((hex) => (
+                  <span class="product-specs__swatch" style={`background:${hex}`} title={hex}></span>
+                ))}
+              </span>
+            </div>
+            <div class="product-specs__row">
+              <span class="product-specs__label">Material rigidity</span>
+              <span>{product.materialRigidity}</span>
+            </div>
+            <div class="product-specs__row">
+              <span class="product-specs__label">Recommended ages</span>
+              <span>{product.ageRangeMin}–{product.ageRangeMax}</span>
+            </div>
+            <div class="product-specs__row">
+              <span class="product-specs__label">Pieces per kit</span>
+              <span>{product.tilesPerKit}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-hero__info">
+          <p class="section__eyebrow">{product.eyebrow}</p>
+          <h1 class="product-hero__title">{product.name}</h1>
+          <p class="product-hero__ref">Ref: Drop {product.dropCode}</p>
+          <p class="product-hero__price">AUD {(product.priceCents / 100).toFixed(0)}</p>
+
+          <hr class="product-hero__divider" />
+
+          <h2 class="product-hero__included-title">What's included?</h2>
+          <div class="product-included">
+            {included.map((item) => (
+              <div class="product-included__item">
+                <div class="ph product-included__icon" aria-hidden="true">icon</div>
+                <p class="product-included__label">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="product-qty">
+            <span class="product-qty__label">Quantity</span>
+            <div class="product-qty__stepper" data-qty-stepper>
+              <button type="button" class="product-qty__btn" data-qty-decrease aria-label="Decrease quantity">−</button>
+              <input
+                type="number"
+                class="product-qty__value"
+                data-qty-input
+                value="1"
+                min="1"
+                max={product.totalUnits}
+                inputmode="numeric"
+                aria-label="Quantity"
+              />
+              <button type="button" class="product-qty__btn" data-qty-increase aria-label="Increase quantity">+</button>
+            </div>
+            <span class="product-qty__note">Only {product.totalUnits} kits in this batch</span>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-filled product-hero__cta"
+            data-add-to-bag
+            data-product-id="slow-bloom"
+            data-product-name={product.name}
+            data-product-price={product.priceCents}
+            data-product-image="/SlowBloom.png"
+            data-product-max={product.totalUnits}
+          >
+            Add to Bag
+          </button>
+          <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ MATERIAL ARCHIVE TEASER ============ -->
+    <section class="wrap section archive-teaser">
+      <p class="archive-teaser__text">See past collection and read rescue material story.</p>
+      <a href="/archive" class="btn btn-outline">Enter the archive</a>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ REVIEWS ============
+         Reviews are tied to a real completed order (see Review.orderId /
+         Review.unitId in the schema) — none exist yet since no kit has
+         been delivered. This is the real empty state, not a placeholder
+         review, and it'll fill in once orders start shipping. -->
+    <section class="wrap section reviews">
+      <h2 class="section__title">Reviews</h2>
+      <div class="reviews__empty">
+        <p>No reviews yet — Slow Bloom just dropped.</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified — Slow Bloom #7 of 10").</p>
+      </div>
+    </section>
+
+    <!-- ============ EMAIL SIGNUP ============ -->
+    <section class="wrap signup">
+      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <form class="signup__form" data-subscribe-form="shop-footer-signup">
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
+        <label class="sr-only" for="signup-name">Your name</label>
+        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <label class="sr-only" for="signup-email">Your email</label>
+        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <button type="submit" class="btn btn-filled">Join</button>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .product-hero { padding-top: 40px; }
+
+  .product-hero__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .product-hero__image { min-height: 0; }
+
+  .product-specs {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .product-specs__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+  }
+  .product-specs__label { color: #6b6b6b; }
+  .product-specs__swatches { display: flex; gap: 6px; }
+  .product-specs__swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    display: inline-block;
+  }
+
+  .product-hero__title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 6px 0 4px;
+  }
+  .product-hero__ref {
+    font-size: 0.82rem;
+    color: #6b6b6b;
+    margin-bottom: 14px;
+  }
+  .product-hero__price {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+  }
+  .product-hero__divider {
+    border: none;
+    border-top: 1px solid var(--ink);
+    margin: 22px 0;
+  }
+  .product-hero__included-title {
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+
+  .product-included {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .product-included__icon {
+    aspect-ratio: 1 / 1;
+    font-size: 0.65rem;
+  }
+  .product-included__label {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .product-qty {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .product-qty__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .product-qty__stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 4px 6px;
+  }
+  .product-qty__btn {
+    background: none;
+    border: none;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+    border-radius: 4px;
+  }
+  .product-qty__btn:hover { background: #f0f0f0; }
+  .product-qty__value {
+    width: 44px;
+    text-align: center;
+    border: none;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    appearance: textfield;
+    background: transparent;
+  }
+  .product-qty__value::-webkit-outer-spin-button,
+  .product-qty__value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .product-qty__note {
+    font-size: 0.78rem;
+    color: #6b6b6b;
+  }
+
+  .product-hero__cta { width: 100%; }
+  .product-hero__added {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  .archive-teaser {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .archive-teaser__text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .reviews__empty {
+    color: #444;
+  }
+  .reviews__empty-sub {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #6b6b6b;
+    max-width: 560px;
+  }
+
+  @media (max-width: 860px) {
+    .product-hero__grid { grid-template-columns: 1fr; gap: 28px; }
+    .product-included { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .product-included { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<script>
+  import { addToCart } from "../lib/cart-client";
+
+  function initProductPage() {
+    const stepper = document.querySelector<HTMLElement>("[data-qty-stepper]");
+    if (stepper) {
+      const input = stepper.querySelector<HTMLInputElement>("[data-qty-input]");
+      const decreaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-decrease]");
+      const increaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-increase]");
+      const max = Number(input?.max || 1);
+      const min = Number(input?.min || 1);
+
+      const clamp = (n: number) => Math.min(max, Math.max(min, n));
+
+      const setValue = (n: number) => {
+        if (!input) return;
+        input.value = String(clamp(n));
+      };
+
+      decreaseBtn?.addEventListener("click", () => setValue(Number(input?.value || min) - 1));
+      increaseBtn?.addEventListener("click", () => setValue(Number(input?.value || min) + 1));
+      input?.addEventListener("change", () => setValue(Number(input.value || min)));
+    }
+
+    const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+    const feedback = document.querySelector<HTMLElement>("[data-add-to-bag-feedback]");
+    addBtn?.addEventListener("click", () => {
+      const qtyInput = document.querySelector<HTMLInputElement>("[data-qty-input]");
+      const qty = Math.max(1, Number(qtyInput?.value || 1));
+
+      addToCart({
+        id: addBtn.dataset.productId!,
+        name: addBtn.dataset.productName!,
+        priceCents: Number(addBtn.dataset.productPrice),
+        image: addBtn.dataset.productImage!,
+        maxQty: Number(addBtn.dataset.productMax),
+        qty,
+      });
+
+      if (feedback) {
+        feedback.hidden = false;
+        window.setTimeout(() => { feedback.hidden = true; }, 2500);
+      }
+
+      window.dispatchEvent(new CustomEvent("cart:open"));
+    });
+
+    // Newsletter signup form (same pattern used across the site).
+    document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : "";
+
+      let feedbackEl = form.nextElementSibling as HTMLElement;
+      if (!feedbackEl || !feedbackEl.classList.contains("form-feedback")) {
+        feedbackEl = document.createElement("p");
+        feedbackEl.className = "form-feedback";
+        feedbackEl.setAttribute("role", "status");
+        form.insertAdjacentElement("afterend", feedbackEl);
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
+        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]:not([name="_gotcha"])');
+        const gotchaInput = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
+        const name = nameInput ? nameInput.value.trim() : "";
+        const email = emailInput ? emailInput.value.trim() : "";
+        const _gotcha = gotchaInput ? gotchaInput.value : "";
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Sending…"; }
+        feedbackEl.textContent = "";
+        feedbackEl.className = "form-feedback";
+
+        try {
+          const res = await fetch("/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined, _gotcha }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || (res.status === 429 ? "Too many requests. Please wait a moment." : "Something went wrong."));
+
+          form.reset();
+          feedbackEl.textContent = "You're on the list for VIP access.";
+          feedbackEl.classList.add("form-feedback--success");
+        } catch (err: any) {
+          feedbackEl.textContent = err.message || "Something went wrong. Please try again.";
+          feedbackEl.classList.add("form-feedback--error");
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        }
+      });
+    });
+  }
+
+  initProductPage();
+  document.addEventListener("astro:page-load", initProductPage);
+</script>

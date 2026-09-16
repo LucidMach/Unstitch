@@ -9,6 +9,11 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------------------------------------------------------------------------
+// Existing models (unchanged, except Subscriber gains two optional fields —
+// see note above the model below)
+// ---------------------------------------------------------------------------
+
 model Subscriber {
   id          Int      @id @default(autoincrement())
   name        String?
@@ -17,6 +22,17 @@ model Subscriber {
   signupCount Int      @default(1) @map("signup_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Added: lets this same subscriber list double as the per-drop
+  // "notify me" waitlist instead of introducing a second, parallel table.
+  // Both are optional and untouched by the existing api/subscribe.js
+  // upsert() calls, so nothing already shipped breaks. `source` (already
+  // in use, e.g. "shop-signup", "zwf-raffle-draw") stays the general
+  // capture-point tag; `productId` + `notifiedAt` are only set when this
+  // signup is specifically "tell me when this product/drop is live/back."
+  productId  String?   @db.Uuid @map("product_id")
+  product    Product?  @relation(fields: [productId], references: [id])
+  notifiedAt DateTime? @map("notified_at")
 
   @@map("subscribers")
 }
@@ -33,4 +49,649 @@ model ContactSubmission {
   createdAt      DateTime @default(now()) @map("created_at")
 
   @@map("contact_submissions")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum DropStatus {
+  UPCOMING
+  LIVE
+  SOLD_OUT
+  ARCHIVED
+
+  @@map("drop_status")
+}
+
+enum UnitStatus {
+  IN_STOCK // produced, not yet reserved
+  RESERVED // held against an active cart, not yet paid
+  SOLD // payment succeeded, awaiting fulfilment
+  SHIPPED // out for delivery
+  DELIVERED // handed to customer
+  REGISTERED // owner has claimed the digital passport
+  RETURNED // came back (fault / return)
+
+  @@map("unit_status")
+}
+
+enum CartStatus {
+  ACTIVE
+  ABANDONED // no activity + reminder email sent
+  CONVERTED // became an order
+  EXPIRED // reservations lapsed, never converted
+
+  @@map("cart_status")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PACKED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+
+  @@map("order_status")
+}
+
+enum OrderChannel {
+  ONLINE
+  IN_PERSON
+
+  @@map("order_channel")
+}
+
+enum PaymentProvider {
+  STRIPE
+  SQUARE
+
+  @@map("payment_provider")
+}
+
+enum PaymentStatus {
+  REQUIRES_ACTION
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+
+  @@map("payment_status")
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+
+  @@map("refund_status")
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+
+  @@map("difficulty_level")
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+
+  @@map("review_status")
+}
+
+enum AdminRole {
+  OWNER
+  STAFF
+
+  @@map("admin_role")
+}
+
+enum DeliveryMethod {
+  SELF_DELIVERY // you, personally, within the local radius
+  AUSPOST // beyond the local radius
+  PICKUP // click-and-collect / drop-box — not active yet, modelled for later
+
+  @@map("delivery_method")
+}
+
+enum DeliveryPricingMethod {
+  FLAT // feeCents is charged as-is
+  DYNAMIC // feeCents is a fallback estimate only — real fee is looked up at checkout
+
+  @@map("delivery_pricing_method")
+}
+
+// ---------------------------------------------------------------------------
+// Material archive (currently-hidden storytelling pages, linked from PDP + passport)
+// ---------------------------------------------------------------------------
+
+model MaterialArchiveCard {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique @db.VarChar(160)
+  title       String   @db.VarChar(200)
+  originStory String   @map("origin_story")
+  images      Json     @default("[]")
+  hidden      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("material_archive_cards")
+}
+
+// ---------------------------------------------------------------------------
+// Giving programs — who Tile for Change pieces actually go to
+// ---------------------------------------------------------------------------
+
+model GivingProgram {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(200)
+  type        String   @db.VarChar(40) // "community_workshop" | "school_partner"
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  costRecipes  ProductCostRecipe[]
+  givingLedger GivingLedgerEntry[]
+
+  @@map("giving_programs")
+}
+
+// ---------------------------------------------------------------------------
+// Cost calculator — material sources + per-product cost recipes
+// ---------------------------------------------------------------------------
+
+model MaterialSource {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @db.VarChar(200)
+  materialType String   @map("material_type") @db.VarChar(100) // "curtain" | "polar_fleece" | ...
+  costCents    Int      @map("cost_cents") // can be 0 for rescued/donated textile waste
+  widthCm      Int      @map("width_cm")
+  heightCm     Int      @map("height_cm")
+  wastePercent Int      @default(10) @map("waste_percent")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  costRecipes ProductCostRecipe[]
+
+  @@map("material_sources")
+}
+
+/// One recipe per product: how many pieces of what size, cut from which
+/// material source, plus labour/equipment/design/packaging/giving inputs.
+/// Feed this into `computeCostBreakdown()` (src/lib/costCalculator.ts) to
+/// get the per-kit cost breakdown for the product page and receipt.
+///
+/// tileSizeCm is one of 7 / 8 / 9 / 10 / 11 (validated in application code,
+/// not a DB constraint, so new sizes don't require a migration).
+model ProductCostRecipe {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId String @unique @db.Uuid @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+
+  materialSourceId String         @db.Uuid @map("material_source_id")
+  materialSource   MaterialSource @relation(fields: [materialSourceId], references: [id])
+
+  tileSizeCm  Int @map("tile_size_cm") // 7 | 8 | 9 | 10 | 11
+  tilesPerKit Int @map("tiles_per_kit") // how many pieces the design needs
+
+  labourMinutes         Int @map("labour_minutes")
+  labourRateCentsPerHour Int @map("labour_rate_cents_per_hour")
+
+  // Cutting/production equipment time (e.g. a laser cutter makerspace
+  // membership) — a machine-time cost, distinct from labour wages.
+  equipmentCostCents Int     @default(0) @map("equipment_cost_cents")
+  equipmentCostNote  String? @map("equipment_cost_note")
+
+  designCostCents         Int @default(0) @map("design_cost_cents") // one-off design cost
+  designAmortizationUnits Int @default(1) @map("design_amortization_units") // spread across this many units
+
+  // Free-form line items — postcard, glassine sleeve, furoshiki wrap, or
+  // whatever the real packaging mix turns out to be. No migration needed
+  // to change the mix. Shape: [{ "label": string, "amountCents": number }]
+  packagingComponents Json @default("[]") @map("packaging_components")
+
+  operationsOverheadCents Int @default(0) @map("operations_overhead_cents")
+
+  // Tile for Change: X pieces contributed per kit sold, valued internally
+  // (in src/lib/costCalculator.ts) so it still shows up in cost/margin math
+  // even though the customer-facing message is framed in pieces, not dollars.
+  givingTilesPerKit Int     @default(0) @map("giving_tiles_per_kit")
+  givingProgramId   String? @db.Uuid @map("giving_program_id")
+  givingProgram     GivingProgram? @relation(fields: [givingProgramId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("product_cost_recipes")
+}
+
+// ---------------------------------------------------------------------------
+// Products (the design/style — only one is typically "live" at a time)
+// ---------------------------------------------------------------------------
+
+model Product {
+  id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku     String @unique @db.VarChar(40) // e.g. UX-SLOWBLOOM
+  slug    String @unique @db.VarChar(160)
+  name    String @db.VarChar(200)
+  tagline String? @db.VarChar(280)
+  description String
+
+  materialArchiveCardId String?              @db.Uuid @map("material_archive_card_id")
+  materialArchiveCard   MaterialArchiveCard? @relation(fields: [materialArchiveCardId], references: [id])
+
+  // Attributes shown on the product page
+  colourPalette    Json            @default("[]") @map("colour_palette") // hex codes
+  tileMaterial     String?         @map("tile_material") @db.VarChar(200) // "curtain and polar fleece"
+  materialRigidity String?         @map("material_rigidity") @db.VarChar(100)
+  difficultyLevel  DifficultyLevel @default(BEGINNER) @map("difficulty_level")
+  ageRangeMin      Int?            @map("age_range_min")
+  ageRangeMax      Int?            @map("age_range_max")
+  kitContents      Json            @default("[]") @map("kit_contents")
+
+  // Gifting
+  giftWrapAvailable    Boolean @default(true) @map("gift_wrap_available")
+  giftMessageAvailable Boolean @default(true) @map("gift_message_available")
+
+  // Pricing + cost transparency (see receipt module)
+  basePriceCents           Int     @map("base_price_cents")
+  currency                 String  @default("AUD") @db.VarChar(3)
+  costBreakdown            Json    @default("[]") @map("cost_breakdown")
+  lastCostCalculationCents Int?    @map("last_cost_calculation_cents")
+
+  // Tile for Change giving model
+  givingTilesPerKit               Int     @default(0) @map("giving_tiles_per_kit")
+  givingInternalValueCentsPerTile Int     @default(0) @map("giving_internal_value_cents_per_tile")
+  givingDescription                String? @map("giving_description")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  drops        Drop[]
+  units        Unit[]
+  costRecipe   ProductCostRecipe?
+  cartItems    CartItem[]
+  wishlists    Wishlist[]
+  orderItems   OrderItem[]
+  reviews      Review[]
+  subscribers  Subscriber[]
+
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Drops (a limited production batch of a product)
+// ---------------------------------------------------------------------------
+
+model Drop {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId   String     @db.Uuid @map("product_id")
+  product     Product    @relation(fields: [productId], references: [id])
+  dropCode    String     @map("drop_code") @db.VarChar(20) // e.g. "D001"
+  totalUnits  Int        @map("total_units")
+  status      DropStatus @default(UPCOMING)
+  madeLocation String    @default("Melbourne") @map("made_location") @db.VarChar(120)
+  madeYear    Int        @map("made_year")
+  releaseAt   DateTime?  @map("release_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  units        Unit[]
+  reservations Reservation[]
+
+  @@unique([productId, dropCode], map: "drops_product_dropcode_uq")
+  @@map("drops")
+}
+
+// ---------------------------------------------------------------------------
+// Units — the digital passport. One row per physical, numbered kit.
+// ---------------------------------------------------------------------------
+
+model Unit {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  serial         String     @unique @db.VarChar(40) // "UX-D001-007"
+  qrSlug         String     @unique @map("qr_slug") @db.VarChar(40) // passport URL slug (usually == serial)
+  dropId         String     @db.Uuid @map("drop_id")
+  drop           Drop       @relation(fields: [dropId], references: [id])
+  productId      String     @db.Uuid @map("product_id") // denormalised for convenient lookups
+  product        Product    @relation(fields: [productId], references: [id])
+  editionNumber  Int        @map("edition_number") // "7" of "7 of 40"
+  status         UnitStatus @default(IN_STOCK)
+
+  currentOwnerCustomerId String?   @db.Uuid @map("current_owner_customer_id")
+  currentOwner           Customer? @relation(fields: [currentOwnerCustomerId], references: [id])
+  registeredAt           DateTime? @map("registered_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Reverse side of OrderItem.unitId — a unit is claimed by at most one
+  // order item once sold. (Note: the original Drizzle draft of this schema
+  // had a second, unconstrained order_item_id column directly on units —
+  // dropped here as redundant/dead: this relation already captures it from
+  // the OrderItem side, and two unconstrained pointers to the same fact is
+  // a bug waiting to happen, not a feature.)
+  orderItem OrderItem?
+
+  // Reverse side of Review.unitId — set only if this unit's owner chose to
+  // attach their digital passport to a review.
+  review Review?
+
+  @@index([dropId, status], map: "units_drop_status_idx")
+  @@index([currentOwnerCustomerId], map: "units_owner_idx")
+  @@map("units")
+}
+
+// ---------------------------------------------------------------------------
+// Customers + addresses
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String   @unique @db.VarChar(320)
+  name           String?  @db.VarChar(200)
+  phone          String?  @db.VarChar(40)
+  marketingOptIn Boolean  @default(false) @map("marketing_opt_in")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  addresses Address[]
+  orders    Order[]
+  wishlists Wishlist[]
+  units     Unit[]
+  carts     Cart[]
+  reviews   Review[]
+
+  @@map("customers")
+}
+
+model Address {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId    String   @db.Uuid @map("customer_id")
+  customer      Customer @relation(fields: [customerId], references: [id])
+  label         String?  @db.VarChar(60) // "Home", "Work"
+  recipientName String   @map("recipient_name") @db.VarChar(200)
+  line1         String   @db.VarChar(200)
+  line2         String?  @db.VarChar(200)
+  suburb        String   @db.VarChar(120)
+  state         String   @db.VarChar(10) // VIC only, for now
+  postcode      String   @db.VarChar(10)
+  country       String   @default("AU") @db.VarChar(2)
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  ordersAsDeliveryAddress Order[]
+
+  @@map("addresses")
+}
+
+// ---------------------------------------------------------------------------
+// Delivery zones — distance-based self-delivery close in, Australia Post
+// beyond the local radius, and a placeholder for click-and-collect.
+// ---------------------------------------------------------------------------
+
+model DeliveryZone {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String                 @db.VarChar(120) // "Local delivery (0-5km)", "Australia Post — beyond 10km"
+  method           DeliveryMethod
+  minDistanceKm    Int?                   @map("min_distance_km") // null = not distance-gated
+  maxDistanceKm    Int?                   @map("max_distance_km") // null = no upper bound ("beyond radius")
+  postcodePatterns Json                   @default("[]") @map("postcode_patterns")
+  pricingMethod    DeliveryPricingMethod  @default(FLAT) @map("pricing_method")
+  feeCents         Int                    @map("fee_cents") // charged fee if FLAT; fallback/estimate if DYNAMIC
+  isEstimate       Boolean                @default(false) @map("is_estimate")
+  etaDays          Int                    @map("eta_days")
+  active           Boolean                @default(true) // false models "coming soon" (e.g. pickup)
+
+  orders Order[]
+
+  @@map("delivery_zones")
+}
+
+// ---------------------------------------------------------------------------
+// Carts + cart items (persistent, cookie-token based)
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cartToken            String     @unique @map("cart_token") @db.VarChar(64) // stored in an httpOnly cookie
+  customerId           String?    @db.Uuid @map("customer_id") // null until identified at checkout
+  customer             Customer?  @relation(fields: [customerId], references: [id])
+  status               CartStatus @default(ACTIVE)
+  abandonedEmailSentAt DateTime?  @map("abandoned_email_sent_at")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @default(now()) @updatedAt @map("updated_at")
+  lastActivityAt       DateTime   @default(now()) @map("last_activity_at")
+
+  items  CartItem[]
+  orders Order[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cartId      String   @db.Uuid @map("cart_id")
+  cart        Cart     @relation(fields: [cartId], references: [id])
+  productId   String   @db.Uuid @map("product_id")
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int      @default(1)
+  giftWrap    Boolean  @default(false) @map("gift_wrap")
+  giftMessage String?  @map("gift_message")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  reservations Reservation[]
+
+  @@map("cart_items")
+}
+
+// ---------------------------------------------------------------------------
+// Reservations — the "real-life inventory reflection" mechanism.
+// Adding to cart creates a reservation that soft-holds stock for a short
+// window; it does NOT pin a specific unit yet (that happens at payment
+// success, inside the same transaction that flips unit status to SOLD).
+// See src/lib/inventory.ts for the concurrency-safe claim logic.
+// ---------------------------------------------------------------------------
+
+model Reservation {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cartItemId String   @db.Uuid @map("cart_item_id")
+  cartItem   CartItem @relation(fields: [cartItemId], references: [id])
+  dropId     String   @db.Uuid @map("drop_id")
+  drop       Drop     @relation(fields: [dropId], references: [id])
+  quantity   Int
+  status     String   @default("active") @db.VarChar(20) // active | released | converted
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([dropId, status], map: "reservations_drop_status_idx")
+  @@map("reservations")
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist (does NOT reserve stock) — waitlist/"notify me" now lives on
+// the existing Subscriber model (see productId/notifiedAt added above)
+// rather than a separate table, to avoid two parallel signup lists.
+// ---------------------------------------------------------------------------
+
+model Wishlist {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId   String?   @db.Uuid @map("customer_id")
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  sessionToken String?   @map("session_token") @db.VarChar(64) // for guest wishlists
+  productId    String    @db.Uuid @map("product_id")
+  product      Product   @relation(fields: [productId], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("wishlists")
+}
+
+// ---------------------------------------------------------------------------
+// Orders + order items
+// ---------------------------------------------------------------------------
+
+model Order {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderNumber String      @unique @map("order_number") @db.VarChar(30) // e.g. "UX-2026-000123"
+  customerId String       @db.Uuid @map("customer_id")
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  cartId     String?      @db.Uuid @map("cart_id")
+  cart       Cart?        @relation(fields: [cartId], references: [id])
+  channel    OrderChannel @default(ONLINE)
+  status     OrderStatus  @default(PENDING_PAYMENT)
+
+  subtotalCents           Int    @map("subtotal_cents")
+  deliveryFeeCents        Int    @default(0) @map("delivery_fee_cents")
+  taxCents                Int    @default(0) @map("tax_cents")
+  givingContributionCents Int    @default(0) @map("giving_contribution_cents")
+  totalCents              Int    @map("total_cents")
+  currency                String @default("AUD") @db.VarChar(3)
+
+  deliveryAddressId String?       @db.Uuid @map("delivery_address_id")
+  deliveryAddress   Address?      @relation(fields: [deliveryAddressId], references: [id])
+  deliveryZoneId    String?       @db.Uuid @map("delivery_zone_id")
+  deliveryZone      DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  giftWrap          Boolean       @default(false) @map("gift_wrap")
+  giftMessage       String?       @map("gift_message")
+  orderNote         String?       @map("order_note")
+
+  // Idempotency: one key per checkout attempt from the client, enforced
+  // unique so retried/double-submitted requests can't create duplicate
+  // orders. Pair with Stripe's own idempotency-key header on the charge call.
+  idempotencyKey String @unique @map("idempotency_key") @db.VarChar(100)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  items        OrderItem[]
+  payments     Payment[]
+  givingLedger GivingLedgerEntry[]
+  reviews      Review[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId        String  @db.Uuid @map("order_id")
+  order          Order   @relation(fields: [orderId], references: [id])
+  productId      String  @db.Uuid @map("product_id")
+  product        Product @relation(fields: [productId], references: [id])
+  unitId         String? @unique @db.Uuid @map("unit_id") // assigned specific passport unit once paid
+  unit           Unit?   @relation(fields: [unitId], references: [id])
+  quantity       Int     @default(1)
+  unitPriceCents Int     @map("unit_price_cents")
+  lineTotalCents Int     @map("line_total_cents")
+
+  @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Payments + refunds
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId           String          @db.Uuid @map("order_id")
+  order             Order           @relation(fields: [orderId], references: [id])
+  provider          PaymentProvider
+  providerPaymentId String          @unique @map("provider_payment_id") @db.VarChar(200) // Stripe PaymentIntent id / Square Payment id
+  status            PaymentStatus   @default(REQUIRES_ACTION)
+  amountCents       Int             @map("amount_cents")
+  currency          String          @default("AUD") @db.VarChar(3)
+  rawPayload        Json?           @map("raw_payload") // last known webhook payload, for audit/debugging
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  refunds Refund[]
+
+  @@map("payments")
+}
+
+model Refund {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentId        String       @db.Uuid @map("payment_id")
+  payment          Payment      @relation(fields: [paymentId], references: [id])
+  amountCents      Int          @map("amount_cents")
+  reason           String?
+  status           RefundStatus @default(PENDING)
+  providerRefundId String?      @map("provider_refund_id") @db.VarChar(200)
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  @@map("refunds")
+}
+
+// ---------------------------------------------------------------------------
+// Giving ledger — makes the Tile for Change claim auditable/reportable
+// instead of just marketing copy.
+// ---------------------------------------------------------------------------
+
+model GivingLedgerEntry {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId           String         @db.Uuid @map("order_id")
+  order             Order          @relation(fields: [orderId], references: [id])
+  tilesContributed  Int            @default(0) @map("tiles_contributed")
+  internalValueCents Int?          @map("internal_value_cents")
+  givingProgramId   String?        @db.Uuid @map("giving_program_id")
+  givingProgram     GivingProgram? @relation(fields: [givingProgramId], references: [id])
+  description       String?
+  createdAt         DateTime       @default(now()) @map("created_at")
+
+  @@map("giving_ledger")
+}
+
+// ---------------------------------------------------------------------------
+// Reviews — collected on the product page, verified-purchase only (tied to
+// a real order, not just an account). A reviewer can optionally attach the
+// specific unit/digital passport their review is about, so the review can
+// show "Verified — Slow Bloom #7 of 40" on the product page instead of a
+// generic "Verified Buyer" badge. `unitId` is unique so the same passport
+// can't be flaunted across more than one review.
+// ---------------------------------------------------------------------------
+
+model Review {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId  String       @db.Uuid @map("product_id")
+  product    Product      @relation(fields: [productId], references: [id])
+  customerId String       @db.Uuid @map("customer_id")
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  orderId    String       @db.Uuid @map("order_id")
+  order      Order        @relation(fields: [orderId], references: [id])
+
+  // Optional: which specific numbered unit (digital passport) this review
+  // is showing off, e.g. so the product page can display "Slow Bloom #7 of
+  // 40" next to the review. Null if the reviewer didn't choose to attach one.
+  unitId String? @unique @db.Uuid @map("unit_id")
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+
+  rating     Int // 1-5
+  title      String?      @db.VarChar(200)
+  body       String?
+  status     ReviewStatus @default(PENDING)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@map("reviews")
+}
+
+// ---------------------------------------------------------------------------
+// Admin users (auth wiring comes later; this just models who can log in)
+// ---------------------------------------------------------------------------
+
+model AdminUser {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String    @unique @db.VarChar(320)
+  name      String?   @db.VarChar(200)
+  role      AdminRole @default(STAFF)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("admin_users")
 }
