@@ -4,6 +4,7 @@ import "../styles/brand.css";
 import Ticker from "../components/Ticker.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import MenuSheet from "../components/MenuSheet.astro";
+import CartDrawer from "../components/CartDrawer.astro";
 import MobileNav from "../components/MobileNav.astro";
 import MascotButton from "../components/MascotButton.astro";
 import SiteFooter from "../components/SiteFooter.astro";
@@ -153,6 +154,7 @@ const baseSchema = {
       <>
         <SiteHeader currentPath={currentPath} />
         <MenuSheet currentPath={currentPath} />
+        <CartDrawer />
         <MobileNav currentPath={currentPath} />
         <MascotButton />
       </>

@@ -1,0 +1,222 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * Customer-facing order lookup — the lightweight alternative to full
+ * accounts (see api/order-lookup-request.js / api/order-lookup.js).
+ * With no ?token= in the URL, shows an email-request form. With a
+ * ?token=, fetches and displays the order(s) it unlocks.
+ */
+---
+
+<Layout
+  title="Track your order | Unstitch"
+  description="Look up the status of your Unstitch order."
+  noindex
+>
+  <main>
+    <section class="wrap section order-lookup">
+      <div id="lookup-request" class="order-lookup__panel">
+        <p class="order-lookup__eyebrow">Track your order</p>
+        <h1 class="order-lookup__title">Where's my order?</h1>
+        <p class="order-lookup__body">
+          Enter the email you used at checkout and we'll send you a link to check its status.
+        </p>
+        <form id="lookup-form" class="order-lookup__form">
+          <input id="lookup-email" type="email" placeholder="you@example.com" required />
+          <button type="submit" class="btn btn-filled">Send me the link</button>
+        </form>
+        <p id="lookup-message" class="order-lookup__body" hidden></p>
+      </div>
+
+      <div id="lookup-results" class="order-lookup__panel" hidden>
+        <div id="lookup-loading">
+          <p class="order-lookup__eyebrow">One moment</p>
+          <p class="order-lookup__body">Fetching your order…</p>
+        </div>
+        <div id="lookup-orders" hidden></div>
+        <div id="lookup-error" hidden>
+          <p class="order-lookup__eyebrow">Hmm</p>
+          <h1 class="order-lookup__title">We couldn't verify that link</h1>
+          <p class="order-lookup__body" id="lookup-error-message">
+            It may have expired. Request a new one below.
+          </p>
+          <a href="/order/lookup" class="btn btn-outline">Request a new link</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .order-lookup {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .order-lookup__panel {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .order-lookup__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .order-lookup__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .order-lookup__body {
+    color: #444;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .order-lookup__form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .order-lookup__form input {
+    flex: 1 1 240px;
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  .order-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .order-card h2 {
+    font-size: 1.1rem;
+    margin: 0 0 6px;
+  }
+  .order-card__status {
+    display: inline-block;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: #f0efe9;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .order-card__items {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+  }
+  .order-card__items li {
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .order-card__meta {
+    font-size: 0.85rem;
+    color: #555;
+  }
+</style>
+
+<script>
+  const requestPanel = document.getElementById("lookup-request") as HTMLDivElement;
+  const resultsPanel = document.getElementById("lookup-results") as HTMLDivElement;
+
+  function money(cents: number, currency = "AUD") {
+    return `${currency} $${(cents / 100).toFixed(2)}`;
+  }
+
+  const token = new URLSearchParams(window.location.search).get("token");
+
+  if (token) {
+    requestPanel.hidden = true;
+    resultsPanel.hidden = false;
+    loadOrders(token);
+  } else {
+    const form = document.getElementById("lookup-form") as HTMLFormElement;
+    const message = document.getElementById("lookup-message") as HTMLParagraphElement;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = (document.getElementById("lookup-email") as HTMLInputElement).value.trim();
+      const btn = form.querySelector("button") as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/order-lookup-request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        message.textContent =
+          data.message || "If we found an order under that email, we've sent a link to check its status.";
+        message.hidden = false;
+        form.hidden = true;
+      } catch {
+        message.textContent = "Something went wrong — please try again in a moment.";
+        message.hidden = false;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  async function loadOrders(token: string) {
+    const loading = document.getElementById("lookup-loading") as HTMLDivElement;
+    const ordersEl = document.getElementById("lookup-orders") as HTMLDivElement;
+    const errorEl = document.getElementById("lookup-error") as HTMLDivElement;
+    try {
+      const res = await fetch(`/api/order-lookup?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      loading.hidden = true;
+      if (!res.ok) {
+        (document.getElementById("lookup-error-message") as HTMLElement).textContent =
+          data.error || "This link has expired or is invalid.";
+        errorEl.hidden = false;
+        return;
+      }
+      const orders = data.orders || [];
+      if (orders.length === 0) {
+        (document.getElementById("lookup-error-message") as HTMLElement).textContent = "No orders found.";
+        errorEl.hidden = false;
+        return;
+      }
+      ordersEl.innerHTML = orders
+        .map(
+          (o: any) => `
+        <div class="order-card">
+          <h2>Order ${o.orderNumber}</h2>
+          <span class="order-card__status">${o.status.replace(/_/g, " ")}</span>
+          <ul class="order-card__items">
+            ${o.items
+              .map((it: any) => `<li>${it.quantity} × ${it.productName} — ${money(it.lineTotalCents, o.currency)}</li>`)
+              .join("")}
+          </ul>
+          <p class="order-card__meta">Total: ${money(o.totalCents, o.currency)} · Placed ${new Date(o.createdAt).toLocaleDateString()}</p>
+          ${
+            o.deliveryAddress
+              ? `<p class="order-card__meta">Delivering to: ${o.deliveryAddress.recipientName}, ${o.deliveryAddress.suburb} ${o.deliveryAddress.state} ${o.deliveryAddress.postcode}</p>`
+              : ""
+          }
+        </div>`,
+        )
+        .join("");
+      ordersEl.hidden = false;
+    } catch {
+      loading.hidden = true;
+      (document.getElementById("lookup-error-message") as HTMLElement).textContent =
+        "Something went wrong loading your order.";
+      errorEl.hidden = false;
+    }
+  }
+</script>

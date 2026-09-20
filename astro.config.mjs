@@ -58,19 +58,54 @@ function apiDevMiddleware() {
               handler = (await import('./api/contact.js')).default;
             } else if (endpoint === '/api/share') {
               handler = (await import('./api/share.js')).default;
+            } else if (endpoint === '/api/create-checkout-session') {
+              handler = (await import('./api/create-checkout-session.js')).default;
+            } else if (endpoint === '/api/stripe-webhook') {
+              handler = (await import('./api/stripe-webhook.js')).default;
+            } else if (endpoint === '/api/order-status') {
+              handler = (await import('./api/order-status.js')).default;
+            } else if (endpoint === '/api/admin/login') {
+              handler = (await import('./api/admin/login.js')).default;
+            } else if (endpoint === '/api/admin/logout') {
+              handler = (await import('./api/admin/logout.js')).default;
+            } else if (endpoint === '/api/admin/orders') {
+              handler = (await import('./api/admin/orders.js')).default;
+            } else if (endpoint === '/api/admin/product') {
+              handler = (await import('./api/admin/product.js')).default;
+            } else if (endpoint === '/api/admin/send-email') {
+              handler = (await import('./api/admin/send-email.js')).default;
+            } else if (endpoint === '/api/order-lookup-request') {
+              handler = (await import('./api/order-lookup-request.js')).default;
+            } else if (endpoint === '/api/order-lookup') {
+              handler = (await import('./api/order-lookup.js')).default;
             }
 
+            // The webhook needs the exact raw request bytes for Stripe
+            // signature verification — JSON-parsing it here (like every
+            // other endpoint below) would corrupt the byte string before
+            // the handler ever sees it. Buffer the raw body instead and
+            // hand it to the handler via `req.rawBody`, matching what
+            // `api/stripe-webhook.js`'s own `getRawBody()` looks for.
+            const isRawBodyEndpoint = endpoint === '/api/stripe-webhook';
+
             if (handler) {
-              let bodyStr = '';
-              req.on('data', (/** @type {Buffer | string} */ chunk) => {
-                bodyStr += chunk;
+              /** @type {Buffer[]} */
+              const chunks = [];
+              req.on('data', (/** @type {Buffer} */ chunk) => {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
               });
               req.on('end', async () => {
-                /** @type {any} */ (req).body = {};
-                try {
-                  /** @type {any} */ (req).body = bodyStr ? JSON.parse(bodyStr) : {};
-                } catch {
+                const rawBody = Buffer.concat(chunks);
+
+                if (isRawBodyEndpoint) {
+                  /** @type {any} */ (req).rawBody = rawBody;
+                } else {
                   /** @type {any} */ (req).body = {};
+                  try {
+                    /** @type {any} */ (req).body = rawBody.length ? JSON.parse(rawBody.toString('utf8')) : {};
+                  } catch {
+                    /** @type {any} */ (req).body = {};
+                  }
                 }
 
                 /** @type {any} */ (res).status = (/** @type {number} */ code) => {

@@ -1,0 +1,546 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+/**
+ * LEGAL & POLICIES — ported from the user-drafted working copy
+ * (Privacy Policy / Terms & Conditions / Shipping & Returns), restyled to
+ * the site's own tokens instead of its own standalone palette:
+ *   - fonts: var(--font-display) / var(--font-body), same as everywhere
+ *     else on the site. Note: the site doesn't currently load Space
+ *     Grotesk or Inter as real webfonts anywhere — those names just fall
+ *     back to system fonts sitewide. The original draft loaded Manrope +
+ *     Inter directly from Google Fonts, which would have made this page
+ *     look MORE custom-typeset than the rest of the site, not less — so
+ *     that import was dropped rather than ported.
+ *   - one accent colour (var(--accent), the site's mauve) instead of the
+ *     draft's three-colour system (thread/bobbin/amber), so the "in short"
+ *     callout and the Giving Program callout read as the same site,
+ *     differentiated by heading/copy rather than by introducing new hues.
+ *   - var(--radius) (6px, soft) instead of the draft's sharp 2px.
+ *   - the internal "working copy, strip before publishing" build note
+ *     was removed per its own instruction — see the project doc for the
+ *     open items it flagged (business name/ABN confirmation, solicitor
+ *     review before this is truly final).
+ *
+ * Tab selection is driven by the CSS radio-input trick from the original
+ * draft (no JS needed for the tabs themselves), plus a small script so
+ * footer links like /legal#terms open directly on that tab.
+ */
+---
+
+<Layout
+  title="Legal & Policies | Unstitch"
+  description="Unstitch's Privacy Policy, Terms & Conditions, and Shipping & Returns policy."
+  noindex={false}
+>
+  <main class="wrap legal-page">
+    <header class="legal-head">
+      <p class="section__eyebrow">Unstitch, Naarm, Melbourne</p>
+      <h1 class="legal-head__title">Legal &amp; policies</h1>
+      <p class="legal-head__intro">Plain-language summary up top, full detail underneath in expandable sections — the two-line answer if you're browsing, the whole clause if you want it.</p>
+    </header>
+
+    <input type="radio" name="doc" id="tab-privacy" checked />
+    <input type="radio" name="doc" id="tab-terms" />
+    <input type="radio" name="doc" id="tab-shipping" />
+
+    <nav class="legal-tabs" aria-label="Legal document">
+      <label for="tab-privacy" data-tab-link="privacy">Privacy Policy</label>
+      <label for="tab-terms" data-tab-link="terms">Terms &amp; Conditions</label>
+      <label for="tab-shipping" data-tab-link="shipping">Shipping &amp; Returns</label>
+    </nav>
+
+    <!-- ============================================================ PRIVACY ============================================================ -->
+    <section id="panel-privacy" class="legal-panel">
+      <p class="legal-panel__title">Privacy Policy</p>
+      <p class="legal-panel__meta">Last updated 16 September 2026 · Applies to unstitchx.com and orders placed with Unstitch</p>
+
+      <div class="legal-callout">
+        <h3>In short</h3>
+        <ul>
+          <li>We collect your name, email, phone number (optional), delivery address and order details to make and deliver your order, and payment is handled entirely by Stripe or Square — we never see or store your card number.</li>
+          <li>We don't sell your data, and we only share it with the people who need it to deliver your order to you.</li>
+          <li>Our website analytics (Umami) don't use cookies and don't track you personally.</li>
+          <li>You can ask to see, update, or delete your data any time by contacting <a href="mailto:hello@unstitchx.com">hello@unstitchx.com</a>.</li>
+        </ul>
+      </div>
+
+      <div class="legal-accordion">
+        <details open>
+          <summary><span class="legal-marker"></span>Who we are</summary>
+          <div class="legal-qa">
+            <p>Unstitch (ABN 77 449 479 279) is a circular design studio based in Naarm (Melbourne), Victoria. This policy explains how we handle personal information collected through unstitchx.com, our learn workshops, our commission works, our kit drops and our kit digital passport registrations.</p>
+            <p>If you have any questions about this policy or your data, please get in touch at <a href="mailto:hello@unstitchx.com">hello@unstitchx.com</a>.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>What we collect</summary>
+          <div class="legal-qa">
+            <p>Depending on how you interact with us, we may collect:</p>
+            <ul>
+              <li>Name, email address, phone number (optional) and delivery address, when you place an order, join the waitlist, sign up for drop notifications, submit an enquiry, or enter raffle draws through public workshops.</li>
+              <li>Order details, what you bought, delivery zone, delivery notes, gift messages.</li>
+              <li>Payment metadata such as transaction ID and payment status, passed to us by Stripe or Square. We never receive or store your full card number.</li>
+              <li>Kit Digital Passport registration details, the email and optional name you give us when you register a specific kit's serial number as yours.</li>
+              <li>Anonymous, aggregated site-usage data via our self-hosted analytics (see Cookies &amp; analytics below).</li>
+              <li>Anything you tell us directly through the contact form, email, or at a workshop or market stall.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Why we collect and use it</summary>
+          <div class="legal-qa">
+            <p>We use your information to:</p>
+            <ul>
+              <li>Process, pack, and deliver your order, including calculating delivery cost for your address.</li>
+              <li>Send order confirmations, dispatch notices, and, if you don't complete a purchase, an occasional reminder about items left in your cart.</li>
+              <li>Let you know when the next drop or a restock is live, if you've asked to be notified.</li>
+              <li>Record and honour your Kit Digital Passport registration against the specific drop kit you own.</li>
+              <li>Keep records we're required to keep for tax and consumer-law purposes.</li>
+              <li>Respond to enquiries, complaints, and warranty or return requests.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Who we share it with</summary>
+          <div class="legal-qa">
+            <p>We share the minimum needed, with:</p>
+            <ul>
+              <li><strong>Stripe</strong> and <strong>Square</strong>, to process payments. Card details go directly to them; they never pass through our servers.</li>
+              <li><strong>Australia Post</strong>, for deliveries outside our local self-delivery radius, so your parcel can be addressed and tracked.</li>
+              <li><strong>Resend</strong>, to send order and account emails, and <strong>Google Workspace (Gmail)</strong>, if you contact us directly.</li>
+              <li><strong>Neon</strong> (our database) and <strong>Cloudflare</strong> (our web hosting), who store data on our behalf and don't use it for their own purposes.</li>
+            </ul>
+            <p>We don't sell your personal information, and we don't share it with advertisers.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Where your data is stored and how it's protected</summary>
+          <div class="legal-qa">
+            <p>Order and account data is stored in a managed Postgres database (Neon), and our website runs on Cloudflare's infrastructure. Both encrypt data at rest and in transit and handle their own security patching and backups. We control access at the application level, staff access is limited to what's needed to fulfil orders, and payment card data never touches our systems at all.</p>
+            <p>Cloudflare operates a global network, so data may pass through infrastructure outside Australia as a normal part of using the service. We take reasonable steps to make sure any offshore handling meets a comparable standard of protection.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Your Digital Passport and the Giving Program</summary>
+          <div class="legal-qa">
+            <p>Each kit has a unique serial number. If you choose to register it, we link your email and your name to that unit. This lets us send you care updates and, later on, pass down the registration to a new owner if you gift the kit away. You can contact us to remove your registration at any time.</p>
+            <p>We also keep an internal record of the fabric tiles contributed toward our <strong>Tile for Change</strong> program, tied to each individual purchase order. This is so we can report accurately on where those contributions go towards providing a free community workshop.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Cookies and analytics</summary>
+          <div class="legal-qa">
+            <p>We use Umami, a self-hosted cookieless analytics tool, to understand overall site traffic — for example, which pages are visited and by how many people, without tracking individuals or using cookies. This data isn't sent to a third-party advertising network.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Your rights and how to complain</summary>
+          <div class="legal-qa">
+            <p>You can ask us to access, update, or delete the personal information we hold about you, or ask how it's being used, by emailing <a href="mailto:hello@unstitchx.com">hello@unstitchx.com</a>. We'll respond within 1–2 business days.</p>
+            <p>If you're not satisfied with how we've handled your information, you can lodge a complaint with us first, and if it isn't resolved, with the Office of the Australian Information Commissioner (<a href="https://www.oaic.gov.au" target="_blank" rel="noopener">oaic.gov.au</a>).</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Changes to this policy</summary>
+          <div class="legal-qa">
+            <p>We may update this policy as our processes change. The "last updated" date at the top of this page will always reflect the most recent version.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="legal-panel__footer">Questions about privacy: <a href="mailto:hello@unstitchx.com">hello@unstitchx.com</a></div>
+    </section>
+
+    <!-- ============================================================ TERMS ============================================================ -->
+    <section id="panel-terms" class="legal-panel">
+      <p class="legal-panel__title">Terms &amp; Conditions</p>
+      <p class="legal-panel__meta">Last updated 16 September 2026 · Governed by the laws of Victoria, Australia</p>
+
+      <div class="legal-callout">
+        <h3>In short</h3>
+        <ul>
+          <li>Every kit is handmade with care from rescued fabric to ensure minimal waste during production, released in small limited drops. No two items are completely identical, and you might notice variations between kits in colour, material, or texture.</li>
+          <li>Adding to cart holds your spot briefly; it isn't a confirmed order until payment goes through.</li>
+          <li>Nothing here overrides your rights under Australian Consumer Law.</li>
+          <li>Full delivery, return, and refund detail are available on our Shipping &amp; Returns page.</li>
+        </ul>
+      </div>
+
+      <div class="legal-accordion">
+        <details open>
+          <summary><span class="legal-marker"></span>About these terms</summary>
+          <div class="legal-qa">
+            <p>These terms apply whenever you browse unstitchx.com or buy from Unstitch (ABN 77 449 479 279, sole trader), Naarm, Melbourne. By placing an order, you agree to them. Nothing here limits any right you have under Australian Consumer Law (ACL) that can't be excluded by agreement.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Our products</summary>
+          <div class="legal-qa">
+            <p>Unstitch kits are made by hand from rescued, upcycled textile. As each fabric batch is different, the colour, material, pattern, and texture will vary slightly kit to kit and drop to drop. This is a feature of working with rescued material like deadstock or surplus materials, not a defect.</p>
+            <p>We typically sell one product kit at a time, released in limited-quantity drops. Once a kit drop sells out, it's gone until the next drop, and we don't hold any stock.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Prices and GST</summary>
+          <div class="legal-qa">
+            <p>All prices are listed in Australian dollars. Unstitch is not currently registered for GST, so no GST is added at checkout. If that changes, our pricing will reflect it.</p>
+            <p>We take care to make sure prices are accurate, but if a genuine pricing error occurs, we'll contact you before proceeding and you can choose to continue at the updated price or cancel for a full refund.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Placing an order</summary>
+          <div class="legal-qa">
+            <p>Adding a kit to your cart places a short, temporary reserve on that unit — it doesn't guarantee the item is yours. Your order is only confirmed once payment has been successfully processed, at which point you'll receive an order confirmation by email.</p>
+            <p>We reserve the right to cancel an order, with a full refund, in cases like a stock or system error, suspected fraud, or a breach of the acceptable use terms below.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Payment</summary>
+          <div class="legal-qa">
+            <p>Online orders are processed securely through Stripe. In-person sales (when available) are processed through Square. Your card details are handled directly by Stripe or Square and never stored on our systems.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Delivery</summary>
+          <div class="legal-qa">
+            <p>We currently deliver locally in Melbourne and Greater Melbourne ourselves, and via Australia Post further afield. Delivery areas, costs, and timeframes are set out in full on our Shipping &amp; Returns page, which forms part of these terms.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Cancellations, returns and your consumer guarantees</summary>
+          <div class="legal-qa">
+            <p>Because our kits are handmade and released in limited runs, we don't offer change-of-mind returns. However, if a kit arrives faulty, not fit for purpose, or significantly different from how it was described, you're entitled to a remedy under Australian Consumer Law regardless of what this policy says. Full process on the Shipping &amp; Returns page.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Gifting</summary>
+          <div class="legal-qa">
+            <p>You can add a gift message at checkout. If you're buying for someone else, delivery and registration details can be set to the recipient — let us know in the order notes if you'd like the receipt sent to you rather than included with the parcel.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Our Tile for Change giving program</summary>
+          <div class="legal-qa">
+            <p>For every kit sold, a set number of Unstitch tiles is contributed toward community and school workshops we run (and, in future, through our giving partners too). The exact figure of Unstitch tiles contributed is shown on each product page and on your receipt at the time of purchase. We also keep an internal record of contributions, to keep ourselves accountable and to report on our shared impact every year.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Digital Passports and product registration</summary>
+          <div class="legal-qa">
+            <p>Each kit carries a unique serial number and QR code linking to that unit's Digital Passport page. Registering a kit (email, optional name) attaches your details to that specific unit's record. Registration is optional, free, and can be transferred or removed at your request.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Intellectual property</summary>
+          <div class="legal-qa">
+            <p>All content on unstitchx.com, including photography, the material-story and Country acknowledgement content, product designs, and the Unstitch name and branding, belongs to Unstitch or its licensors. You're welcome to share and tag us, but please don't reproduce our content commercially without asking first.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Acceptable use</summary>
+          <div class="legal-qa">
+            <p>Because drops are limited, we ask that orders be placed for genuine personal purchase, not automated or bulk buying intended for resale. We may cancel orders that show clear signs of bot activity or reseller behaviour, such as unusually rapid repeat orders or mismatched billing and delivery details.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Liability</summary>
+          <div class="legal-qa">
+            <p>To the extent the law allows, our liability is limited to the value of your order, replacement of the goods, or supply of equivalent goods. Nothing in this section excludes or limits any consumer guarantee, right, or remedy that can't lawfully be excluded under the Australian Consumer Law.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Governing law</summary>
+          <div class="legal-qa">
+            <p>These terms are governed by the laws of Victoria, Australia, and any dispute is subject to the jurisdiction of its courts.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Changes to these terms</summary>
+          <div class="legal-qa">
+            <p>We may update these terms from time to time. Changes apply to orders placed after the update; the version in force at the time you order is the one that applies to that order.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="legal-panel__footer">Questions about these terms: <a href="mailto:hello@unstitchx.com">hello@unstitchx.com</a></div>
+    </section>
+
+    <!-- ============================================================ SHIPPING & RETURNS ============================================================ -->
+    <section id="panel-shipping" class="legal-panel">
+      <p class="legal-panel__title">Shipping &amp; Returns</p>
+      <p class="legal-panel__meta">Last updated 16 September 2026</p>
+
+      <div class="legal-callout">
+        <h3>In short</h3>
+        <ul>
+          <li>Local Melbourne deliveries are hand-delivered by us; everywhere else goes via Australia Post.</li>
+          <li>We don't offer change-of-mind returns on our handmade, limited-run kits, but faulty, damaged, or not-as-described items are always covered.</li>
+          <li>Your delivery cost is calculated at checkout based on your address.</li>
+        </ul>
+      </div>
+
+      <div class="legal-accordion">
+        <details open>
+          <summary><span class="legal-marker"></span>Delivery areas and methods</summary>
+          <div class="legal-qa">
+            <p>Local Melbourne delivery applies if you're within a 0–10km radius of our studio. With this delivery method, your kit is hand-delivered by us, wrapped the way it's meant to be seen. Outside that radius, we send it via Australia Post.</p>
+            <p>This dual delivery approach is designed to get your Unstitch product to you with a minimal carbon footprint, while keeping the business sustainable to run.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Delivery costs</summary>
+          <div class="legal-qa">
+            <p>Local self-delivery is charged by distance band: <strong>$3</strong> for 0–5km and <strong>$5</strong> for 5–10km from our base. Beyond 10km, your delivery cost is calculated at checkout via Australia Post based on your address and the parcel's weight and size.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Delivery timeframes</summary>
+          <div class="legal-qa">
+            <p><strong>Every kit is made to order after you purchase, not pulled from ready stock.</strong> Please allow 5–7 business days for us to prepare your kit, then delivery follows either locally by us or via Australia Post, depending on your address. Your expected delivery date is shown at checkout and confirmed by email.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Pickup points <span class="legal-tag">coming soon</span></summary>
+          <div class="legal-qa">
+            <p>We're also working on setting up free pickup points at a small number of cafes and libraries along our delivery route — a no-cost alternative to home delivery within the local area. It also means fewer delivery trips and less individual packaging, in keeping with Unstitch's commitment to circular design and a positive impact on the environment and community.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>If delivery fails or your address is wrong</summary>
+          <div class="legal-qa">
+            <p>Please double-check your delivery address at checkout — we're not able to redirect a local hand-delivery once it's out for drop-off. If a delivery can't be completed because of an incorrect address or nobody available to receive it, we'll be in touch to arrange another attempt; an extra delivery run may incur an additional fee for local deliveries, or a re-delivery fee from Australia Post for other areas.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Change-of-mind returns</summary>
+          <div class="legal-qa">
+            <p>Because every kit is handmade in a limited run, we don't accept change-of-mind returns. This doesn't affect your rights below if something is actually wrong with your order.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Faulty, damaged, or not-as-described items</summary>
+          <div class="legal-qa">
+            <p>Under Australian Consumer Law, you're entitled to a repair, replacement, or refund if your kit arrives faulty, doesn't match its description, or isn't of acceptable quality — this applies regardless of our change-of-mind policy above, and can't be excluded by it. If your kit arrives damaged or an interlocking piece is faulty out of the box, contact us with photos as soon as you can and we'll sort out a remedy.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>How to start a return</summary>
+          <div class="legal-qa">
+            <p>Email <a href="mailto:eshop@unstitchx.com">eshop@unstitchx.com</a> with your order number, a description of the issue, and a couple of photos. For local deliveries, we'll usually collect the kit on our next delivery run in your area; for Australia Post deliveries, we'll send you a reply-paid return option.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="legal-marker"></span>Caring for your kit</summary>
+          <div class="legal-qa">
+            <p>Because every kit is cut from a rescued fabric batch, the exact material can differ from drop to drop, so the most accurate care guidance for your specific kit lives on its Digital Passport page, tied to that batch. As a general rule: keep tiles dry, spot-clean rather than machine wash, and avoid strong heat or harsh chemicals.</p>
+            <p>Interlocking tabs loosening slightly after a lot of building and rebuilding is normal wear, not a fault — it's part of how a reusable, no-glue system behaves over time. A tab that's cracked, split, or fails on first use is a different story, and is covered above.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="legal-panel__footer">Questions about delivery or a return: <a href="mailto:eshop@unstitchx.com">eshop@unstitchx.com</a></div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .legal-page {
+    padding-top: 8px;
+    padding-bottom: 64px;
+  }
+  .legal-head {
+    max-width: 740px;
+    margin: 0 auto;
+    padding-top: 40px;
+  }
+  .legal-head__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 4px 0 10px;
+  }
+  .legal-head__intro {
+    color: #555;
+    max-width: 56ch;
+    margin: 0 0 28px;
+  }
+
+  /* ---- tabs ---- */
+  .legal-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 740px;
+    margin: 0 auto;
+    border-bottom: 1px solid #e4e4e4;
+  }
+  .legal-tabs label {
+    display: inline-block;
+    padding: 10px 16px 12px;
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #6b6b6b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease;
+  }
+  .legal-tabs label:hover { color: var(--ink); }
+
+  input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+  #tab-privacy:checked ~ .legal-tabs label[for="tab-privacy"],
+  #tab-terms:checked ~ .legal-tabs label[for="tab-terms"],
+  #tab-shipping:checked ~ .legal-tabs label[for="tab-shipping"] {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ---- panels ---- */
+  .legal-panel { display: none; max-width: 740px; margin: 0 auto; padding: 36px 0 24px; }
+  #tab-privacy:checked ~ #panel-privacy,
+  #tab-terms:checked ~ #panel-terms,
+  #tab-shipping:checked ~ #panel-shipping { display: block; }
+
+  .legal-panel__title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
+  .legal-panel__meta { font-size: 0.85rem; color: #6b6b6b; margin: 0 0 24px; }
+
+  /* ---- "in short" callout ---- */
+  .legal-callout {
+    background: var(--accent-pale);
+    border-left: 3px solid var(--accent);
+    padding: 18px 22px;
+    border-radius: var(--radius);
+    margin-bottom: 32px;
+  }
+  .legal-callout h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    margin: 0 0 10px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .legal-callout ul { margin: 0; padding-left: 18px; }
+  .legal-callout li { margin-bottom: 6px; }
+  .legal-callout li:last-child { margin-bottom: 0; }
+
+  /* ---- accordion ---- */
+  .legal-accordion { border-top: 1px dashed #e4e4e4; }
+  .legal-accordion details { border-bottom: 1px dashed #e4e4e4; }
+  .legal-accordion summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 16px 4px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.98rem;
+  }
+  .legal-accordion summary::-webkit-details-marker { display: none; }
+  .legal-marker {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    background: var(--ink);
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+  .legal-accordion details[open] .legal-marker {
+    transform: rotate(45deg);
+    background: var(--accent);
+  }
+  .legal-qa { padding: 0 4px 18px 22px; color: #555; max-width: 64ch; }
+  .legal-qa p { margin: 0 0 12px; }
+  .legal-qa p:last-child { margin-bottom: 0; }
+  .legal-qa ul { margin: 0 0 12px; padding-left: 18px; }
+  .legal-qa li { margin-bottom: 6px; }
+
+  .legal-tag {
+    background: var(--accent-pale);
+    color: var(--accent);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  .legal-panel__footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid #e4e4e4;
+    font-size: 0.85rem;
+    color: #6b6b6b;
+  }
+
+  @media (max-width: 600px) {
+    .legal-tabs label { padding: 9px 11px 11px; font-size: 0.85rem; }
+  }
+</style>
+
+<script>
+  // Let footer links (/legal#privacy, /legal#terms, /legal#shipping) open
+  // directly on that tab, since the tabs themselves are pure CSS (radio
+  // inputs) and don't otherwise know about the URL hash.
+  function initLegalTabs() {
+    const idByHash: Record<string, string> = {
+      privacy: "tab-privacy",
+      terms: "tab-terms",
+      shipping: "tab-shipping",
+    };
+
+    const applyHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      const id = idByHash[hash];
+      if (!id) return;
+      const input = document.getElementById(id) as HTMLInputElement | null;
+      if (input) input.checked = true;
+    };
+
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+
+    document.querySelectorAll<HTMLLabelElement>("[data-tab-link]").forEach((label) => {
+      label.addEventListener("click", () => {
+        const tab = label.dataset.tabLink;
+        if (tab) history.replaceState(null, "", `#${tab}`);
+      });
+    });
+  }
+
+  initLegalTabs();
+  document.addEventListener("astro:page-load", initLegalTabs);
+</script>

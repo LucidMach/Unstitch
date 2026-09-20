@@ -1,0 +1,192 @@
+---
+/**
+ * Slide-in bag drawer — same overlay + sliding-panel pattern as
+ * MenuSheet.astro, just on its own set of data-cart-* hooks so the two
+ * don't clash. Cart state itself lives in src/lib/cart-client.ts
+ * (localStorage, front-end only for now — see that file's header note).
+ */
+---
+
+<div class="cart-overlay" data-cart-overlay></div>
+<aside class="cart-sheet" data-cart-sheet aria-label="Your bag">
+  <div class="cart-sheet__top">
+    <h2 class="cart-sheet__title">Your Bag</h2>
+    <button class="icon-btn" data-cart-close aria-label="Close bag">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="cart-sheet__items" data-cart-items>
+    <p class="cart-sheet__empty" data-cart-empty>Your bag is empty.</p>
+  </div>
+
+  <div class="cart-sheet__footer" data-cart-footer hidden>
+    <div class="cart-sheet__subtotal">
+      <span>Subtotal</span>
+      <span data-cart-subtotal>$0.00</span>
+    </div>
+    <button type="button" class="btn btn-filled cart-sheet__checkout" data-cart-checkout>
+      Checkout
+    </button>
+    <p class="cart-sheet__checkout-error" data-cart-checkout-error hidden></p>
+    <p class="cart-sheet__note">You'll be redirected to Stripe to pay securely. Card details never touch our servers.</p>
+  </div>
+</aside>
+
+<script>
+  import {
+    getCart,
+    setQuantity,
+    removeFromCart,
+    cartSubtotalCents,
+    cartCount,
+    formatPriceCents,
+    type CartItem,
+  } from "../lib/cart-client";
+
+  function updateBadges(items: CartItem[]) {
+    const count = cartCount(items);
+    document.querySelectorAll<HTMLElement>("[data-cart-badge]").forEach((el) => {
+      el.textContent = String(count);
+      el.hidden = count === 0;
+    });
+  }
+
+  function renderCart() {
+    const itemsEl = document.querySelector<HTMLElement>("[data-cart-items]");
+    const emptyEl = document.querySelector<HTMLElement>("[data-cart-empty]");
+    const footerEl = document.querySelector<HTMLElement>("[data-cart-footer]");
+    const subtotalEl = document.querySelector<HTMLElement>("[data-cart-subtotal]");
+    if (!itemsEl) return;
+
+    const items = getCart();
+    itemsEl.querySelectorAll(".cart-item").forEach((el) => el.remove());
+
+    if (items.length === 0) {
+      if (emptyEl) emptyEl.hidden = false;
+      if (footerEl) footerEl.hidden = true;
+      updateBadges(items);
+      return;
+    }
+
+    if (emptyEl) emptyEl.hidden = true;
+    if (footerEl) footerEl.hidden = false;
+
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "cart-item";
+      row.innerHTML = `
+        <div class="cart-item__media ph" style="aspect-ratio: 1 / 1;">
+          <img src="${item.image}" alt="${item.name}" class="w-full h-full object-contain" onerror="this.style.display='none'" />
+        </div>
+        <div class="cart-item__info">
+          <p class="cart-item__name">${item.name}</p>
+          <p class="cart-item__price">${formatPriceCents(item.priceCents)}</p>
+          <div class="cart-item__qty">
+            <button type="button" class="cart-item__qty-btn" data-qty-decrease="${item.id}" aria-label="Decrease quantity">−</button>
+            <span class="cart-item__qty-value">${item.qty}</span>
+            <button type="button" class="cart-item__qty-btn" data-qty-increase="${item.id}" aria-label="Increase quantity" ${item.qty >= item.maxQty ? "disabled" : ""}>+</button>
+          </div>
+        </div>
+        <button type="button" class="cart-item__remove" data-cart-remove="${item.id}" aria-label="Remove ${item.name} from bag">Remove</button>
+      `;
+      itemsEl.appendChild(row);
+    });
+
+    if (subtotalEl) subtotalEl.textContent = formatPriceCents(cartSubtotalCents(items));
+    updateBadges(items);
+
+    itemsEl.querySelectorAll<HTMLButtonElement>("[data-qty-decrease]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.qtyDecrease!;
+        const current = getCart().find((i) => i.id === id);
+        if (current) setQuantity(id, current.qty - 1);
+      });
+    });
+    itemsEl.querySelectorAll<HTMLButtonElement>("[data-qty-increase]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.qtyIncrease!;
+        const current = getCart().find((i) => i.id === id);
+        if (current) setQuantity(id, current.qty + 1);
+      });
+    });
+    itemsEl.querySelectorAll<HTMLButtonElement>("[data-cart-remove]").forEach((btn) => {
+      btn.addEventListener("click", () => removeFromCart(btn.dataset.cartRemove!));
+    });
+  }
+
+  async function startCheckout(button: HTMLButtonElement) {
+    const errorEl = document.querySelector<HTMLElement>("[data-cart-checkout-error]");
+    const items = getCart();
+    if (items.length === 0) return;
+
+    // Only one product exists in the store right now, so the whole bag is
+    // always a single line item — this takes the first (only) item.
+    // Revisit once a second product/drop launches and the bag can hold
+    // more than one distinct SKU.
+    const item = items[0];
+
+    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ""; }
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "Redirecting…";
+
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: item.id, quantity: item.qty }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Unable to start checkout. Please try again.");
+      }
+      window.location.href = data.url;
+    } catch (err: any) {
+      if (errorEl) {
+        errorEl.textContent = err.message || "Something went wrong. Please try again.";
+        errorEl.hidden = false;
+      }
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+
+  function initCart() {
+    const overlay = document.querySelector<HTMLElement>("[data-cart-overlay]");
+    const sheet = document.querySelector<HTMLElement>("[data-cart-sheet]");
+    const openers = document.querySelectorAll<HTMLElement>("[data-cart-open]");
+    const closers = document.querySelectorAll<HTMLElement>("[data-cart-close]");
+    const checkoutBtn = document.querySelector<HTMLButtonElement>("[data-cart-checkout]");
+
+    const openCart = () => {
+      overlay?.classList.add("is-open");
+      sheet?.classList.add("is-open");
+      document.body.style.overflow = "hidden";
+      renderCart();
+    };
+    const closeCart = () => {
+      overlay?.classList.remove("is-open");
+      sheet?.classList.remove("is-open");
+      document.body.style.overflow = "";
+    };
+
+    openers.forEach((btn) => btn.addEventListener("click", openCart));
+    closers.forEach((btn) => btn.addEventListener("click", closeCart));
+    overlay?.addEventListener("click", closeCart);
+    checkoutBtn?.addEventListener("click", () => startCheckout(checkoutBtn));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeCart();
+    });
+
+    window.addEventListener("cart:updated", () => renderCart());
+    window.addEventListener("cart:open", openCart as EventListener);
+
+    renderCart();
+  }
+
+  initCart();
+  document.addEventListener("astro:page-load", initCart);
+</script>

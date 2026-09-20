@@ -72,11 +72,22 @@ import Layout from "../layouts/Layout.astro";
     <!-- ============ NEXT DROP COUNTDOWN ============
          EDITABLE: data-target is the release moment (Melbourne time,
          AEST = +10:00 outside daylight saving, AEDT = +11:00 from
-         October). Update this same value if the date changes. -->
-    <section class="wrap section home-countdown-section">
+         October). Update this same value if the date changes — the
+         countdown below it (data-reveal="#latest-drop-live") reads this
+         same value to know when to automatically hide this section and
+         reveal the "Latest Drop" section instead. No manual toggling or
+         redeploy needed at launch time; see the script at the bottom of
+         this file for how the swap works. -->
+    <section class="wrap section home-countdown-section" id="next-drop-countdown">
       <p class="section__eyebrow">Next Drop</p>
       <h2 class="section__title">Releases Wednesday, 6:00pm</h2>
-      <div class="countdown countdown--home" data-countdown data-target="2026-09-23T18:00:00+10:00" aria-label="Time remaining until the next drop">
+      <div
+        class="countdown countdown--home"
+        data-countdown
+        data-target="2026-09-23T18:00:00+10:00"
+        data-reveal="#latest-drop-live"
+        aria-label="Time remaining until the next drop"
+      >
         <div class="countdown__unit">
           <span class="countdown__digits" data-cd-days>00</span>
           <span class="countdown__label">Days</span>
@@ -98,6 +109,39 @@ import Layout from "../layouts/Layout.astro";
         </div>
       </div>
       <a href="/shop" class="btn btn-outline btn-small home-countdown-section__cta">See Drop Details</a>
+    </section>
+
+    <!-- ============ LATEST DROP — LIVE (auto-revealed at drop time) ============
+         Hidden by default. The countdown section above reveals this and
+         hides itself once data-target is reached — see script below.
+         EDITABLE: swap image/copy/links for the real Slow Bloom product
+         page and cart once those exist (currently point at /shop). -->
+    <section class="wrap section latest-drop-live" id="latest-drop-live" hidden>
+      <!-- The floral illustration is a decorative backdrop behind the
+           whole section (like the countdown hero on /shop-countdown),
+           not the fill of the image placeholder itself — the "hero
+           image" box below is a plain grey placeholder sitting in front
+           of it, matching the original wireframe. -->
+      <div class="latest-drop-live__backdrop" aria-hidden="true">
+        <img src="/assets/floral-pattern.svg" alt="" />
+      </div>
+
+      <div class="latest-drop-live__content">
+        <p class="section__eyebrow">Latest Drop</p>
+        <h2 class="section__title">Slow Bloom</h2>
+        <p class="latest-drop-live__subtitle">Curated Edition Drop — 2026 RESET x Zero Waste Festival</p>
+
+        <div class="latest-drop-live__media">
+          <div class="ph" style="aspect-ratio: 1 / 1;">
+            <img src="/SlowBloom.png" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          </div>
+        </div>
+
+        <div class="latest-drop-live__actions">
+          <a href="/shop" class="btn btn-outline">View details</a>
+          <a href="/shop" class="btn btn-filled btn-filled--black">Add to Bag</a>
+        </div>
+      </div>
     </section>
 
     <div class="stitch" aria-hidden="true"></div>
@@ -220,6 +264,47 @@ import Layout from "../layouts/Layout.astro";
   .countdown--home { margin-bottom: 28px; }
   .home-countdown-section__cta { margin-top: 4px; }
 
+  .latest-drop-live {
+    position: relative;
+    padding-top: 56px;
+    padding-bottom: 56px;
+    overflow: hidden;
+  }
+  /* Decorative floral illustration behind the whole section — low
+     opacity, not part of the hero-image placeholder itself. */
+  .latest-drop-live__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .latest-drop-live__backdrop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.35;
+  }
+  .latest-drop-live__content {
+    position: relative;
+    z-index: 1;
+  }
+  /* Eyebrow/title/subtitle stay left-aligned (the section's default);
+     only the hero-image placeholder and the button row below are
+     centred, per the wireframe. */
+  .latest-drop-live .section__title { margin-bottom: 8px; }
+  .latest-drop-live__subtitle { color: #555; margin-bottom: 28px; }
+  .latest-drop-live__media {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .latest-drop-live__actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
   .about-blurb { padding-top: 56px; padding-bottom: 32px; }
   .about-blurb__title {
     font-size: clamp(1.5rem, 3.4vw, 2.1rem);
@@ -295,6 +380,14 @@ import Layout from "../layouts/Layout.astro";
       const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
       const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
 
+      // Declared before tick() because tick() runs once immediately,
+      // before setInterval returns. Using `const timer` below and
+      // clearing it from inside that first synchronous call would throw
+      // (the variable isn't initialised yet), which would stop the
+      // reveal from ever running for anyone loading the page after the
+      // drop had already gone live.
+      let timer: ReturnType<typeof setInterval> | undefined;
+
       const tick = () => {
         const diff = target - Date.now();
         if (diff <= 0) {
@@ -303,7 +396,22 @@ import Layout from "../layouts/Layout.astro";
           if (minsEl) minsEl.textContent = '00';
           if (secsEl) secsEl.textContent = '00';
           el.classList.add('is-complete');
-          clearInterval(timer);
+          if (timer !== undefined) clearInterval(timer);
+
+          // Auto-swap: hide the countdown section and reveal the "live
+          // drop" section named in data-reveal, once the target time has
+          // passed. Runs the same way whether the interval just ticked
+          // over, or a visitor loads the page for the first time after
+          // launch (tick() also runs once immediately below, so a late
+          // arrival sees the live section straight away, no flash of the
+          // countdown first).
+          const revealSelector = el.dataset.reveal;
+          if (revealSelector) {
+            const revealTarget = document.querySelector<HTMLElement>(revealSelector);
+            const countdownSection = el.closest('section');
+            if (revealTarget) revealTarget.hidden = false;
+            if (countdownSection) countdownSection.hidden = true;
+          }
           return;
         }
         const totalSeconds = Math.floor(diff / 1000);
@@ -313,8 +421,8 @@ import Layout from "../layouts/Layout.astro";
         if (secsEl) secsEl.textContent = pad(totalSeconds % 60);
       };
 
+      timer = setInterval(tick, 1000);
       tick();
-      const timer = setInterval(tick, 1000);
     });
   }
 

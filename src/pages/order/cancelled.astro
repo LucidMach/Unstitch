@@ -1,0 +1,54 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Checkout cancelled | Unstitch"
+  description="Your Unstitch checkout was cancelled."
+  noindex
+>
+  <main>
+    <section class="wrap section order-status">
+      <div class="order-status__state">
+        <p class="order-status__eyebrow">No charge made</p>
+        <h1 class="order-status__title">Checkout cancelled</h1>
+        <p class="order-status__body">Your bag is still saved — head back whenever you're ready to complete your order.</p>
+        <a href="/shop" class="btn btn-filled order-status__cta">Back to shop</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .order-status {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .order-status__state {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .order-status__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .order-status__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin-bottom: 14px;
+  }
+  .order-status__body {
+    color: #444;
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .order-status__cta {
+    margin-top: 20px;
+    display: inline-block;
+  }
+</style>

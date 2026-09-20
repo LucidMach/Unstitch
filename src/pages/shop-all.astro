@@ -1,0 +1,217 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+/**
+ * ALL-DROPS PAGE — one of three product-page templates in this repo:
+ *   - shop-countdown.astro : pre-launch countdown, no product shown yet
+ *   - shop.astro            : a single featured drop, in full detail
+ *   - shop-all.astro (this file): every drop as a grid, live and past
+ *
+ * Static content for now, same as shop.astro — once the product/cart API
+ * exists this should list real Product rows (status: LIVE | SOLD_OUT |
+ * ARCHIVED) instead of this hardcoded array, so a new drop just needs a
+ * database row, not a code change to this page.
+ */
+type DropStatus = "live" | "sold-out" | "archived";
+
+interface Drop {
+  slug: string;
+  name: string;
+  eyebrow: string;
+  priceCents: number;
+  image: string;
+  status: DropStatus;
+}
+
+const drops: Drop[] = [
+  {
+    slug: "/shop",
+    name: "Slow Bloom",
+    eyebrow: "2026 RESET x Zero Waste Festival",
+    priceCents: 2900,
+    image: "/SlowBloom.png",
+    status: "live",
+  },
+];
+
+const formatPrice = (cents: number) =>
+  `$${(cents / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Full-bleed banner at the top, styled after the "Drop Hero" section in
+// the earlier static-HTML prototype (shop.html) — a full-bleed image with
+// title/blurb/CTA overlaid bottom-left. Highlights whichever drop is
+// currently live; falls back to the most recent entry if none is, and
+// disappears entirely if the catalogue is ever empty.
+const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
+---
+
+<Layout
+  title="All Drops — Unstitch"
+  description="Every Unstitch drop, live and past — modular textile kits cut from rescued deadstock materials, Melbourne-made."
+  keywords="unstitch all drops, unstitch collections, modular textile kits"
+>
+  <main>
+    {heroDrop && (
+      <section class="media-hero shop-all-hero">
+        <div class="ph media-hero__media" aria-hidden="true">
+          <img
+            src={heroDrop.image}
+            alt=""
+            class="w-full h-full object-contain p-4"
+            onerror="this.style.display='none'"
+          />
+        </div>
+        <div class="media-hero__content shop-all-hero__content">
+          <div class="wrap">
+            <div class="shop-all-hero__inner">
+              <p class="section__eyebrow">{heroDrop.status === "live" ? "Live Now" : "Featured"}</p>
+              <h2 class="shop-all-hero__title">{heroDrop.name}</h2>
+              <p class="shop-all-hero__body">{heroDrop.eyebrow} — {formatPrice(heroDrop.priceCents)}.</p>
+              <a href={heroDrop.slug} class="btn btn-outline">
+                {heroDrop.status === "live" ? `Shop ${heroDrop.name}` : "View this drop"}
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <section class="wrap section shop-all__intro">
+      <p class="section__eyebrow">Shop</p>
+      <h1 class="section__title">All Drops</h1>
+      <p class="shop-all__subtitle">Each drop is a small, numbered batch — once it's gone, it's gone. New drops appear here as soon as they're announced.</p>
+    </section>
+
+    <section class="wrap section">
+      <div class="product-grid">
+        {drops.map((drop) => (
+          <article class="product-card">
+            <a href={drop.slug} class="product-card__media-link">
+              <div class="ph product-card__media" style="aspect-ratio: 1 / 1;">
+                <img
+                  src={drop.image}
+                  alt={drop.name}
+                  class="w-full h-full object-contain p-4"
+                  onerror="this.style.display='none'"
+                />
+                {drop.status === "live" && <span class="product-card__badge">Live now</span>}
+                {drop.status === "sold-out" && <span class="product-card__badge product-card__badge--muted">Sold out</span>}
+              </div>
+            </a>
+            <p class="product-card__eyebrow">{drop.eyebrow}</p>
+            <h2 class="product-card__name">{drop.name}</h2>
+            <p class="product-card__price">{formatPrice(drop.priceCents)}</p>
+            <a href={drop.slug} class="btn btn-outline btn-small product-card__cta">
+              {drop.status === "live" ? "Shop this drop" : "View drop"}
+            </a>
+          </article>
+        ))}
+      </div>
+
+      <p class="shop-all__empty-note">More drops will be added here as they're announced — <a href="/shop-countdown">check what's next</a>.</p>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <section class="wrap section archive-teaser">
+      <p class="archive-teaser__text">Curious about the materials behind every drop?</p>
+      <a href="/archive" class="btn btn-outline">Enter the material archive</a>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  /* Drop hero banner — see the note above heroDrop for where this pattern
+     comes from. Reuses .media-hero / .media-hero__media / .media-hero__content
+     from brand.css (the shared full-bleed-image-with-overlay mechanism). */
+  .shop-all-hero {
+    min-height: 560px;
+    background: #fafafa;
+    border-bottom: 1px solid var(--ink);
+    display: flex;
+    align-items: flex-end;
+  }
+  .shop-all-hero__inner {
+    padding-top: 32px;
+    padding-bottom: 40px;
+    max-width: 560px;
+  }
+  .shop-all-hero__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 6px 0 14px;
+  }
+  .shop-all-hero__body {
+    font-size: 1.02rem;
+    color: #333;
+    max-width: 46ch;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 768px) {
+    .shop-all-hero { min-height: 420px; }
+    .shop-all-hero__inner { padding: 24px 0 28px; max-width: none; }
+  }
+
+  .shop-all__intro {
+    padding-bottom: 8px;
+  }
+  .shop-all__subtitle {
+    max-width: 56ch;
+    color: #333;
+    margin-top: 8px;
+  }
+
+  .product-card__media-link {
+    display: block;
+  }
+  .product-card__media {
+    position: relative;
+  }
+  .product-card__badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .product-card__badge--muted {
+    background: #888;
+  }
+  .product-card__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #6b6b6b;
+    margin-top: 16px;
+  }
+
+  .shop-all__empty-note {
+    margin-top: 32px;
+    color: #555;
+    font-size: 0.92rem;
+    text-align: center;
+  }
+  .shop-all__empty-note a {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+
+  .archive-teaser {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .archive-teaser__text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+</style>

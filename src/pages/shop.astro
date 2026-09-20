@@ -1,77 +1,177 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+/**
+ * HERO PRODUCT PAGE — one of three product-page templates in this repo:
+ *   - shop-countdown.astro : pre-launch countdown, no product shown yet
+ *   - shop.astro (this file): a single featured drop, shown in full detail
+ *   - shop-all.astro       : every drop as a grid, for once there's more
+ *                            than one to browse
+ * Because Unstitch sells one drop at a time, this hero page is the one
+ * linked from the header/nav "Shop" item and from the homepage's live-drop
+ * reveal — it's the flagship page during an active drop.
+ *
+ * Slow Bloom product page — static content for now (mirrors the figures
+ * in prisma/seed.ts / the cost calculator). Once the product/cart API
+ * exists, this should read the real Product/Drop rows instead of these
+ * constants, so stock, price, and copy stay in sync with the database
+ * automatically.
+ */
+const product = {
+  name: "Slow Bloom",
+  eyebrow: "2026 RESET x Zero Waste Festival",
+  dropCode: "D001",
+  priceCents: 2900, // AUD 29 — the real confirmed retail price.
+  totalUnits: 10, // Whole batch size for this drop.
+  tilesPerKit: 22,
+  colourPalette: ["#E8D8C3", "#B7C4A4", "#D98E73"],
+  materialRigidity: "Soft / low-rigidity",
+  ageRangeMin: 4,
+  ageRangeMax: 99,
+};
+
+const included = [
+  { label: "3 Designs" },
+  { label: "Furoshiki Wrap" },
+  { label: "Unstitch Mail" },
+  { label: "Tiles" },
+  { label: "Product Passport" },
+  { label: "Gift Message" },
+];
 ---
 
 <Layout
-  title="Slow Bloom Collection Drop | Unstitch Modular Textiles"
-  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile collection. Interlocking modular textile drops crafted from rescued deadstock materials."
-  keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular bags, upcycled tote, sustainable modular accessories"
-  image="/assets/home/shop-tote.webp"
-  imageAlt="Slow Bloom modular textile collection by Unstitch"
+  title="Slow Bloom — Modular Textile Kit | Unstitch"
+  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
+  keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
+  image="/SlowBloom.png"
+  imageAlt="Slow Bloom modular textile kit"
+  ogType="product"
 >
   <main>
-    <!-- ============ COUNTDOWN HERO ============
-         EDITABLE: swap the background illustration or update the
-         collection title/subtitle below as the drop approaches. -->
-    <section class="media-hero countdown-hero">
-      <div class="ph media-hero__media" style="background: white;">
-        <img src="/assets/home/countdown-reset.webp" alt="" class="absolute inset-x-0 bottom-0 w-full h-auto object-cover opacity-20" />
-      </div>
+    <!-- ============ PRODUCT HERO ============ -->
+    <section class="wrap section product-hero">
+      <p class="section__eyebrow">Latest Drop</p>
 
-      <div class="media-hero__content countdown-hero__content">
-        <div class="wrap text-center py-20">
-          <p class="section__eyebrow mb-4">Curated Edition Drop - 2026 RESET x Zero Waste Festival </p>
-          <h1 class="text-3xl md:text-5xl font-bold mb-3">Slow Bloom</h1>
-          <!-- <p class="countdown-hero__subtitle mb-8">Inspired by 2026 RESET x Zero Waste Festival</p>-->
-          <br>
-
-          <div class="countdown" data-countdown data-target="2026-09-23T18:00:00+10:00" aria-label="Time remaining until the next drop">
-            <div class="countdown__unit">
-              <span class="countdown__digits" data-cd-days>00</span>
-              <span class="countdown__label">Days</span>
-            </div>
-            <span class="countdown__sep">:</span>
-            <div class="countdown__unit">
-              <span class="countdown__digits" data-cd-hours>00</span>
-              <span class="countdown__label">Hours</span>
-            </div>
-            <span class="countdown__sep">:</span>
-            <div class="countdown__unit">
-              <span class="countdown__digits" data-cd-mins>00</span>
-              <span class="countdown__label">Minutes</span>
-            </div>
-            <span class="countdown__sep">:</span>
-            <div class="countdown__unit">
-              <span class="countdown__digits" data-cd-secs>00</span>
-              <span class="countdown__label">Seconds</span>
+      <div class="product-hero__grid">
+        <div class="product-hero__media">
+          <!-- Plain placeholder box, no decorative backdrop — swap in the
+               real photo at /SlowBloom.png whenever it's ready, no markup
+               change needed. -->
+          <div class="product-hero__image-wrap">
+            <div class="ph product-hero__image" style="aspect-ratio: 1 / 1;">
+              <img src="/SlowBloom.png" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
             </div>
           </div>
 
-          <!-- Reverting back to original ui form button
-          <div class="countdown-actions mt-12 flex justify-center gap-4 flex-wrap">
-            <button class="btn btn-filled" data-notify-toggle="#drop-notify-form">Join the next drop</button>
+          <!-- Kit specs: colour palette, material rigidity, ages, piece
+               count — sits directly under the hero image. -->
+          <!-- Specs sit side-by-side in columns divided by vertical rules,
+               matching the wireframe (not stacked rows). -->
+          <div class="product-specs" aria-label="Kit specifications">
+            <div class="product-specs__col">
+              <span class="product-specs__label">Colour palette</span>
+              <span class="product-specs__swatches">
+                {product.colourPalette.map((hex) => (
+                  <span class="product-specs__swatch" style={`background:${hex}`} title={hex}></span>
+                ))}
+              </span>
+            </div>
+            <div class="product-specs__col">
+              <span class="product-specs__label">Rigidity</span>
+              <span class="product-specs__value">{product.materialRigidity}</span>
+            </div>
+            <div class="product-specs__col">
+              <span class="product-specs__label">Ages</span>
+              <span class="product-specs__value">{product.ageRangeMin}–{product.ageRangeMax}</span>
+            </div>
+            <div class="product-specs__col">
+              <span class="product-specs__label">Pieces</span>
+              <span class="product-specs__value">{product.tilesPerKit}</span>
+            </div>
           </div>
-
-          Hidden notify form that reveals on button click
-          <form id="drop-notify-form" class="signup__form mx-auto mt-6" style="max-width: 440px;" data-subscribe-form="countdown-notify" hidden>
-            <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
-            <label class="sr-only" for="notify-email">Your email</label>
-            <input id="notify-email" class="signup__input w-full" type="email" placeholder="Enter email for VIP drop access" required />
-            <button type="submit" class="btn btn-filled">Get Notified</button>
-          </form>
-           -->
-          <br> 
-
-          <div class="countdown-hero__notify">
-          <button type="button" class="btn btn-outline" data-notify-toggle="#notify-form">JOIN the next drop</button>
-          <form id="notify-form" class="signup__form" data-subscribe-form="next-drop-notify" hidden>
-            <label class="sr-only" for="notify-name">Your name</label>
-            <input id="notify-name" class="signup__input" type="text" placeholder="Name" autocomplete="name">
-            <label class="sr-only" for="notify-email">Your email</label>
-            <input id="notify-email" class="signup__input" type="email" placeholder="Your Email" required>
-            <button type="submit" class="btn btn-filled">Notify Me</button>
-          </form>
         </div>
+
+        <div class="product-hero__info">
+          <p class="section__eyebrow">{product.eyebrow}</p>
+          <h1 class="product-hero__title">{product.name}</h1>
+          <p class="product-hero__ref">Ref: Drop {product.dropCode}</p>
+          <p class="product-hero__price">AUD {(product.priceCents / 100).toFixed(0)}</p>
+
+          <hr class="product-hero__divider" />
+
+          <h2 class="product-hero__included-title">What's included?</h2>
+          <div class="product-included">
+            {included.map((item) => (
+              <div class="product-included__item">
+                <div class="ph product-included__icon" aria-hidden="true">icon</div>
+                <p class="product-included__label">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="product-qty">
+            <span class="product-qty__label">Quantity</span>
+            <div class="product-qty__stepper" data-qty-stepper>
+              <button type="button" class="product-qty__btn" data-qty-decrease aria-label="Decrease quantity">−</button>
+              <input
+                type="number"
+                class="product-qty__value"
+                data-qty-input
+                value="1"
+                min="1"
+                max={product.totalUnits}
+                inputmode="numeric"
+                aria-label="Quantity"
+              />
+              <button type="button" class="product-qty__btn" data-qty-increase aria-label="Increase quantity">+</button>
+            </div>
+            <span class="product-qty__note">Only {product.totalUnits} kits in this batch</span>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-filled btn-filled--black product-hero__cta"
+            data-add-to-bag
+            data-product-id="slow-bloom"
+            data-product-name={product.name}
+            data-product-price={product.priceCents}
+            data-product-image="/SlowBloom.png"
+            data-product-max={product.totalUnits}
+          >
+            Add to Bag
+          </button>
+          <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ REVIEWS ============
+         Reviews are tied to a real completed order (see Review.orderId /
+         Review.unitId in the schema) — none exist yet since no kit has
+         been delivered. This is the real empty state, not a placeholder
+         review, and it'll fill in once orders start shipping. -->
+    <section class="wrap section reviews">
+      <div class="reviews__head">
+        <h2 class="section__title">Reviews</h2>
+        <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
+      </div>
+      <div class="reviews__empty">
+        <p>No reviews yet — Slow Bloom just dropped.</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified — Slow Bloom #7 of 10").</p>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ MATERIAL ARCHIVE TEASER ============ -->
+    <section class="wrap section archive-teaser">
+      <p class="archive-teaser__text">See past collections and read the rescue material story.</p>
+      <div class="archive-teaser__actions">
+        <a href="/shop-all" class="btn btn-outline">See all drops</a>
+        <a href="/archive" class="btn btn-outline">Enter the archive</a>
       </div>
     </section>
 
@@ -87,122 +187,553 @@ import Layout from "../layouts/Layout.astro";
         <button type="submit" class="btn btn-filled">Join</button>
       </form>
     </section>
+
+    <!-- ============ WRITE-A-REVIEW MODAL ============
+         UI only for now. A review can only exist against a delivered
+         order (Review.orderId), so submitting needs a real API endpoint
+         that verifies the passport/order code below before saving —
+         built alongside checkout. Until then the form validates and
+         explains what happens next rather than pretending to post. -->
+    <div class="review-modal" data-review-modal hidden>
+      <div class="review-modal__overlay" data-review-close></div>
+      <div class="review-modal__panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+        <div class="review-modal__top">
+          <h2 class="review-modal__title" id="review-modal-title">Write a review</h2>
+          <button type="button" class="icon-btn" data-review-close aria-label="Close review form">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <form class="review-form" data-review-form>
+          <label class="review-field">
+            <span class="review-field__label">Kit passport / order code</span>
+            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-D001-007" required />
+            <span class="review-field__hint">This is what verifies you actually own a kit. Found on your postcard and in your order email.</span>
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Title</span>
+            <input type="text" class="review-field__input" name="title" maxlength="200" placeholder="Sum it up in a few words" required />
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Comment</span>
+            <textarea class="review-field__input" name="body" rows="4" placeholder="How did it build? What did you make?" required></textarea>
+          </label>
+
+          <fieldset class="review-ratings">
+            <legend class="review-field__label">Ratings</legend>
+            {[
+              { name: "ratingPlay", label: "Play experience" },
+              { name: "ratingBuild", label: "Building experience" },
+              { name: "ratingValue", label: "Value for money" },
+            ].map((cat) => (
+              <div class="review-rating" data-rating-group={cat.name}>
+                <span class="review-rating__label">{cat.label}</span>
+                <span class="review-rating__stars">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      type="button"
+                      class="review-rating__star"
+                      data-rating-value={n}
+                      aria-label={`${cat.label}: ${n} out of 5`}
+                    >★</button>
+                  ))}
+                </span>
+                <input type="hidden" name={cat.name} value="0" />
+              </div>
+            ))}
+          </fieldset>
+
+          <label class="review-check">
+            <input type="checkbox" name="wouldRecommend" />
+            <span>I would recommend this to a friend</span>
+          </label>
+
+          <label class="review-check">
+            <input type="checkbox" name="showPassport" checked />
+            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of 10")</span>
+          </label>
+
+          <p class="review-form__note">Your review will show your first name and the date you posted it. Reviews are checked before they appear.</p>
+
+          <div class="review-form__actions">
+            <button type="button" class="btn btn-outline" data-review-close>Cancel</button>
+            <button type="submit" class="btn btn-filled">Submit review</button>
+          </div>
+
+          <p class="review-form__feedback" data-review-feedback role="status"></p>
+        </form>
+      </div>
+    </div>
   </main>
 </Layout>
 
 <style>
-  .countdown-hero {
-    min-height: 520px;
-    background: #fbf7f9;
-    border-bottom: 1px solid var(--ink);
+  .product-hero { padding-top: 40px; }
+
+  .product-hero__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .product-hero__image-wrap { position: relative; }
+  .product-hero__image { min-height: 0; }
+
+  .product-specs {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid #e4e4e4;
+    border-bottom: 1px solid #e4e4e4;
+    padding: 14px 0;
+  }
+  .product-specs__col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    text-align: center;
+    padding: 0 10px;
+    border-left: 1px solid #e4e4e4;
+  }
+  .product-specs__col:first-child { border-left: none; }
+  .product-specs__label {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b6b6b;
+  }
+  .product-specs__value {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .product-specs__swatches { display: flex; gap: 6px; }
+  .product-specs__swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    display: inline-block;
+  }
+
+  .product-hero__title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 6px 0 4px;
+  }
+  .product-hero__ref {
+    font-size: 0.82rem;
+    color: #6b6b6b;
+    margin-bottom: 14px;
+  }
+  .product-hero__price {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+  }
+  .product-hero__divider {
+    border: none;
+    border-top: 1px solid var(--ink);
+    margin: 22px 0;
+  }
+  .product-hero__included-title {
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+
+  .product-included {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .product-included__icon {
+    aspect-ratio: 1 / 1;
+    font-size: 0.65rem;
+  }
+  .product-included__label {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .product-qty {
     display: flex;
     align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
   }
-  .countdown-hero__subtitle {
-    font-size: 1.02rem;
+  .product-qty__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .product-qty__stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 4px 6px;
+  }
+  .product-qty__btn {
+    background: none;
+    border: none;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+    border-radius: 4px;
+  }
+  .product-qty__btn:hover { background: #f0f0f0; }
+  .product-qty__value {
+    width: 44px;
+    text-align: center;
+    border: none;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    appearance: textfield;
+    background: transparent;
+  }
+  .product-qty__value::-webkit-outer-spin-button,
+  .product-qty__value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .product-qty__note {
+    font-size: 0.78rem;
+    color: #6b6b6b;
+  }
+
+  .product-hero__cta { width: 100%; }
+  .product-hero__added {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  .archive-teaser {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .archive-teaser__text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .archive-teaser__actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .reviews__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .reviews__empty {
     color: #444;
   }
+  .reviews__empty-sub {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #6b6b6b;
+    max-width: 560px;
+  }
 
-  .countdown-hero__notify {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+  /* ===== Write-a-review modal ===== */
+  .review-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .review-modal__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.45);
+  }
+  .review-modal__panel {
+    position: relative;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    width: min(560px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 22px 24px 24px;
+  }
+  .review-modal__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .review-modal__title { font-size: 1.25rem; }
 
-  @media (max-width: 768px) {
-      .countdown-hero { min-height: 80vh; }
-      .countdown-hero__notify { width: 100%; max-width: 360px; }
-    }
+  .review-field {
+    display: block;
+    margin-bottom: 16px;
+  }
+  .review-field__label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .review-field__input {
+    width: 100%;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    background: var(--paper);
+  }
+  .review-field__hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.75rem;
+    color: #6b6b6b;
+  }
+
+  .review-ratings {
+    border: none;
+    padding: 0;
+    margin: 0 0 16px;
+  }
+  .review-rating {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .review-rating__label { font-size: 0.88rem; }
+  .review-rating__stars { display: inline-flex; gap: 2px; }
+  .review-rating__star {
+    background: none;
+    border: none;
+    padding: 2px;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: #d4d4d4;
+    transition: color 0.12s ease;
+  }
+  .review-rating__star.is-active { color: var(--accent); }
+
+  .review-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 0.86rem;
+    margin-bottom: 12px;
+  }
+  .review-check input { margin-top: 3px; }
+
+  .review-form__note {
+    font-size: 0.76rem;
+    color: #6b6b6b;
+    margin: 14px 0 16px;
+  }
+  .review-form__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .review-form__feedback {
+    margin-top: 12px;
+    font-size: 0.84rem;
+    text-align: center;
+  }
+  .review-form__feedback.is-error { color: #b3261e; }
+  .review-form__feedback.is-info { color: var(--accent); }
+
+  @media (max-width: 860px) {
+    .product-hero__grid { grid-template-columns: 1fr; gap: 28px; }
+    .product-included { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .product-specs { grid-template-columns: repeat(2, 1fr); gap: 14px 0; }
+    .product-specs__col:nth-child(3) { border-left: none; }
+  }
+  @media (max-width: 480px) {
+    .product-included { grid-template-columns: repeat(2, 1fr); }
+    .review-form__actions { flex-direction: column-reverse; }
+    .review-form__actions .btn { width: 100%; }
+  }
 </style>
 
 <script>
-  function initCountdown() {
-    // Countdown Timer
-    document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => {
-      const targetStr = el.dataset.target || '';
-      const target = new Date(targetStr).getTime();
-      const daysEl = el.querySelector<HTMLElement>('[data-cd-days]');
-      const hoursEl = el.querySelector<HTMLElement>('[data-cd-hours]');
-      const minsEl = el.querySelector<HTMLElement>('[data-cd-mins]');
-      const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
-      const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
+  import { addToCart } from "../lib/cart-client";
 
-      const tick = () => {
-        const diff = target - Date.now();
-        if (diff <= 0) {
-          if (daysEl) daysEl.textContent = '00';
-          if (hoursEl) hoursEl.textContent = '00';
-          if (minsEl) minsEl.textContent = '00';
-          if (secsEl) secsEl.textContent = '00';
-          el.classList.add('is-complete');
-          clearInterval(timer);
-          return;
-        }
-        const totalSeconds = Math.floor(diff / 1000);
-        if (daysEl) daysEl.textContent = pad(Math.floor(totalSeconds / 86400));
-        if (hoursEl) hoursEl.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
-        if (minsEl) minsEl.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
-        if (secsEl) secsEl.textContent = pad(totalSeconds % 60);
+  function initProductPage() {
+    const stepper = document.querySelector<HTMLElement>("[data-qty-stepper]");
+    if (stepper) {
+      const input = stepper.querySelector<HTMLInputElement>("[data-qty-input]");
+      const decreaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-decrease]");
+      const increaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-increase]");
+      const max = Number(input?.max || 1);
+      const min = Number(input?.min || 1);
+
+      const clamp = (n: number) => Math.min(max, Math.max(min, n));
+
+      const setValue = (n: number) => {
+        if (!input) return;
+        input.value = String(clamp(n));
       };
 
-      tick();
-      const timer = setInterval(tick, 1000);
-    });
+      decreaseBtn?.addEventListener("click", () => setValue(Number(input?.value || min) - 1));
+      increaseBtn?.addEventListener("click", () => setValue(Number(input?.value || min) + 1));
+      input?.addEventListener("change", () => setValue(Number(input.value || min)));
+    }
 
-    // Notify toggle
-    document.querySelectorAll<HTMLButtonElement>('[data-notify-toggle]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const formSelector = btn.dataset.notifyToggle;
-        if (!formSelector) return;
-        const form = document.querySelector<HTMLFormElement>(formSelector);
-        if (!form) return;
-        form.hidden = false;
-        btn.hidden = true;
-        form.querySelector<HTMLInputElement>('input')?.focus();
+    const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+    const feedback = document.querySelector<HTMLElement>("[data-add-to-bag-feedback]");
+    addBtn?.addEventListener("click", () => {
+      const qtyInput = document.querySelector<HTMLInputElement>("[data-qty-input]");
+      const qty = Math.max(1, Number(qtyInput?.value || 1));
+
+      addToCart({
+        id: addBtn.dataset.productId!,
+        name: addBtn.dataset.productName!,
+        priceCents: Number(addBtn.dataset.productPrice),
+        image: addBtn.dataset.productImage!,
+        maxQty: Number(addBtn.dataset.productMax),
+        qty,
       });
-    });
 
-    // Forms
-    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
-      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-      const originalLabel = submitBtn ? submitBtn.textContent : '';
-
-      let feedback = form.nextElementSibling as HTMLElement;
-      if (!feedback || !feedback.classList.contains('form-feedback')) {
-        feedback = document.createElement('p');
-        feedback.className = 'form-feedback';
-        feedback.setAttribute('role', 'status');
-        form.insertAdjacentElement('afterend', feedback);
+      if (feedback) {
+        feedback.hidden = false;
+        window.setTimeout(() => { feedback.hidden = true; }, 2500);
       }
 
-      form.addEventListener('submit', async (e) => {
+      window.dispatchEvent(new CustomEvent("cart:open"));
+    });
+
+    // ----- Write-a-review modal -----
+    const reviewModal = document.querySelector<HTMLElement>("[data-review-modal]");
+    if (reviewModal) {
+      const openReview = () => {
+        reviewModal.hidden = false;
+        document.body.style.overflow = "hidden";
+        reviewModal.querySelector<HTMLInputElement>("input[name='passport']")?.focus();
+      };
+      const closeReview = () => {
+        reviewModal.hidden = true;
+        document.body.style.overflow = "";
+      };
+
+      document.querySelectorAll<HTMLElement>("[data-review-open]").forEach((btn) =>
+        btn.addEventListener("click", openReview),
+      );
+      reviewModal.querySelectorAll<HTMLElement>("[data-review-close]").forEach((btn) =>
+        btn.addEventListener("click", closeReview),
+      );
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !reviewModal.hidden) closeReview();
+      });
+
+      // Star ratings — each group writes its score into a hidden input.
+      reviewModal.querySelectorAll<HTMLElement>("[data-rating-group]").forEach((group) => {
+        const hidden = group.querySelector<HTMLInputElement>("input[type='hidden']");
+        const stars = Array.from(group.querySelectorAll<HTMLButtonElement>("[data-rating-value]"));
+        const paint = (score: number) => {
+          stars.forEach((star) => {
+            star.classList.toggle("is-active", Number(star.dataset.ratingValue) <= score);
+          });
+        };
+        stars.forEach((star) => {
+          star.addEventListener("click", () => {
+            const score = Number(star.dataset.ratingValue);
+            if (hidden) hidden.value = String(score);
+            paint(score);
+          });
+        });
+      });
+
+      const reviewForm = reviewModal.querySelector<HTMLFormElement>("[data-review-form]");
+      const reviewFeedback = reviewModal.querySelector<HTMLElement>("[data-review-feedback]");
+      reviewForm?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!reviewFeedback) return;
+
+        const missingRating = Array.from(
+          reviewForm.querySelectorAll<HTMLInputElement>("input[type='hidden']"),
+        ).some((input) => Number(input.value) === 0);
+
+        if (missingRating) {
+          reviewFeedback.textContent = "Please give a star rating for all three categories.";
+          reviewFeedback.className = "review-form__feedback is-error";
+          return;
+        }
+
+        // No endpoint yet: a review has to be checked against a real
+        // delivered order before it can be saved, and that API is built
+        // with checkout. Say so plainly rather than faking a success.
+        reviewFeedback.textContent =
+          "Thanks — review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
+        reviewFeedback.className = "review-form__feedback is-info";
+      });
+    }
+
+    // Newsletter signup form (same pattern used across the site).
+    document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {
+      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : "";
+
+      let feedbackEl = form.nextElementSibling as HTMLElement;
+      if (!feedbackEl || !feedbackEl.classList.contains("form-feedback")) {
+        feedbackEl = document.createElement("p");
+        feedbackEl.className = "form-feedback";
+        feedbackEl.setAttribute("role", "status");
+        form.insertAdjacentElement("afterend", feedbackEl);
+      }
+
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
         const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]:not([name="_gotcha"])');
         const gotchaInput = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
-        const name = nameInput ? nameInput.value.trim() : '';
-        const email = emailInput ? emailInput.value.trim() : '';
-        const _gotcha = gotchaInput ? gotchaInput.value : '';
+        const name = nameInput ? nameInput.value.trim() : "";
+        const email = emailInput ? emailInput.value.trim() : "";
+        const _gotcha = gotchaInput ? gotchaInput.value : "";
 
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
-        feedback.textContent = '';
-        feedback.className = 'form-feedback';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Sending…"; }
+        feedbackEl.textContent = "";
+        feedbackEl.className = "form-feedback";
 
         try {
-          const res = await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const res = await fetch("/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined, _gotcha }),
           });
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));
+          if (!res.ok) throw new Error(data.error || (res.status === 429 ? "Too many requests. Please wait a moment." : "Something went wrong."));
 
           form.reset();
-          feedback.textContent = "You're on the list for VIP access.";
-          feedback.classList.add('form-feedback--success');
+          feedbackEl.textContent = "You're on the list for VIP access.";
+          feedbackEl.classList.add("form-feedback--success");
         } catch (err: any) {
-          feedback.textContent = err.message || 'Something went wrong. Please try again.';
-          feedback.classList.add('form-feedback--error');
+          feedbackEl.textContent = err.message || "Something went wrong. Please try again.";
+          feedbackEl.classList.add("form-feedback--error");
         } finally {
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
         }
@@ -210,6 +741,6 @@ import Layout from "../layouts/Layout.astro";
     });
   }
 
-  initCountdown();
-  document.addEventListener('astro:page-load', initCountdown);
+  initProductPage();
+  document.addEventListener("astro:page-load", initProductPage);
 </script>

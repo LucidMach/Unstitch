@@ -1,0 +1,114 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * Admin login — posts the shared ADMIN_PASSWORD to /api/admin/login, which
+ * sets an httpOnly session cookie on success. See src/lib/adminAuth.js for
+ * why this is a single shared password rather than per-user accounts.
+ */
+---
+
+<Layout
+  title="Admin login | Unstitch"
+  noindex
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+>
+  <main class="admin-login">
+    <form id="login-form" class="admin-login__card" autocomplete="off">
+      <h1>Unstitch admin</h1>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus />
+      <button type="submit">Log in</button>
+      <p id="login-error" class="admin-login__error" hidden></p>
+    </form>
+  </main>
+</Layout>
+
+<style>
+  .admin-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f4f1;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .admin-login__card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 32px;
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .admin-login__card h1 {
+    font-size: 1.1rem;
+    margin: 0 0 8px;
+  }
+  .admin-login__card label {
+    font-size: 0.85rem;
+    color: #555;
+  }
+  .admin-login__card input {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  .admin-login__card button {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .admin-login__card button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .admin-login__error {
+    color: #b3261e;
+    font-size: 0.85rem;
+    margin: 4px 0 0;
+  }
+</style>
+
+<script>
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const errorEl = document.getElementById("login-error") as HTMLParagraphElement;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const password = (document.getElementById("password") as HTMLInputElement).value;
+    const submitBtn = form.querySelector("button") as HTMLButtonElement;
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        window.location.href = "/admin";
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      errorEl.textContent = data.error || "Login failed.";
+      errorEl.hidden = false;
+    } catch {
+      errorEl.textContent = "Network error — try again.";
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>

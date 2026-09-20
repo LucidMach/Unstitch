@@ -1,0 +1,535 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * Minimal admin dashboard — orders lookup/resend, pricing editor
+ * (quick override + full cost-recipe recalculation), and a send-email
+ * tool. All data comes from /api/admin/* (see api/admin/*.js), guarded by
+ * the shared-password session cookie (src/lib/adminAuth.js). Every fetch
+ * here treats a 401 as "not logged in" and bounces to /admin/login —
+ * there's no server-rendered auth check on this page itself, since Astro's
+ * static build has no per-request server to run one.
+ */
+---
+
+<Layout
+  title="Admin | Unstitch"
+  noindex
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+>
+  <main class="admin">
+    <header class="admin__bar">
+      <h1>Unstitch admin</h1>
+      <button id="logout-btn" class="btn-ghost">Log out</button>
+    </header>
+
+    <nav class="admin__tabs">
+      <button class="admin__tab is-active" data-tab="orders">Orders</button>
+      <button class="admin__tab" data-tab="pricing">Pricing</button>
+      <button class="admin__tab" data-tab="email">Send email</button>
+    </nav>
+
+    <p id="global-error" class="admin__error" hidden></p>
+
+    <!-- ORDERS -->
+    <section data-panel="orders" class="admin__panel">
+      <div class="admin__panel-split">
+        <div class="admin__orders-list">
+          <div class="admin__panel-header">
+            <h2>Recent orders</h2>
+            <button id="orders-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr><th>Order</th><th>Customer</th><th>Status</th><th>Total</th><th>Date</th></tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr><td colspan="5" class="admin-table__empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admin__order-detail" id="order-detail" hidden>
+          <div class="admin__panel-header">
+            <h2>Order <span id="detail-number"></span></h2>
+            <button id="detail-close" class="btn-ghost btn-ghost--small">Close</button>
+          </div>
+          <dl class="admin-kv" id="detail-summary"></dl>
+          <h3>Items</h3>
+          <ul id="detail-items" class="admin-list"></ul>
+          <h3>Delivery address</h3>
+          <p id="detail-address" class="admin-muted"></p>
+          <h3>Payments</h3>
+          <ul id="detail-payments" class="admin-list"></ul>
+          <button id="resend-confirmation" class="btn-primary">Resend confirmation email</button>
+          <p id="resend-status" class="admin__hint" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section data-panel="pricing" class="admin__panel" hidden>
+      <p id="pricing-loading">Loading product…</p>
+
+      <div id="pricing-content" hidden>
+        <div class="admin-card">
+          <h2>Quick price override</h2>
+          <p class="admin-muted">Sets the retail price directly — no recalculation, no change to the cost recipe below.</p>
+          <div class="admin-field-row">
+            <label for="price-override">Price (AUD)</label>
+            <input id="price-override" type="number" step="0.01" min="0" />
+            <button id="price-save" class="btn-primary">Save price</button>
+          </div>
+          <p id="price-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Product copy</h2>
+          <label for="copy-tagline">Tagline</label>
+          <input id="copy-tagline" type="text" maxlength="280" />
+          <label for="copy-description">Description</label>
+          <textarea id="copy-description" rows="4"></textarea>
+          <button id="copy-save" class="btn-primary">Save copy</button>
+          <p id="copy-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Cost recipe</h2>
+          <p class="admin-muted">
+            Recalculates the full per-kit cost breakdown from these inputs (same formula as the original seed data)
+            and sets the retail price to cost + margin, rounded up to the nearest 50c.
+          </p>
+          <div class="admin-grid">
+            <label>Material cost ($)<input id="r-materialCost" type="number" step="0.01" min="0" /></label>
+            <label>Material width (cm)<input id="r-materialWidth" type="number" step="1" min="1" /></label>
+            <label>Material height (cm)<input id="r-materialHeight" type="number" step="1" min="1" /></label>
+            <label>Material waste (%)<input id="r-wastePercent" type="number" step="1" min="0" max="100" /></label>
+            <label>Tile size (cm)
+              <select id="r-tileSize">
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+              </select>
+            </label>
+            <label>Tiles per kit<input id="r-tilesPerKit" type="number" step="1" min="1" /></label>
+            <label>Labour (minutes)<input id="r-labourMinutes" type="number" step="1" min="0" /></label>
+            <label>Labour rate ($/hr)<input id="r-labourRate" type="number" step="0.01" min="0" /></label>
+            <label>Equipment cost ($)<input id="r-equipmentCost" type="number" step="0.01" min="0" /></label>
+            <label>Operations overhead ($)<input id="r-opsOverhead" type="number" step="0.01" min="0" /></label>
+            <label>Giving tiles per kit<input id="r-givingTiles" type="number" step="1" min="0" /></label>
+            <label>Margin ($)<input id="r-margin" type="number" step="0.01" /></label>
+          </div>
+          <button id="recipe-save" class="btn-primary">Recalculate &amp; save</button>
+          <p id="recipe-status" class="admin__hint" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMAIL -->
+    <section data-panel="email" class="admin__panel" hidden>
+      <div class="admin-card">
+        <h2>Send a custom email</h2>
+        <label for="email-to">To</label>
+        <input id="email-to" type="email" />
+        <label for="email-subject">Subject</label>
+        <input id="email-subject" type="text" maxlength="200" />
+        <label for="email-message">Message</label>
+        <textarea id="email-message" rows="6" maxlength="10000"></textarea>
+        <button id="email-send" class="btn-primary">Send</button>
+        <p id="email-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .admin {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1a1a1a;
+  }
+  .admin__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .admin__bar h1 { font-size: 1.2rem; margin: 0; }
+  .admin__tabs { display: flex; gap: 8px; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
+  .admin__tab {
+    background: none; border: none; padding: 10px 14px; font-size: 0.9rem;
+    cursor: pointer; color: #666; border-bottom: 2px solid transparent;
+  }
+  .admin__tab.is-active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; }
+  .admin__error {
+    background: #fdecea; color: #b3261e; border: 1px solid #f3c8c4;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem;
+  }
+  .admin__panel-split { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 860px) {
+    .admin__panel-split { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+  }
+  .admin__panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .admin__panel-header h2 { font-size: 1rem; margin: 0; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .admin-table th { text-align: left; padding: 8px 6px; color: #777; font-weight: 500; border-bottom: 1px solid #ddd; }
+  .admin-table td { padding: 8px 6px; border-bottom: 1px solid #eee; }
+  .admin-table tr[data-order-row] { cursor: pointer; }
+  .admin-table tr[data-order-row]:hover { background: #f7f6f3; }
+  .admin-table__empty { color: #888; text-align: center; padding: 20px !important; }
+  .admin__order-detail { background: #fff; border: 1px solid #e2e0db; border-radius: 10px; padding: 18px; }
+  .admin-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.88rem; margin: 0 0 14px; }
+  .admin-kv dt { color: #777; }
+  .admin-kv dd { margin: 0; }
+  .admin-list { list-style: none; padding: 0; margin: 0 0 14px; font-size: 0.88rem; }
+  .admin-list li { padding: 6px 0; border-bottom: 1px solid #eee; }
+  .admin-muted { color: #777; font-size: 0.85rem; }
+  .admin-card {
+    background: #fff; border: 1px solid #e2e0db; border-radius: 10px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  .admin-card h2 { font-size: 1rem; margin: 0 0 6px; }
+  .admin-card label { display: block; font-size: 0.82rem; color: #555; margin: 10px 0 4px; }
+  .admin-card input, .admin-card textarea, .admin-card select {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem;
+    box-sizing: border-box; font-family: inherit;
+  }
+  .admin-field-row { display: flex; align-items: flex-end; gap: 10px; }
+  .admin-field-row label { flex: 0 0 auto; }
+  .admin-field-row input { width: 140px; }
+  .admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 16px; }
+  @media (min-width: 620px) {
+    .admin-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .btn-primary {
+    margin-top: 14px; padding: 9px 16px; border: none; border-radius: 6px;
+    background: #1a1a1a; color: #fff; font-size: 0.88rem; cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.6; cursor: default; }
+  .btn-ghost {
+    background: none; border: 1px solid #ccc; border-radius: 6px; padding: 7px 12px;
+    font-size: 0.85rem; cursor: pointer; color: #333;
+  }
+  .btn-ghost--small { padding: 4px 10px; font-size: 0.78rem; }
+  .admin__hint { font-size: 0.82rem; margin-top: 8px; }
+  .admin__hint.is-success { color: #1a7f37; }
+  .admin__hint.is-error { color: #b3261e; }
+</style>
+
+<script>
+  type OrderSummary = {
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalCents: number;
+    currency: string;
+    createdAt: string;
+    customer: { email: string; name: string | null };
+  };
+
+  function money(cents: number, currency = "AUD") {
+    return `${currency} $${(cents / 100).toFixed(2)}`;
+  }
+
+  function dollarsToCents(value: string): number | null {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n * 100);
+  }
+
+  function centsToDollarsStr(cents: number): string {
+    return (cents / 100).toFixed(2);
+  }
+
+  async function api(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      credentials: "same-origin",
+    });
+    if (res.status === 401) {
+      window.location.href = "/admin/login";
+      throw new Error("Not authenticated");
+    }
+    return res;
+  }
+
+  function showHint(el: HTMLElement, message: string, ok: boolean) {
+    el.textContent = message;
+    el.hidden = false;
+    el.classList.toggle("is-success", ok);
+    el.classList.toggle("is-error", !ok);
+  }
+
+  function showGlobalError(message: string) {
+    const el = document.getElementById("global-error") as HTMLParagraphElement;
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  // --- Tabs ---
+  document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      const target = tab.dataset.tab;
+      document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
+        panel.hidden = panel.dataset.panel !== target;
+      });
+      if (target === "pricing") loadProduct();
+    });
+  });
+
+  document.getElementById("logout-btn")?.addEventListener("click", async () => {
+    await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    window.location.href = "/admin/login";
+  });
+
+  // --- Orders ---
+  async function loadOrders() {
+    const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
+    try {
+      const res = await api("/api/admin/orders");
+      if (!res.ok) throw new Error("Failed to load orders");
+      const { orders } = (await res.json()) as { orders: OrderSummary[] };
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">No orders yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = orders
+        .map(
+          (o) => `
+        <tr data-order-row data-id="${o.id}">
+          <td>${o.orderNumber}</td>
+          <td>${o.customer?.name || o.customer?.email || "—"}</td>
+          <td>${o.status}</td>
+          <td>${money(o.totalCents, o.currency)}</td>
+          <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+        </tr>`,
+        )
+        .join("");
+      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => {
+        row.addEventListener("click", () => openOrderDetail(row.dataset.id as string));
+      });
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">Couldn't load orders.</td></tr>`;
+    }
+  }
+
+  async function openOrderDetail(id: string) {
+    const detail = document.getElementById("order-detail") as HTMLDivElement;
+    try {
+      const res = await api(`/api/admin/orders?id=${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error("not found");
+      const { order } = await res.json();
+      detail.hidden = false;
+      (document.getElementById("detail-number") as HTMLElement).textContent = order.orderNumber;
+      (document.getElementById("detail-summary") as HTMLElement).innerHTML = `
+        <dt>Customer</dt><dd>${order.customer.email}${order.customer.name ? ` (${order.customer.name})` : ""}</dd>
+        <dt>Status</dt><dd>${order.status}</dd>
+        <dt>Total</dt><dd>${money(order.totalCents, order.currency)}</dd>
+        <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
+      `;
+      (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
+        .map(
+          (it: any) =>
+            `<li>${it.quantity} × ${it.product?.name || "Item"}${it.unit?.serial ? ` — unit ${it.unit.serial}` : ""} — ${money(it.lineTotalCents, order.currency)}</li>`,
+        )
+        .join("") || "<li>No items</li>";
+      const addr = order.deliveryAddress;
+      (document.getElementById("detail-address") as HTMLElement).textContent = addr
+        ? `${addr.recipientName}, ${addr.line1}${addr.line2 ? ", " + addr.line2 : ""}, ${addr.suburb} ${addr.state} ${addr.postcode}, ${addr.country}`
+        : "No delivery address on file.";
+      (document.getElementById("detail-payments") as HTMLElement).innerHTML =
+        order.payments
+          .map((p: any) => `<li>${p.provider} — ${p.status} — ${money(p.amountCents, order.currency)}</li>`)
+          .join("") || "<li>No payments recorded</li>";
+
+      const resendBtn = document.getElementById("resend-confirmation") as HTMLButtonElement;
+      const resendStatus = document.getElementById("resend-status") as HTMLElement;
+      resendStatus.hidden = true;
+      resendBtn.onclick = async () => {
+        resendBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/send-email", {
+            method: "POST",
+            body: JSON.stringify({ mode: "resend-confirmation", orderId: order.id }),
+          });
+          const data = await r.json();
+          if (r.ok) showHint(resendStatus, "Confirmation email sent.", true);
+          else showHint(resendStatus, data.error || "Failed to send.", false);
+        } catch {
+          showHint(resendStatus, "Network error.", false);
+        } finally {
+          resendBtn.disabled = false;
+        }
+      };
+    } catch {
+      showGlobalError("Couldn't load that order.");
+    }
+  }
+
+  document.getElementById("detail-close")?.addEventListener("click", () => {
+    (document.getElementById("order-detail") as HTMLDivElement).hidden = true;
+  });
+  document.getElementById("orders-refresh")?.addEventListener("click", loadOrders);
+
+  // --- Pricing ---
+  let productLoaded = false;
+  async function loadProduct() {
+    if (productLoaded) return;
+    try {
+      const res = await api("/api/admin/product");
+      if (!res.ok) throw new Error("Failed to load product");
+      const { product } = await res.json();
+      productLoaded = true;
+      (document.getElementById("pricing-loading") as HTMLElement).hidden = true;
+      (document.getElementById("pricing-content") as HTMLElement).hidden = false;
+
+      (document.getElementById("price-override") as HTMLInputElement).value = centsToDollarsStr(product.basePriceCents);
+      (document.getElementById("copy-tagline") as HTMLInputElement).value = product.tagline || "";
+      (document.getElementById("copy-description") as HTMLTextAreaElement).value = product.description || "";
+
+      const r = product.costRecipe;
+      const ms = r?.materialSource;
+      if (r && ms) {
+        (document.getElementById("r-materialCost") as HTMLInputElement).value = centsToDollarsStr(ms.costCents);
+        (document.getElementById("r-materialWidth") as HTMLInputElement).value = String(ms.widthCm);
+        (document.getElementById("r-materialHeight") as HTMLInputElement).value = String(ms.heightCm);
+        (document.getElementById("r-wastePercent") as HTMLInputElement).value = String(ms.wastePercent);
+        (document.getElementById("r-tileSize") as HTMLSelectElement).value = String(r.tileSizeCm);
+        (document.getElementById("r-tilesPerKit") as HTMLInputElement).value = String(r.tilesPerKit);
+        (document.getElementById("r-labourMinutes") as HTMLInputElement).value = String(r.labourMinutes);
+        (document.getElementById("r-labourRate") as HTMLInputElement).value = centsToDollarsStr(r.labourRateCentsPerHour);
+        (document.getElementById("r-equipmentCost") as HTMLInputElement).value = centsToDollarsStr(r.equipmentCostCents);
+        (document.getElementById("r-opsOverhead") as HTMLInputElement).value = centsToDollarsStr(
+          r.operationsOverheadCents ?? 0,
+        );
+        (document.getElementById("r-givingTiles") as HTMLInputElement).value = String(r.givingTilesPerKit);
+        // Margin isn't persisted as its own field — back it out from the last
+        // known total cost vs. the current retail price so the form starts
+        // somewhere sane; editing and saving will persist it going forward.
+        const impliedMargin = product.basePriceCents - (product.lastCostCalculationCents ?? product.basePriceCents);
+        (document.getElementById("r-margin") as HTMLInputElement).value = centsToDollarsStr(impliedMargin);
+      }
+    } catch {
+      (document.getElementById("pricing-loading") as HTMLElement).textContent = "Couldn't load product.";
+    }
+  }
+
+  document.getElementById("price-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("price-status") as HTMLElement;
+    const cents = dollarsToCents((document.getElementById("price-override") as HTMLInputElement).value);
+    if (cents === null || cents <= 0) return showHint(status, "Enter a valid price.", false);
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({ section: "price", basePriceCents: cents }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Price updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("copy-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("copy-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "copy",
+          tagline: (document.getElementById("copy-tagline") as HTMLInputElement).value,
+          description: (document.getElementById("copy-description") as HTMLTextAreaElement).value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Copy updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("recipe-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("recipe-status") as HTMLElement;
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+    const materialCostCents = dollarsToCents(val("r-materialCost"));
+    const labourRateCentsPerHour = dollarsToCents(val("r-labourRate"));
+    const equipmentCostCents = dollarsToCents(val("r-equipmentCost"));
+    const operationsOverheadCents = dollarsToCents(val("r-opsOverhead"));
+    const marginCents = dollarsToCents(val("r-margin"));
+
+    if (
+      [materialCostCents, labourRateCentsPerHour, equipmentCostCents, operationsOverheadCents, marginCents].some(
+        (v) => v === null,
+      )
+    ) {
+      return showHint(status, "Check the dollar fields — one of them isn't a valid number.", false);
+    }
+
+    const recipe = {
+      materialCostCents,
+      materialWidthCm: Number(val("r-materialWidth")),
+      materialHeightCm: Number(val("r-materialHeight")),
+      materialWastePercent: Number(val("r-wastePercent")),
+      tileSizeCm: Number(val("r-tileSize")),
+      tilesPerKit: Number(val("r-tilesPerKit")),
+      labourMinutes: Number(val("r-labourMinutes")),
+      labourRateCentsPerHour,
+      equipmentCostCents,
+      operationsOverheadCents,
+      givingTilesPerKit: Number(val("r-givingTiles")),
+      marginCents,
+    };
+
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({ section: "recipe", recipe }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(
+          status,
+          `Recalculated — cost ${money(data.costCalc.totalCostCents)}, new price ${money(data.product.basePriceCents)}.`,
+          true,
+        );
+      } else {
+        showHint(status, data.error || "Failed to recalculate.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Email ---
+  document.getElementById("email-send")?.addEventListener("click", async () => {
+    const status = document.getElementById("email-status") as HTMLElement;
+    const email = (document.getElementById("email-to") as HTMLInputElement).value.trim();
+    const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
+    const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
+    if (!email || !subject || !message) return showHint(status, "Fill in all fields.", false);
+    try {
+      const res = await api("/api/admin/send-email", {
+        method: "POST",
+        body: JSON.stringify({ mode: "custom", email, subject, message }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Email sent.", true);
+      else showHint(status, data.error || "Failed to send.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  loadOrders();
+</script>

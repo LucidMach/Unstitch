@@ -1,12 +1,18 @@
 ---
 import Layout from "../layouts/Layout.astro";
 
+// Fields below split out from a single "composition" string into
+// fibreContent + materialType (per your feedback), plus divertedFrom and
+// colour — all placeholder values pending your real material specs.
 const materials = [
   {
     id: "001",
     name: "Deadstock Technical Canvas",
     origin: "Brunswick Upholstery Workshop, Naarm",
-    composition: "100% Heavyweight Cotton Canvas / Waxed Finish",
+    divertedFrom: "Commercial furniture fabrication offcuts",
+    fibreContent: "100% Cotton",
+    materialType: "Heavyweight canvas, waxed finish",
+    colour: "Natural / waxed tan",
     rescuedKg: "140 kg",
     collection: "Modular Tote 01",
     description: "Surplus cutting floor end-of-rolls diverted from commercial furniture fabrication. Precision laser-cut into modular interlocking tessellations.",
@@ -17,7 +23,10 @@ const materials = [
     id: "002",
     name: "Architectural Felt Remnants",
     origin: "Acoustic Panel Manufacturer, Dandenong",
-    composition: "100% Recycled PET Non-Woven Felt",
+    divertedFrom: "Soundproofing wall panel installation surplus",
+    fibreContent: "100% Recycled PET",
+    materialType: "Non-woven felt",
+    colour: "Charcoal grey",
     rescuedKg: "220 kg",
     collection: "Modular Bucket Bag",
     description: "High-density offcuts from soundproofing wall installation panels. Inherently semi-rigid, water-repellent, and structural without synthetic backings.",
@@ -28,7 +37,10 @@ const materials = [
     id: "003",
     name: "Post-Industrial Denim Offcuts",
     origin: "Workwear Manufacturer, Richmond",
-    composition: "98% Cotton, 2% Elastane",
+    divertedFrom: "Small-batch workwear production edge rolls",
+    fibreContent: "98% Cotton, 2% Elastane",
+    materialType: "Washed indigo denim",
+    colour: "Indigo",
     rescuedKg: "185 kg",
     collection: "Origami Clutch",
     description: "Edge rolls and pattern scraps from small-batch indigo workwear production, washed and reinforced using interlocking mechanical joints.",
@@ -39,7 +51,10 @@ const materials = [
     id: "004",
     name: "High-Tenacity Cordura Scraps",
     origin: "Outdoor Equipment Studio, Collingwood",
-    composition: "100% 500D Nylon",
+    divertedFrom: "Expedition backpack cutting-room surplus",
+    fibreContent: "100% Nylon",
+    materialType: "500D Cordura, ripstop weave",
+    colour: "Slate grey / sand",
     rescuedKg: "95 kg",
     collection: "Crescent Moon Crossbody",
     description: "Ultra-durable technical surplus from expedition backpack runs. Extreme abrasion resistance in an ultra-light modular framework.",
@@ -50,7 +65,10 @@ const materials = [
     id: "005",
     name: "Organic Heavy Twill",
     origin: "Apparel Sampling Studio, Fitzroy",
-    composition: "100% Certified Organic Cotton",
+    divertedFrom: "Apparel sampling bolt-end surplus",
+    fibreContent: "100% Organic Cotton",
+    materialType: "Heavy twill, deadstock bolt ends",
+    colour: "Unbleached natural",
     rescuedKg: "110 kg",
     collection: "DIY Tile Builder Kit",
     description: "Deadstock bolt ends in unbleached natural cotton, die-cut into user-assembled modules for tactile makers and workshops.",
@@ -61,7 +79,10 @@ const materials = [
     id: "006",
     name: "Technical Ripstop Canvas",
     origin: "Sailmaker & Canvas Works, Williamstown",
-    composition: "Polyester / Ripstop Grid",
+    divertedFrom: "Sailmaking and canvas-works remnants",
+    fibreContent: "100% Polyester",
+    materialType: "Ripstop grid canvas, marine-grade",
+    colour: "Marine navy",
     rescuedKg: "160 kg",
     collection: "Weekender Tote",
     description: "Heavy marine-grade ripstop remnants with high tensile tear strength and weather protection.",
@@ -96,7 +117,7 @@ const materials = [
       <p class="section__eyebrow">Have surplus material?</p>
       <h2 class="partner-cta__title">Partner With Us</h2>
       <p class="partner-cta__body">
-        Don't let fabric remnants, premium textiles, deadstock or factory offcuts go to waste. We collaborate with brands and manufacturers to give surplus textiles a circular second life.
+        Don't let fabric remnants, premium textiles, deadstock or factory offcuts go to waste. We would love to collaborate with brands and manufacturers to give your surplus textiles a second life.
       </p>
       <a href="/contact?category=surplus-material-enquiry" class="btn btn-outline btn-small mt-4">Become a Partner Today</a>
     </section>
@@ -149,57 +170,79 @@ const materials = [
       <div class="material-scroll" data-material-scroll>
         {materials.map((m) => (
           <div class="material-modal" data-material={m.id} hidden>
-            <div class="material-modal__gallery">
-              <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file">
-                <span class="arrow-icon">←</span>
-              </button>
-              
-              <div class="material-modal__images">
-                <div class="modal-img-card">
-                  <img src={m.productImg} alt="Transformed Collection" />
-                  <p class="modal-img-caption">Transformed Collection: {m.collection}</p>
-                </div>
-                <div class="modal-img-card">
-                  <img src={m.rawImg} alt="Raw Material Offcut" />
-                  <p class="modal-img-caption">Rescued Source: {m.origin}</p>
-                </div>
+            <!-- Images on top, full width — matches the earlier static-HTML
+                 archive layout, instead of the side-by-side gallery/info
+                 split this modal used before. -->
+            <div class="material-modal__images">
+              <div class="modal-img-card">
+                <img src={m.productImg} alt="Transformed Collection" />
+                <p class="modal-img-caption">Transformed Collection: {m.collection}</p>
               </div>
-
-              <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file">
-                <span class="arrow-icon">→</span>
-              </button>
+              <div class="modal-img-card">
+                <img src={m.rawImg} alt="Raw Material Offcut" />
+                <p class="modal-img-caption">Rescued Source: {m.origin}</p>
+              </div>
             </div>
 
             <div class="material-modal__info">
               <p class="section__eyebrow">Material File #{m.id}</p>
               <h2 class="material-modal__title">{m.name}</h2>
-              
-              <div class="material-modal__specs">
-                <div class="spec-row">
-                  <span class="spec-label">Source / Origin</span>
-                  <span class="spec-val">{m.origin}</span>
+
+              <!-- Two columns: specs read like a garment tag (label above
+                   value, left-aligned, no bold) on the left; the material
+                   story gets the wider column on the right. -->
+              <div class="material-modal__body">
+                <div class="material-modal__specs">
+                  <div class="spec-row">
+                    <span class="spec-label">Source / Origin</span>
+                    <span class="spec-val">{m.origin}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Diverted from</span>
+                    <span class="spec-val">{m.divertedFrom}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Fibre Content</span>
+                    <span class="spec-val">{m.fibreContent}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Material Type</span>
+                    <span class="spec-val">{m.materialType}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Rescue Volume</span>
+                    <span class="spec-val">{m.rescuedKg}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Colour</span>
+                    <span class="spec-val">{m.colour}</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-label">Application</span>
+                    <span class="spec-val">{m.collection}</span>
+                  </div>
                 </div>
-                <div class="spec-row">
-                  <span class="spec-label">Composition</span>
-                  <span class="spec-val">{m.composition}</span>
-                </div>
-                <div class="spec-row">
-                  <span class="spec-label">Rescued Volume</span>
-                  <span class="spec-val">{m.rescuedKg}</span>
-                </div>
-                <div class="spec-row">
-                  <span class="spec-label">Application</span>
-                  <span class="spec-val">{m.collection}</span>
+
+                <div class="material-modal__story">
+                  <p class="material-modal__story-label">Material Story</p>
+                  <p class="material-modal__desc">{m.description}</p>
                 </div>
               </div>
 
-              <p class="material-modal__desc">{m.description}</p>
-              
-              <div class="material-modal__actions mt-6">
+              <div class="material-modal__actions">
                 <a href={`/contact?category=surplus-material-enquiry`} class="btn btn-filled">Partner on Similar Material</a>
-                <a href="/playground" class="btn btn-outline">Explore in 3D</a>
+                <!-- "Explore in 3D" hidden for now — nothing is wired up at
+                     /playground for a specific material yet. Re-add once
+                     there's a real 3D view to link to. -->
               </div>
             </div>
+
+            <!-- Invisible full-card nav zones, cursor-driven on mouse/trackpad
+                 (no floating arrow buttons) — hidden on touch, where swipe
+                 takes over instead. See the script below and the
+                 hover-media-query rules in the style block. -->
+            <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file"></button>
+            <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file"></button>
           </div>
         ))}
       </div>
@@ -339,116 +382,187 @@ const materials = [
   .material-scroll {
     overflow-y: auto;
     height: 100%;
-    padding: 40px;
-  }
-
-  .material-modal {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 48px;
-    align-items: center;
-  }
-
-  .material-modal__gallery {
-    position: relative;
+    padding: 36px;
     display: flex;
-    align-items: center;
+    justify-content: center;
   }
+
+  /* Single centred column, image row on top, info below — matches the
+     original static-HTML archive's layout, kept to a comfortable reading
+     width instead of stretching edge-to-edge. */
+  .material-modal {
+    position: relative;
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Images sit right next to each other — one thin shared border around
+     the pair with a single divider between them, no per-image card
+     border/radius and much less internal padding than before. */
   .material-modal__images {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    border: 1px solid var(--ink);
     width: 100%;
   }
   .modal-img-card {
+    position: relative;
     background: #fafafa;
-    border: 1px solid #ddd;
-    border-radius: var(--radius);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    border-right: 1px solid var(--ink);
+  }
+  .modal-img-card:last-child {
+    border-right: none;
   }
   .modal-img-card img {
     aspect-ratio: 1/1;
     object-fit: contain;
     width: 100%;
+    display: block;
   }
+  /* Caption sits on top of the image itself (a dark scrim behind the
+     text for legibility) instead of adding its own strip below the
+     photo — the card no longer extends past the image to fit it. */
   .modal-img-caption {
-    font-size: 0.78rem;
-    color: #666;
-    margin-top: 10px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 20px 12px 10px;
+    font-size: 0.74rem;
+    color: #fff;
     text-align: center;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0));
   }
 
+  /* ---- in-card hover navigation ----
+     Invisible zones spanning the whole card (images + info), the same
+     approach as the earlier static-HTML archive: no floating arrow
+     buttons — the cursor itself becomes a left/right arrow while
+     hovering that third of the card. CTA links inside .material-modal__info
+     sit above these zones (z-index) so they stay clickable. */
   .material-modal__nav-zone {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #ffffff;
-    border: 1.5px solid var(--ink);
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
+    top: 0;
+    bottom: 0;
+    width: 30%;
+    z-index: 4;
+    margin: 0;
+    border: none;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    padding: 0;
     cursor: pointer;
-    font-weight: bold;
-    font-size: 1.2rem;
-    transition: all 0.2s ease;
   }
-  .material-modal__nav-zone:hover:not(:disabled) {
-    background: var(--accent);
-    color: #ffffff;
+  .material-modal__nav-zone--prev { left: 0; }
+  .material-modal__nav-zone--next { right: 0; }
+  .material-modal__nav-zone[disabled] {
+    cursor: default;
+    pointer-events: none;
   }
-  .material-modal__nav-zone:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+
+  /* Mouse/trackpad: no visible icon — the cursor becomes a left/right
+     arrow while hovering that zone, reverting to default past the
+     first/last file. */
+  @media (hover: hover) and (pointer: fine) {
+    .material-modal__nav-zone--prev {
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M18 10l-6 6 6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, w-resize;
+    }
+    .material-modal__nav-zone--next {
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M14 10l6 6-6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, e-resize;
+    }
   }
-  .material-modal__nav-zone--prev { left: -22px; }
-  .material-modal__nav-zone--next { right: -22px; }
+
+  /* Touch can't hover or show a custom cursor, so the zones are invisible
+     (and inert) there — mobile navigates by swipe instead, see the script. */
+  @media (hover: none) {
+    .material-modal__nav-zone { display: none; }
+  }
 
   .material-modal__title {
     font-size: clamp(1.8rem, 3.5vw, 2.6rem);
     margin: 8px 0 20px;
   }
 
-  .material-modal__specs {
+  /* Specs (left) read like a garment/composition tag: label above value,
+     left-aligned, no bold — instead of the old label-left/value-right,
+     bolded-value row. Story (right) gets the wider column. */
+  .material-modal__body {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) 1.3fr;
+    gap: 40px;
     border-top: 1px solid #eee;
-    border-bottom: 1px solid #eee;
-    padding: 16px 0;
-    margin-bottom: 20px;
+    padding-top: 20px;
+    margin-bottom: 8px;
+  }
+  .material-modal__specs {
+    display: flex;
+    flex-direction: column;
   }
   .spec-row {
     display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    font-size: 0.92rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    text-align: left;
   }
-  .spec-label { color: #666; font-weight: 500; }
-  .spec-val { font-weight: 600; text-align: right; }
+  .spec-row:first-child { padding-top: 0; }
+  .spec-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #999;
+    font-weight: 500;
+  }
+  .spec-val {
+    font-size: 0.92rem;
+    font-weight: 400;
+    color: var(--ink);
+    text-align: left;
+  }
 
+  .material-modal__story-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #999;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
   .material-modal__desc {
-    font-size: 0.98rem;
-    color: #444;
-    line-height: 1.6;
+    font-size: 1rem;
+    color: #333;
+    line-height: 1.7;
   }
   .material-modal__actions {
     display: flex;
     gap: 14px;
     flex-wrap: wrap;
+    /* Sit above the nav zones (z-index 4) so the buttons stay clickable
+       even where they overlap the left/right hover-nav thirds. */
+    position: relative;
+    z-index: 5;
+    /* More breathing room before the card ends. */
+    margin-bottom: 36px;
   }
 
   @media (max-width: 900px) {
     .material-grid { grid-template-columns: 1fr; }
-    .material-modal { grid-template-columns: 1fr; gap: 24px; }
+    .material-modal { gap: 24px; }
     .material-shell { inset: 12px; }
-    .material-scroll { padding: 20px; }
-    .material-modal__images { grid-template-columns: 1fr; }
-    .material-modal__nav-zone--prev { left: 0; }
-    .material-modal__nav-zone--next { right: 0; }
+    .material-scroll { padding: 24px 20px; }
+    .material-modal__body { grid-template-columns: 1fr; gap: 24px; }
+    /* Overlay caption text gets cramped on narrow images — dropped on
+       mobile rather than shrunk further. The same info (origin,
+       collection) is already in the spec list below. */
+    .modal-img-caption { display: none; }
   }
 </style>
 
@@ -527,6 +641,27 @@ const materials = [
         if (e.key === 'ArrowLeft') step(-1);
         if (e.key === 'ArrowRight') step(1);
       });
+
+      // Touch swipe — the invisible cursor-nav zones only make sense with
+      // a mouse/trackpad (see the hover-media-query CSS), so touch devices
+      // navigate by swiping the card left/right instead.
+      if (materialScroll) {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        materialScroll.addEventListener('touchstart', (e) => {
+          const t = e.touches[0];
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+        }, { passive: true });
+        materialScroll.addEventListener('touchend', (e) => {
+          const t = e.changedTouches[0];
+          const dx = t.clientX - touchStartX;
+          const dy = t.clientY - touchStartY;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            step(dx < 0 ? 1 : -1);
+          }
+        }, { passive: true });
+      }
     }
 
     // Forms

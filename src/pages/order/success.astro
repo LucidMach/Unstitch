@@ -1,0 +1,163 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * Post-checkout landing page. Deliberately does NOT trust the redirect
+ * alone — Stripe Checkout can send someone here even on a hiccup (back
+ * button, a slow webhook), so the client script verifies the real order
+ * status server-side via /api/order-status before showing "confirmed".
+ * See api/order-status.js and api/stripe-webhook.js for why the webhook,
+ * not this page, is the source of truth for whether the order is paid.
+ */
+---
+
+<Layout
+  title="Order confirmed | Unstitch"
+  description="Your Unstitch order confirmation."
+  noindex
+>
+  <main>
+    <section class="wrap section order-status">
+      <div data-order-loading class="order-status__state">
+        <p class="order-status__eyebrow">Checking your order…</p>
+        <p class="order-status__body">One moment while we confirm your payment with Stripe.</p>
+      </div>
+
+      <div data-order-paid class="order-status__state" hidden>
+        <p class="order-status__eyebrow">Thank you!</p>
+        <h1 class="order-status__title">Your order is confirmed</h1>
+        <p class="order-status__body">
+          Order <strong data-order-number></strong> — <span data-order-total></span>
+        </p>
+        <p class="order-status__body">A confirmation email is on its way. We'll be in touch with shipping details soon.</p>
+        <a href="/shop" class="btn btn-outline order-status__cta">Back to shop</a>
+      </div>
+
+      <div data-order-notfound class="order-status__state" hidden>
+        <p class="order-status__eyebrow">Hmm</p>
+        <h1 class="order-status__title">We couldn't confirm that order</h1>
+        <p class="order-status__body" data-order-notfound-message>
+          If you completed payment, check your inbox for a confirmation email — it may just be catching up. If you're unsure, reach out and we'll sort it out.
+        </p>
+        <div class="order-status__actions">
+          <a href="/shop" class="btn btn-outline">Back to shop</a>
+          <a href="/contact" class="btn btn-filled">Contact us</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .order-status {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .order-status__state {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .order-status__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .order-status__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin-bottom: 14px;
+  }
+  .order-status__body {
+    color: #444;
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .order-status__cta {
+    margin-top: 20px;
+    display: inline-block;
+  }
+  .order-status__actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>
+
+<script>
+  import { clearCart } from "../../lib/cart-client";
+
+  function formatCents(cents: number, currency: string) {
+    return `${currency.toUpperCase()} $${(cents / 100).toFixed(2)}`;
+  }
+
+  async function checkOrderStatus() {
+    const loadingEl = document.querySelector<HTMLElement>("[data-order-loading]");
+    const paidEl = document.querySelector<HTMLElement>("[data-order-paid]");
+    const notFoundEl = document.querySelector<HTMLElement>("[data-order-notfound]");
+    const notFoundMessageEl = document.querySelector<HTMLElement>("[data-order-notfound-message]");
+
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+
+    const showNotFound = (message?: string) => {
+      if (loadingEl) loadingEl.hidden = true;
+      if (notFoundEl) notFoundEl.hidden = false;
+      if (message && notFoundMessageEl) notFoundMessageEl.textContent = message;
+    };
+
+    if (!sessionId) {
+      showNotFound("No order session was found on this link.");
+      return;
+    }
+
+    const maxAttempts = 6;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const res = await fetch(`/api/order-status?session_id=${encodeURIComponent(sessionId)}`);
+        const data = await res.json().catch(() => ({}));
+
+        if (data.status === "paid" && data.order) {
+          if (loadingEl) loadingEl.hidden = true;
+          if (paidEl) paidEl.hidden = false;
+          const numberEl = document.querySelector<HTMLElement>("[data-order-number]");
+          const totalEl = document.querySelector<HTMLElement>("[data-order-total]");
+          if (numberEl) numberEl.textContent = data.order.orderNumber;
+          if (totalEl) totalEl.textContent = formatCents(data.order.totalCents, data.order.currency);
+          clearCart();
+          return;
+        }
+
+        if (data.status === "processing") {
+          // Webhook hasn't landed yet — wait and try again.
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
+
+        if (data.status === "expired") {
+          showNotFound("This checkout session expired before payment completed. Please head back to the shop to try again.");
+          return;
+        }
+
+        if (data.status === "not_paid") {
+          showNotFound("This order hasn't been paid yet. If you closed the checkout page early, please try again from the shop.");
+          return;
+        }
+
+        showNotFound();
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    showNotFound("This is taking longer than expected. If you completed payment, check your email for confirmation shortly.");
+  }
+
+  checkOrderStatus();
+</script>

@@ -1,0 +1,646 @@
+From 711bd9a03df9264b00723576c3ace6e2a5bc5abd Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 19 Sep 2026 00:19:27 +0000
+Subject: [PATCH 2/3] Fix countdown reveal bug; refine product page, reviews,
+ mobile bag
+
+- Fix countdown never revealing the live drop for visitors arriving after
+  release: clearInterval ran before the timer variable was initialised,
+  which threw on the first synchronous tick. Same latent bug fixed in
+  shop-countdown.astro.
+- Kit specs now side-by-side with vertical dividers, per the wireframe
+- Reviews section moved above the archive teaser, with a Write a review
+  button and modal (title, comment, three category ratings, recommend
+  checkbox, passport code, edition-number opt-in)
+- Review model gains ratingPlay/ratingBuild/ratingValue/wouldRecommend
+- Bag added to the mobile bottom nav with a count badge; Shop icon
+  changed to a tag so the two aren't identical
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012WaFXB7ZStPCrgjGNusLz5
+---
+ prisma/schema.prisma           |  20 +-
+ src/components/MobileNav.astro |  16 +-
+ src/pages/index.astro          |  12 +-
+ src/pages/shop-countdown.astro |   9 +-
+ src/pages/shop.astro           | 345 ++++++++++++++++++++++++++++++---
+ src/styles/brand.css           |  26 +++
+ 6 files changed, 390 insertions(+), 38 deletions(-)
+
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 595ac54..15ff497 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -680,11 +680,21 @@ model Review {
+   unitId String? @unique @db.Uuid @map("unit_id")
+   unit   Unit?   @relation(fields: [unitId], references: [id])
+ 
+-  rating     Int // 1-5
+-  title      String?      @db.VarChar(200)
+-  body       String?
+-  status     ReviewStatus @default(PENDING)
+-  createdAt  DateTime     @default(now()) @map("created_at")
++  // Overall score, kept as the single number used for star averages and
++  // sorting. The three category scores below are what the reviewer
++  // actually fills in on the product page (modelled on how Lego splits
++  // its reviews); `rating` is their average, stored once so listing
++  // queries don't have to compute it every time.
++  rating      Int // 1-5
++  ratingPlay  Int? @map("rating_play") // 1-5, play experience
++  ratingBuild Int? @map("rating_build") // 1-5, building experience
++  ratingValue Int? @map("rating_value") // 1-5, value for money
++
++  title           String?      @db.VarChar(200)
++  body            String?
++  wouldRecommend  Boolean?     @map("would_recommend")
++  status          ReviewStatus @default(PENDING)
++  createdAt       DateTime     @default(now()) @map("created_at")
+ 
+   @@map("reviews")
+ }
+diff --git a/src/components/MobileNav.astro b/src/components/MobileNav.astro
+index 967c3d6..0301bd1 100644
+--- a/src/components/MobileNav.astro
++++ b/src/components/MobileNav.astro
+@@ -13,9 +13,11 @@ const { currentPath = "" } = Astro.props;
+       <span>Home</span>
+     </a>
+     <a href="/shop" class="mobile-nav__item" aria-current={currentPath === "/shop" ? "page" : undefined}>
++      <!-- Tag, not a bag: the Bag item next to it opens the cart, and two
++           bag icons side by side read as the same thing. -->
+       <svg viewBox="0 0 24 24" fill="none">
+-        <path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+-        <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/>
++        <path d="M4 12.2V5a1 1 0 0 1 1-1h7.2a1 1 0 0 1 .7.3l6.8 6.8a1 1 0 0 1 0 1.4l-7.2 7.2a1 1 0 0 1-1.4 0L4.3 12.9a1 1 0 0 1-.3-.7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
++        <circle cx="8.6" cy="8.6" r="1.4" stroke="currentColor" stroke-width="1.6"/>
+       </svg>
+       <span>Shop</span>
+     </a>
+@@ -26,6 +28,16 @@ const { currentPath = "" } = Astro.props;
+       </svg>
+       <span>Play</span>
+     </a>
++    <button class="mobile-nav__item" data-cart-open aria-label="Open bag">
++      <span class="mobile-nav__icon-wrap">
++        <svg viewBox="0 0 24 24" fill="none">
++          <path d="M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
++          <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
++        </svg>
++        <span class="cart-badge" data-cart-badge hidden>0</span>
++      </span>
++      <span>Bag</span>
++    </button>
+     <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+       <svg viewBox="0 0 24 24" fill="none">
+         <path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+diff --git a/src/pages/index.astro b/src/pages/index.astro
+index b4de9fa..adf96d3 100644
+--- a/src/pages/index.astro
++++ b/src/pages/index.astro
+@@ -353,6 +353,14 @@ import Layout from "../layouts/Layout.astro";
+       const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
+       const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
+ 
++      // Declared before tick() because tick() runs once immediately,
++      // before setInterval returns. Using `const timer` below and
++      // clearing it from inside that first synchronous call would throw
++      // (the variable isn't initialised yet), which would stop the
++      // reveal from ever running for anyone loading the page after the
++      // drop had already gone live.
++      let timer: ReturnType<typeof setInterval> | undefined;
++
+       const tick = () => {
+         const diff = target - Date.now();
+         if (diff <= 0) {
+@@ -361,7 +369,7 @@ import Layout from "../layouts/Layout.astro";
+           if (minsEl) minsEl.textContent = '00';
+           if (secsEl) secsEl.textContent = '00';
+           el.classList.add('is-complete');
+-          clearInterval(timer);
++          if (timer !== undefined) clearInterval(timer);
+ 
+           // Auto-swap: hide the countdown section and reveal the "live
+           // drop" section named in data-reveal, once the target time has
+@@ -386,8 +394,8 @@ import Layout from "../layouts/Layout.astro";
+         if (secsEl) secsEl.textContent = pad(totalSeconds % 60);
+       };
+ 
++      timer = setInterval(tick, 1000);
+       tick();
+-      const timer = setInterval(tick, 1000);
+     });
+   }
+ 
+diff --git a/src/pages/shop-countdown.astro b/src/pages/shop-countdown.astro
+index bd9a0f7..75fa9c4 100644
+--- a/src/pages/shop-countdown.astro
++++ b/src/pages/shop-countdown.astro
+@@ -96,6 +96,11 @@ import Layout from "../layouts/Layout.astro";
+       const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
+       const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
+ 
++      // Declared up front: tick() runs once synchronously below, before
++      // setInterval returns, so clearing a `const timer` from inside
++      // that first call would throw.
++      let timer: ReturnType<typeof setInterval> | undefined;
++
+       const tick = () => {
+         const diff = target - Date.now();
+         if (diff <= 0) {
+@@ -104,7 +109,7 @@ import Layout from "../layouts/Layout.astro";
+           if (minsEl) minsEl.textContent = '00';
+           if (secsEl) secsEl.textContent = '00';
+           el.classList.add('is-complete');
+-          clearInterval(timer);
++          if (timer !== undefined) clearInterval(timer);
+           return;
+         }
+         const totalSeconds = Math.floor(diff / 1000);
+@@ -114,8 +119,8 @@ import Layout from "../layouts/Layout.astro";
+         if (secsEl) secsEl.textContent = pad(totalSeconds % 60);
+       };
+ 
++      timer = setInterval(tick, 1000);
+       tick();
+-      const timer = setInterval(tick, 1000);
+     });
+ 
+     // Notify toggle
+diff --git a/src/pages/shop.astro b/src/pages/shop.astro
+index e392fe7..f32d871 100644
+--- a/src/pages/shop.astro
++++ b/src/pages/shop.astro
+@@ -56,8 +56,10 @@ const included = [
+ 
+           <!-- Kit specs: colour palette, material rigidity, ages, piece
+                count — sits directly under the hero image. -->
++          <!-- Specs sit side-by-side in columns divided by vertical rules,
++               matching the wireframe (not stacked rows). -->
+           <div class="product-specs" aria-label="Kit specifications">
+-            <div class="product-specs__row">
++            <div class="product-specs__col">
+               <span class="product-specs__label">Colour palette</span>
+               <span class="product-specs__swatches">
+                 {product.colourPalette.map((hex) => (
+@@ -65,17 +67,17 @@ const included = [
+                 ))}
+               </span>
+             </div>
+-            <div class="product-specs__row">
+-              <span class="product-specs__label">Material rigidity</span>
+-              <span>{product.materialRigidity}</span>
++            <div class="product-specs__col">
++              <span class="product-specs__label">Rigidity</span>
++              <span class="product-specs__value">{product.materialRigidity}</span>
+             </div>
+-            <div class="product-specs__row">
+-              <span class="product-specs__label">Recommended ages</span>
+-              <span>{product.ageRangeMin}–{product.ageRangeMax}</span>
++            <div class="product-specs__col">
++              <span class="product-specs__label">Ages</span>
++              <span class="product-specs__value">{product.ageRangeMin}–{product.ageRangeMax}</span>
+             </div>
+-            <div class="product-specs__row">
+-              <span class="product-specs__label">Pieces per kit</span>
+-              <span>{product.tilesPerKit}</span>
++            <div class="product-specs__col">
++              <span class="product-specs__label">Pieces</span>
++              <span class="product-specs__value">{product.tilesPerKit}</span>
+             </div>
+           </div>
+         </div>
+@@ -136,27 +138,30 @@ const included = [
+ 
+     <div class="stitch" aria-hidden="true"></div>
+ 
+-    <!-- ============ MATERIAL ARCHIVE TEASER ============ -->
+-    <section class="wrap section archive-teaser">
+-      <p class="archive-teaser__text">See past collection and read rescue material story.</p>
+-      <a href="/archive" class="btn btn-outline">Enter the archive</a>
+-    </section>
+-
+-    <div class="stitch" aria-hidden="true"></div>
+-
+     <!-- ============ REVIEWS ============
+          Reviews are tied to a real completed order (see Review.orderId /
+          Review.unitId in the schema) — none exist yet since no kit has
+          been delivered. This is the real empty state, not a placeholder
+          review, and it'll fill in once orders start shipping. -->
+     <section class="wrap section reviews">
+-      <h2 class="section__title">Reviews</h2>
++      <div class="reviews__head">
++        <h2 class="section__title">Reviews</h2>
++        <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
++      </div>
+       <div class="reviews__empty">
+         <p>No reviews yet — Slow Bloom just dropped.</p>
+         <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified — Slow Bloom #7 of 10").</p>
+       </div>
+     </section>
+ 
++    <div class="stitch" aria-hidden="true"></div>
++
++    <!-- ============ MATERIAL ARCHIVE TEASER ============ -->
++    <section class="wrap section archive-teaser">
++      <p class="archive-teaser__text">See past collection and read rescue material story.</p>
++      <a href="/archive" class="btn btn-outline">Enter the archive</a>
++    </section>
++
+     <!-- ============ EMAIL SIGNUP ============ -->
+     <section class="wrap signup">
+       <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+@@ -169,6 +174,87 @@ const included = [
+         <button type="submit" class="btn btn-filled">Join</button>
+       </form>
+     </section>
++
++    <!-- ============ WRITE-A-REVIEW MODAL ============
++         UI only for now. A review can only exist against a delivered
++         order (Review.orderId), so submitting needs a real API endpoint
++         that verifies the passport/order code below before saving —
++         built alongside checkout. Until then the form validates and
++         explains what happens next rather than pretending to post. -->
++    <div class="review-modal" data-review-modal hidden>
++      <div class="review-modal__overlay" data-review-close></div>
++      <div class="review-modal__panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
++        <div class="review-modal__top">
++          <h2 class="review-modal__title" id="review-modal-title">Write a review</h2>
++          <button type="button" class="icon-btn" data-review-close aria-label="Close review form">
++            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
++              <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
++            </svg>
++          </button>
++        </div>
++
++        <form class="review-form" data-review-form>
++          <label class="review-field">
++            <span class="review-field__label">Kit passport / order code</span>
++            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-D001-007" required />
++            <span class="review-field__hint">This is what verifies you actually own a kit. Found on your postcard and in your order email.</span>
++          </label>
++
++          <label class="review-field">
++            <span class="review-field__label">Title</span>
++            <input type="text" class="review-field__input" name="title" maxlength="200" placeholder="Sum it up in a few words" required />
++          </label>
++
++          <label class="review-field">
++            <span class="review-field__label">Comment</span>
++            <textarea class="review-field__input" name="body" rows="4" placeholder="How did it build? What did you make?" required></textarea>
++          </label>
++
++          <fieldset class="review-ratings">
++            <legend class="review-field__label">Ratings</legend>
++            {[
++              { name: "ratingPlay", label: "Play experience" },
++              { name: "ratingBuild", label: "Building experience" },
++              { name: "ratingValue", label: "Value for money" },
++            ].map((cat) => (
++              <div class="review-rating" data-rating-group={cat.name}>
++                <span class="review-rating__label">{cat.label}</span>
++                <span class="review-rating__stars">
++                  {[1, 2, 3, 4, 5].map((n) => (
++                    <button
++                      type="button"
++                      class="review-rating__star"
++                      data-rating-value={n}
++                      aria-label={`${cat.label}: ${n} out of 5`}
++                    >★</button>
++                  ))}
++                </span>
++                <input type="hidden" name={cat.name} value="0" />
++              </div>
++            ))}
++          </fieldset>
++
++          <label class="review-check">
++            <input type="checkbox" name="wouldRecommend" />
++            <span>I would recommend this to a friend</span>
++          </label>
++
++          <label class="review-check">
++            <input type="checkbox" name="showPassport" checked />
++            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of 10")</span>
++          </label>
++
++          <p class="review-form__note">Your review will show your first name and the date you posted it. Reviews are checked before they appear.</p>
++
++          <div class="review-form__actions">
++            <button type="button" class="btn btn-outline" data-review-close>Cancel</button>
++            <button type="submit" class="btn btn-filled">Submit review</button>
++          </div>
++
++          <p class="review-form__feedback" data-review-feedback role="status"></p>
++        </form>
++      </div>
++    </div>
+   </main>
+ </Layout>
+ 
+@@ -186,19 +272,33 @@ const included = [
+ 
+   .product-specs {
+     margin-top: 18px;
+-    display: flex;
+-    flex-direction: column;
+-    gap: 10px;
++    display: grid;
++    grid-template-columns: repeat(4, 1fr);
++    border-top: 1px solid #e4e4e4;
++    border-bottom: 1px solid #e4e4e4;
++    padding: 14px 0;
+   }
+-  .product-specs__row {
++  .product-specs__col {
+     display: flex;
++    flex-direction: column;
+     align-items: center;
+-    justify-content: space-between;
++    justify-content: flex-start;
++    gap: 8px;
++    text-align: center;
++    padding: 0 10px;
++    border-left: 1px solid #e4e4e4;
++  }
++  .product-specs__col:first-child { border-left: none; }
++  .product-specs__label {
++    font-size: 0.72rem;
++    letter-spacing: 0.06em;
++    text-transform: uppercase;
++    color: #6b6b6b;
++  }
++  .product-specs__value {
+     font-size: 0.88rem;
+-    padding-bottom: 8px;
+-    border-bottom: 1px solid #eee;
++    font-weight: 600;
+   }
+-  .product-specs__label { color: #6b6b6b; }
+   .product-specs__swatches { display: flex; gap: 6px; }
+   .product-specs__swatch {
+     width: 20px;
+@@ -316,6 +416,13 @@ const included = [
+     font-size: 1.1rem;
+   }
+ 
++  .reviews__head {
++    display: flex;
++    align-items: baseline;
++    justify-content: space-between;
++    gap: 16px;
++    flex-wrap: wrap;
++  }
+   .reviews__empty {
+     color: #444;
+   }
+@@ -326,12 +433,130 @@ const included = [
+     max-width: 560px;
+   }
+ 
++  /* ===== Write-a-review modal ===== */
++  .review-modal {
++    position: fixed;
++    inset: 0;
++    z-index: 100;
++    display: flex;
++    align-items: center;
++    justify-content: center;
++    padding: 20px;
++  }
++  .review-modal__overlay {
++    position: absolute;
++    inset: 0;
++    background: rgba(17, 17, 17, 0.45);
++  }
++  .review-modal__panel {
++    position: relative;
++    background: var(--paper);
++    border: 1.5px solid var(--ink);
++    border-radius: var(--radius);
++    width: min(560px, 100%);
++    max-height: 90vh;
++    overflow-y: auto;
++    padding: 22px 24px 24px;
++  }
++  .review-modal__top {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    margin-bottom: 18px;
++  }
++  .review-modal__title { font-size: 1.25rem; }
++
++  .review-field {
++    display: block;
++    margin-bottom: 16px;
++  }
++  .review-field__label {
++    display: block;
++    font-size: 0.82rem;
++    font-weight: 600;
++    margin-bottom: 6px;
++  }
++  .review-field__input {
++    width: 100%;
++    border: 1.5px solid var(--ink);
++    border-radius: var(--radius);
++    padding: 10px 12px;
++    font-family: var(--font-body);
++    font-size: 0.9rem;
++    background: var(--paper);
++  }
++  .review-field__hint {
++    display: block;
++    margin-top: 5px;
++    font-size: 0.75rem;
++    color: #6b6b6b;
++  }
++
++  .review-ratings {
++    border: none;
++    padding: 0;
++    margin: 0 0 16px;
++  }
++  .review-rating {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    gap: 12px;
++    padding: 7px 0;
++    border-bottom: 1px solid #eee;
++  }
++  .review-rating__label { font-size: 0.88rem; }
++  .review-rating__stars { display: inline-flex; gap: 2px; }
++  .review-rating__star {
++    background: none;
++    border: none;
++    padding: 2px;
++    font-size: 1.2rem;
++    line-height: 1;
++    color: #d4d4d4;
++    transition: color 0.12s ease;
++  }
++  .review-rating__star.is-active { color: var(--accent); }
++
++  .review-check {
++    display: flex;
++    align-items: flex-start;
++    gap: 9px;
++    font-size: 0.86rem;
++    margin-bottom: 12px;
++  }
++  .review-check input { margin-top: 3px; }
++
++  .review-form__note {
++    font-size: 0.76rem;
++    color: #6b6b6b;
++    margin: 14px 0 16px;
++  }
++  .review-form__actions {
++    display: flex;
++    gap: 10px;
++    justify-content: flex-end;
++  }
++  .review-form__feedback {
++    margin-top: 12px;
++    font-size: 0.84rem;
++    text-align: center;
++  }
++  .review-form__feedback.is-error { color: #b3261e; }
++  .review-form__feedback.is-info { color: var(--accent); }
++
+   @media (max-width: 860px) {
+     .product-hero__grid { grid-template-columns: 1fr; gap: 28px; }
+     .product-included { grid-template-columns: repeat(3, 1fr); }
+   }
++  @media (max-width: 560px) {
++    .product-specs { grid-template-columns: repeat(2, 1fr); gap: 14px 0; }
++    .product-specs__col:nth-child(3) { border-left: none; }
++  }
+   @media (max-width: 480px) {
+     .product-included { grid-template-columns: repeat(2, 1fr); }
++    .review-form__actions { flex-direction: column-reverse; }
++    .review-form__actions .btn { width: 100%; }
+   }
+ </style>
+ 
+@@ -382,6 +607,72 @@ const included = [
+       window.dispatchEvent(new CustomEvent("cart:open"));
+     });
+ 
++    // ----- Write-a-review modal -----
++    const reviewModal = document.querySelector<HTMLElement>("[data-review-modal]");
++    if (reviewModal) {
++      const openReview = () => {
++        reviewModal.hidden = false;
++        document.body.style.overflow = "hidden";
++        reviewModal.querySelector<HTMLInputElement>("input[name='passport']")?.focus();
++      };
++      const closeReview = () => {
++        reviewModal.hidden = true;
++        document.body.style.overflow = "";
++      };
++
++      document.querySelectorAll<HTMLElement>("[data-review-open]").forEach((btn) =>
++        btn.addEventListener("click", openReview),
++      );
++      reviewModal.querySelectorAll<HTMLElement>("[data-review-close]").forEach((btn) =>
++        btn.addEventListener("click", closeReview),
++      );
++      document.addEventListener("keydown", (e) => {
++        if (e.key === "Escape" && !reviewModal.hidden) closeReview();
++      });
++
++      // Star ratings — each group writes its score into a hidden input.
++      reviewModal.querySelectorAll<HTMLElement>("[data-rating-group]").forEach((group) => {
++        const hidden = group.querySelector<HTMLInputElement>("input[type='hidden']");
++        const stars = Array.from(group.querySelectorAll<HTMLButtonElement>("[data-rating-value]"));
++        const paint = (score: number) => {
++          stars.forEach((star) => {
++            star.classList.toggle("is-active", Number(star.dataset.ratingValue) <= score);
++          });
++        };
++        stars.forEach((star) => {
++          star.addEventListener("click", () => {
++            const score = Number(star.dataset.ratingValue);
++            if (hidden) hidden.value = String(score);
++            paint(score);
++          });
++        });
++      });
++
++      const reviewForm = reviewModal.querySelector<HTMLFormElement>("[data-review-form]");
++      const reviewFeedback = reviewModal.querySelector<HTMLElement>("[data-review-feedback]");
++      reviewForm?.addEventListener("submit", (e) => {
++        e.preventDefault();
++        if (!reviewFeedback) return;
++
++        const missingRating = Array.from(
++          reviewForm.querySelectorAll<HTMLInputElement>("input[type='hidden']"),
++        ).some((input) => Number(input.value) === 0);
++
++        if (missingRating) {
++          reviewFeedback.textContent = "Please give a star rating for all three categories.";
++          reviewFeedback.className = "review-form__feedback is-error";
++          return;
++        }
++
++        // No endpoint yet: a review has to be checked against a real
++        // delivered order before it can be saved, and that API is built
++        // with checkout. Say so plainly rather than faking a success.
++        reviewFeedback.textContent =
++          "Thanks — review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
++        reviewFeedback.className = "review-form__feedback is-info";
++      });
++    }
++
+     // Newsletter signup form (same pattern used across the site).
+     document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {
+       const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+diff --git a/src/styles/brand.css b/src/styles/brand.css
+index 36fc092..de0e4e7 100644
+--- a/src/styles/brand.css
++++ b/src/styles/brand.css
+@@ -598,6 +598,20 @@ button { font-family: inherit; cursor: pointer; }
+ }
+ .cart-item__remove:hover { color: var(--ink); }
+ 
++/* On narrow phones the three-column row runs past the drawer edge and
++   clips "Remove", so drop it under the item details instead. */
++@media (max-width: 420px) {
++  .cart-item {
++    grid-template-columns: 64px 1fr;
++    row-gap: 8px;
++  }
++  .cart-item__remove {
++    grid-column: 2;
++    justify-self: start;
++    font-size: 0.75rem;
++  }
++}
++
+ .cart-sheet__footer {
+   border-top: 1px solid var(--ink);
+   padding-top: 16px;
+@@ -730,6 +744,18 @@ button { font-family: inherit; cursor: pointer; }
+   color: var(--accent);
+ }
+ .mobile-nav__item svg { width: 24px; height: 24px; }
++/* Wraps the bag icon so its count badge can sit on the icon itself
++   rather than over the label underneath. */
++.mobile-nav__icon-wrap {
++  position: relative;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++}
++.mobile-nav__icon-wrap .cart-badge {
++  top: -3px;
++  right: -7px;
++}
+ .mobile-nav__item img { height: 20px; width: auto; }
+ .mobile-nav__item span {
+   font-size: 0.7rem;
+-- 
+2.43.0
+

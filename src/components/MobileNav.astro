@@ -13,9 +13,11 @@ const { currentPath = "" } = Astro.props;
       <span>Home</span>
     </a>
     <a href="/shop" class="mobile-nav__item" aria-current={currentPath === "/shop" ? "page" : undefined}>
+      <!-- Tag, not a bag: the Bag item next to it opens the cart, and two
+           bag icons side by side read as the same thing. -->
       <svg viewBox="0 0 24 24" fill="none">
-        <path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-        <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M4 12.2V5a1 1 0 0 1 1-1h7.2a1 1 0 0 1 .7.3l6.8 6.8a1 1 0 0 1 0 1.4l-7.2 7.2a1 1 0 0 1-1.4 0L4.3 12.9a1 1 0 0 1-.3-.7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle cx="8.6" cy="8.6" r="1.4" stroke="currentColor" stroke-width="1.6"/>
       </svg>
       <span>Shop</span>
     </a>
@@ -26,9 +28,24 @@ const { currentPath = "" } = Astro.props;
       </svg>
       <span>Play</span>
     </a>
+    <button class="mobile-nav__item" data-cart-open aria-label="Open bag">
+      <span class="mobile-nav__icon-wrap">
+        <!-- Shared "small bag" icon — kept identical to the one in
+             SiteHeader.astro so the bag reads the same on every screen. -->
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M3 6h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="cart-badge" data-cart-badge hidden>0</span>
+      </span>
+      <span>Bag</span>
+    </button>
     <button class="mobile-nav__item" data-menu-open aria-label="Open menu">
+      <!-- Shared "even lines" hamburger — kept identical to the one in
+           SiteHeader.astro. -->
       <svg viewBox="0 0 24 24" fill="none">
-        <path d="M4 7h16M7 12h13M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
       <span>More</span>
     </button>
