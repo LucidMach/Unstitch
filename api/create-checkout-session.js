@@ -11,6 +11,7 @@ import prisma from '../src/lib/prisma.js';
 import stripe from '../src/lib/stripe.js';
 import { reserveUnitsForDrop, releaseUnits, InsufficientStockError } from '../src/lib/inventory.js';
 import { getSiteOrigin } from '../src/lib/siteOrigin.js';
+import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../src/lib/deliveryZones.js';
 
 // Checkout Sessions get a 30-minute hold on the reserved units — Stripe's
 // documented minimum for `expires_at`. Long enough for someone to actually
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
   }
 
-  const { slug, quantity, email } = parseResult.data;
+  const { slug, quantity, email, postcode } = parseResult.data;
 
   const product = await prisma.product.findUnique({ where: { slug } });
   if (!product || !product.isActive) {
@@ -63,6 +64,22 @@ export default async function handler(req, res) {
   });
   if (!drop) {
     return sendJson(res, 409, { error: 'This drop is not currently live.' });
+  }
+
+  let deliveryZone;
+  try {
+    deliveryZone = await resolveDeliveryZone(prisma, postcode);
+  } catch (err) {
+    if (err instanceof OutOfDeliveryAreaError) {
+      return sendJson(res, 400, {
+        error: "We currently deliver within Victoria only. If you're interstate, email eshop@unstitchx.com and we'll see what we can arrange.",
+      });
+    }
+    throw err;
+  }
+  if (!deliveryZone) {
+    console.error('[create-checkout-session] No delivery zone configured (checked postcode', postcode, ')');
+    return sendJson(res, 503, { error: 'Delivery pricing is not available right now. Please try again shortly.' });
   }
 
   let reserved;
@@ -99,6 +116,25 @@ export default async function handler(req, res) {
           },
           quantity,
         },
+        // Delivery as its own visible line item, priced from the zone the
+        // customer's postcode resolved to (src/lib/deliveryZones.js) —
+        // Stripe's `amount_total` (what the webhook trusts as totalCents)
+        // automatically includes this.
+        {
+          price_data: {
+            currency: product.currency.toLowerCase(),
+            product_data: {
+              // Postcode included right in the name so it shows in Stripe's
+              // own order summary panel and on the final receipt — lets
+              // anyone glance at a completed order and see exactly which
+              // postcode this fee was quoted for, without needing to cross-
+              // reference the admin panel.
+              name: `Delivery — ${deliveryZone.name} (postcode ${postcode})`,
+            },
+            unit_amount: deliveryZone.feeCents,
+          },
+          quantity: 1,
+        },
       ],
       customer_email: email,
       shipping_address_collection: { allowed_countries: ['AU'] },
@@ -111,6 +147,8 @@ export default async function handler(req, res) {
         dropId: drop.id,
         unitIds: JSON.stringify(unitIds),
         quantity: String(quantity),
+        deliveryZoneId: deliveryZone.id,
+        deliveryFeeCents: String(deliveryZone.feeCents),
       },
     });
 

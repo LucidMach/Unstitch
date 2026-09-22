@@ -27,11 +27,30 @@
       <span>Subtotal</span>
       <span data-cart-subtotal>$0.00</span>
     </div>
-    <button type="button" class="btn btn-filled cart-sheet__checkout" data-cart-checkout>
+
+    <label class="cart-sheet__postcode-label" for="cart-postcode">Delivery postcode <span class="cart-sheet__postcode-hint">(Victoria only, for now)</span></label>
+    <input
+      id="cart-postcode"
+      type="text"
+      inputmode="numeric"
+      pattern="[0-9]{4}"
+      maxlength="4"
+      placeholder="e.g. 3121"
+      class="cart-sheet__postcode-input"
+      data-cart-postcode
+    />
+    <p class="cart-sheet__delivery-quote" data-cart-delivery-quote hidden></p>
+
+    <div class="cart-sheet__subtotal cart-sheet__total" data-cart-total-row hidden>
+      <span>Total (incl. delivery)</span>
+      <span data-cart-total>$0.00</span>
+    </div>
+
+    <button type="button" class="btn btn-filled cart-sheet__checkout" data-cart-checkout disabled>
       Checkout
     </button>
     <p class="cart-sheet__checkout-error" data-cart-checkout-error hidden></p>
-    <p class="cart-sheet__note">You'll be redirected to Stripe to pay securely. Card details never touch our servers.</p>
+    <p class="cart-sheet__note">You'll be redirected to Stripe to pay securely.</p>
   </div>
 </aside>
 
@@ -54,6 +73,86 @@
     });
   }
 
+  // Last successful delivery quote, keyed to the postcode it was fetched
+  // for — so a stale quote from a previous postcode can never be reused if
+  // the fetch for the new one hasn't resolved yet (see updateDeliveryQuote).
+  let currentQuote: { postcode: string; feeCents: number; zoneName: string } | null = null;
+  let quoteRequestId = 0;
+
+  function setCheckoutEnabled(enabled: boolean) {
+    const checkoutBtn = document.querySelector<HTMLButtonElement>("[data-cart-checkout]");
+    if (checkoutBtn) checkoutBtn.disabled = !enabled;
+  }
+
+  function updateTotalDisplay() {
+    const totalRow = document.querySelector<HTMLElement>("[data-cart-total-row]");
+    const totalEl = document.querySelector<HTMLElement>("[data-cart-total]");
+    if (!totalRow || !totalEl) return;
+    if (!currentQuote) {
+      totalRow.hidden = true;
+      return;
+    }
+    const subtotal = cartSubtotalCents(getCart());
+    totalEl.textContent = formatPriceCents(subtotal + currentQuote.feeCents);
+    totalRow.hidden = false;
+  }
+
+  async function updateDeliveryQuote(postcode: string) {
+    const quoteEl = document.querySelector<HTMLElement>("[data-cart-delivery-quote]");
+    const thisRequestId = ++quoteRequestId;
+
+    if (!/^[0-9]{4}$/.test(postcode)) {
+      currentQuote = null;
+      setCheckoutEnabled(false);
+      updateTotalDisplay();
+      if (quoteEl) {
+        quoteEl.hidden = postcode.length === 0;
+        quoteEl.textContent = "Enter a 4-digit postcode to see delivery cost.";
+        quoteEl.classList.remove("is-error");
+      }
+      return;
+    }
+
+    if (quoteEl) {
+      quoteEl.hidden = false;
+      quoteEl.textContent = "Calculating delivery…";
+      quoteEl.classList.remove("is-error");
+    }
+
+    try {
+      const res = await fetch(`/api/delivery-quote?postcode=${encodeURIComponent(postcode)}`);
+      const data = await res.json().catch(() => ({}));
+      if (thisRequestId !== quoteRequestId) return; // a newer postcode was typed meanwhile
+      if (!res.ok) {
+        currentQuote = null;
+        setCheckoutEnabled(false);
+        if (quoteEl) {
+          quoteEl.textContent = data.error || "Couldn't calculate delivery for that postcode.";
+          quoteEl.classList.add("is-error");
+        }
+        updateTotalDisplay();
+        return;
+      }
+      currentQuote = { postcode, feeCents: data.feeCents, zoneName: data.zoneName };
+      if (quoteEl) {
+        const label = `${data.zoneName}${data.isEstimate ? " (estimate)" : ""}`;
+        quoteEl.innerHTML = `<span class="cart-sheet__delivery-quote-label">${label}</span><span class="cart-sheet__delivery-quote-value">${formatPriceCents(data.feeCents)}</span>`;
+        quoteEl.classList.remove("is-error");
+      }
+      setCheckoutEnabled(getCart().length > 0);
+      updateTotalDisplay();
+    } catch {
+      if (thisRequestId !== quoteRequestId) return;
+      currentQuote = null;
+      setCheckoutEnabled(false);
+      if (quoteEl) {
+        quoteEl.textContent = "Network error calculating delivery.";
+        quoteEl.classList.add("is-error");
+      }
+      updateTotalDisplay();
+    }
+  }
+
   function renderCart() {
     const itemsEl = document.querySelector<HTMLElement>("[data-cart-items]");
     const emptyEl = document.querySelector<HTMLElement>("[data-cart-empty]");
@@ -67,12 +166,15 @@
     if (items.length === 0) {
       if (emptyEl) emptyEl.hidden = false;
       if (footerEl) footerEl.hidden = true;
+      setCheckoutEnabled(false);
       updateBadges(items);
       return;
     }
 
     if (emptyEl) emptyEl.hidden = true;
     if (footerEl) footerEl.hidden = false;
+    setCheckoutEnabled(!!currentQuote);
+    updateTotalDisplay();
 
     items.forEach((item) => {
       const row = document.createElement("div");
@@ -133,11 +235,21 @@
     button.disabled = true;
     button.textContent = "Redirecting…";
 
+    if (!currentQuote) {
+      if (errorEl) {
+        errorEl.textContent = "Enter a valid delivery postcode first.";
+        errorEl.hidden = false;
+      }
+      button.disabled = false;
+      button.textContent = originalLabel;
+      return;
+    }
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: item.id, quantity: item.qty }),
+        body: JSON.stringify({ slug: item.id, quantity: item.qty, postcode: currentQuote.postcode }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) {
@@ -177,6 +289,15 @@
     closers.forEach((btn) => btn.addEventListener("click", closeCart));
     overlay?.addEventListener("click", closeCart);
     checkoutBtn?.addEventListener("click", () => startCheckout(checkoutBtn));
+
+    const postcodeInput = document.querySelector<HTMLInputElement>("[data-cart-postcode]");
+    let postcodeDebounce: ReturnType<typeof setTimeout> | undefined;
+    postcodeInput?.addEventListener("input", () => {
+      const value = postcodeInput.value.replace(/\D/g, "").slice(0, 4);
+      postcodeInput.value = value;
+      clearTimeout(postcodeDebounce);
+      postcodeDebounce = setTimeout(() => updateDeliveryQuote(value), 300);
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeCart();
     });

@@ -27,7 +27,9 @@ import Layout from "../../layouts/Layout.astro";
 
     <nav class="admin__tabs">
       <button class="admin__tab is-active" data-tab="orders">Orders</button>
+      <button class="admin__tab" data-tab="inventory">Inventory</button>
       <button class="admin__tab" data-tab="pricing">Pricing</button>
+      <button class="admin__tab" data-tab="customers">Customers</button>
       <button class="admin__tab" data-tab="email">Send email</button>
     </nav>
 
@@ -39,14 +41,17 @@ import Layout from "../../layouts/Layout.astro";
         <div class="admin__orders-list">
           <div class="admin__panel-header">
             <h2>Recent orders</h2>
-            <button id="orders-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+            <div class="admin__panel-header-actions">
+              <button id="orders-email-selected" class="btn-primary btn-primary--small" hidden>Email 0 selected</button>
+              <button id="orders-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+            </div>
           </div>
           <table class="admin-table">
             <thead>
-              <tr><th>Order</th><th>Customer</th><th>Status</th><th>Total</th><th>Date</th></tr>
+              <tr><th class="admin-table__checkbox-col"><input type="checkbox" id="orders-select-all" aria-label="Select all orders" /></th><th>Order</th><th>Customer</th><th>Type</th><th>Status</th><th>Total</th><th>Ship by</th><th>Date</th></tr>
             </thead>
             <tbody id="orders-tbody">
-              <tr><td colspan="5" class="admin-table__empty">Loading…</td></tr>
+              <tr><td colspan="8" class="admin-table__empty">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -57,16 +62,108 @@ import Layout from "../../layouts/Layout.astro";
             <button id="detail-close" class="btn-ghost btn-ghost--small">Close</button>
           </div>
           <dl class="admin-kv" id="detail-summary"></dl>
+          <div class="admin-field-row">
+            <label for="detail-ship-date">Expected to ship by</label>
+            <input id="detail-ship-date" type="date" />
+            <button id="detail-ship-date-save" class="btn-ghost btn-ghost--small" type="button">Save</button>
+          </div>
+          <p id="ship-date-status" class="admin__hint" hidden></p>
           <h3>Items</h3>
           <ul id="detail-items" class="admin-list"></ul>
           <h3>Delivery address</h3>
-          <p id="detail-address" class="admin-muted"></p>
+          <p id="detail-address-empty-hint" class="admin-muted" hidden>No delivery address on file — fill in the fields below to add one.</p>
+          <div class="admin-grid">
+            <label>Recipient name<input id="detail-addr-recipient" type="text" /></label>
+            <label>Address line 1<input id="detail-addr-line1" type="text" /></label>
+            <label>Address line 2 <span class="admin-muted">(optional)</span><input id="detail-addr-line2" type="text" /></label>
+            <label>Suburb<input id="detail-addr-suburb" type="text" /></label>
+            <label>State<input id="detail-addr-state" type="text" /></label>
+            <label>Postcode<input id="detail-addr-postcode" type="text" /></label>
+          </div>
+          <h3>Internal note <span class="admin-muted">(admin-only — never shown to the customer)</span></h3>
+          <textarea id="detail-note" rows="2"></textarea>
+          <button id="detail-order-save" class="btn-ghost btn-ghost--small" type="button">Save address &amp; note</button>
+          <p id="order-details-status" class="admin__hint" hidden></p>
           <h3>Payments</h3>
           <ul id="detail-payments" class="admin-list"></ul>
-          <button id="resend-confirmation" class="btn-primary">Resend confirmation email</button>
+          <div class="admin__actions">
+            <button id="mark-paid" class="btn-primary" title="Records payment for this quote and moves it to Paid" hidden>Mark as paid</button>
+            <button id="resend-confirmation" class="btn-primary" title="Emails the order confirmation again">Resend confirmation email</button>
+            <button id="mark-shipped" class="btn-primary btn-primary--ship" title="Records today as the ship date">Mark as shipped</button>
+            <button id="delete-test-order" class="btn-danger" title="Permanently deletes this order and reverts any numbered units it sold back to in-stock">Delete order (test data)</button>
+          </div>
+          <p id="paid-status" class="admin__hint" hidden></p>
           <p id="resend-status" class="admin__hint" hidden></p>
+          <p id="ship-status" class="admin__hint" hidden></p>
+          <p id="delete-order-status" class="admin__hint" hidden></p>
         </div>
       </div>
+
+      <details class="admin-card admin-card--collapsible">
+        <summary>+ Create a manual order <span class="admin-muted">(cash sale, gift, workshop giveaway, commission — not through Stripe)</span></summary>
+        <div class="admin-manual-order">
+          <div class="admin-grid">
+            <label>Customer email<input id="mo-email" type="email" /></label>
+            <label>Customer name (optional)<input id="mo-name" type="text" /></label>
+            <label>Type
+              <select id="mo-type">
+                <option value="DROP_SALE">Drop sale — numbered kit from current stock</option>
+                <option value="WORKSHOP">Workshop giveaway — numbered kit from current stock</option>
+                <option value="COMMISSION">Commission — custom one-off, not from the drop</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+            <label>Quantity<input id="mo-quantity" type="number" min="1" max="20" step="1" value="1" /></label>
+            <label>Price override ($, optional)<input id="mo-price" type="number" step="0.01" min="0" placeholder="uses current retail price" /></label>
+            <label>Delivery method
+              <select id="mo-delivery">
+                <option value="NONE">Not applicable / picked up</option>
+                <option value="SELF_DELIVERY">Self-delivery</option>
+                <option value="AUSPOST">Australia Post</option>
+                <option value="PICKUP">Drop-box pickup</option>
+              </select>
+            </label>
+            <label>Customer postcode <span class="admin-muted">(for Self-delivery/Australia Post fee, and part of the shipping address below)</span><input id="mo-postcode" type="text" inputmode="numeric" maxlength="10" placeholder="e.g. 3006" /></label>
+            <label>Delivery fee override ($, optional) <span class="admin-muted">(for a larger/heavier piece)</span><input id="mo-delivery-fee" type="number" step="0.01" min="0" placeholder="uses resolved zone fee" /></label>
+            <label>Payment status
+              <select id="mo-payment-status">
+                <option value="PAID">Paid — payment already received</option>
+                <option value="UNPAID">Quote issued — not paid yet</option>
+              </select>
+            </label>
+            <label>Expected ship date <span class="admin-muted">(optional — leave blank to auto-calculate; min 5 business days out)</span><input id="mo-ship-date" type="date" /></label>
+            <label>Note (internal only, optional)<input id="mo-note" type="text" maxlength="500" /></label>
+          </div>
+
+          <h3 class="admin-manual-order__subheading">Shipping address <span class="admin-muted">(optional — needed to show "Shipping to" on the order and in the confirmation email)</span></h3>
+          <div class="admin-grid">
+            <label>Recipient name<input id="mo-recipient" type="text" placeholder="defaults to customer name/email" /></label>
+            <label>Address line 1<input id="mo-address1" type="text" /></label>
+            <label>Address line 2 (optional)<input id="mo-address2" type="text" /></label>
+            <label>Suburb<input id="mo-suburb" type="text" /></label>
+            <label>State<input id="mo-state" type="text" maxlength="10" placeholder="VIC" /></label>
+          </div>
+
+          <label class="admin-checkbox-label"><input id="mo-send-email" type="checkbox" /> Email the customer a confirmation</label>
+          <div id="mo-email-fields" hidden>
+            <label for="mo-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
+            <textarea id="mo-email-message" rows="4" maxlength="10000"></textarea>
+            <div class="admin-grid">
+              <label>Sign as <span class="admin-muted">(optional — defaults to Astra)</span><input id="mo-email-sig-name" type="text" placeholder="Astra" /></label>
+              <label>Their role <span class="admin-muted">(optional — defaults to Designer at Unstitch)</span><input id="mo-email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
+            </div>
+          </div>
+
+          <button id="mo-submit" class="btn-primary">Create order</button>
+          <p id="mo-status" class="admin__hint" hidden></p>
+        </div>
+      </details>
+    </section>
+
+    <!-- INVENTORY -->
+    <section data-panel="inventory" class="admin__panel" hidden>
+      <p id="inventory-loading">Loading drops…</p>
+      <div id="inventory-content" hidden></div>
     </section>
 
     <!-- PRICING -->
@@ -129,24 +226,65 @@ import Layout from "../../layouts/Layout.astro";
       </div>
     </section>
 
-    <!-- EMAIL -->
+    <!-- CUSTOMERS -->
+    <section data-panel="customers" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Customers</h2>
+        <div class="admin__panel-header-actions">
+          <button id="customers-email-selected" class="btn-primary btn-primary--small" hidden>Email 0 selected</button>
+          <button id="customers-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr><th class="admin-table__checkbox-col"><input type="checkbox" id="customers-select-all" aria-label="Select all customers" /></th><th>Email</th><th>Name</th><th>Orders</th><th>Total spent</th><th>Joined</th></tr>
+        </thead>
+        <tbody id="customers-tbody">
+          <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin__order-detail" id="customer-detail" hidden>
+        <div class="admin__panel-header">
+          <h2>Edit customer</h2>
+          <button id="customer-detail-close" class="btn-ghost btn-ghost--small">Close</button>
+        </div>
+        <p class="admin-muted">Changes here only affect the customer record — past orders keep the details that were on them at the time.</p>
+        <div class="admin-grid">
+          <label>Email<input id="cd-email" type="email" /></label>
+          <label>Name<input id="cd-name" type="text" /></label>
+          <label>Phone<input id="cd-phone" type="text" /></label>
+        </div>
+        <button id="customer-detail-save" class="btn-primary">Save changes</button>
+        <p id="customer-detail-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
     <section data-panel="email" class="admin__panel" hidden>
       <div class="admin-card">
         <h2>Send a custom email</h2>
-        <label for="email-to">To</label>
-        <input id="email-to" type="email" />
+        <label for="email-to">To <span class="admin-muted">(comma or newline-separated — sent individually, never CC'd together)</span></label>
+        <textarea id="email-to" rows="2" placeholder="one@example.com, two@example.com"></textarea>
+        <p class="admin-muted">Or check recipients from the <button type="button" id="email-goto-customers" class="admin-link-btn">Customers</button> or <button type="button" id="email-goto-orders" class="admin-link-btn">Orders</button> tab.</p>
         <label for="email-subject">Subject</label>
         <input id="email-subject" type="text" maxlength="200" />
         <label for="email-message">Message</label>
         <textarea id="email-message" rows="6" maxlength="10000"></textarea>
+        <p class="admin-muted">Your sign-off (Astra — Designer at Unstitch, with website/LinkedIn/Instagram) is added automatically. Sends as a branded HTML email, with a plain-text fallback.</p>
+        <label for="email-gif-url">Sign-off gif URL <span class="admin-muted">(optional — e.g. for a workshop or new-contact welcome note)</span></label>
+        <input id="email-gif-url" type="url" placeholder="https://unstitchx.com/…/welcome.gif" />
+        <div class="admin-grid">
+          <label>Sign as <span class="admin-muted">(optional — defaults to Astra)</span><input id="email-sig-name" type="text" placeholder="Astra" /></label>
+          <label>Their role <span class="admin-muted">(optional — defaults to Designer at Unstitch)</span><input id="email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
+        </div>
         <button id="email-send" class="btn-primary">Send</button>
         <p id="email-status" class="admin__hint" hidden></p>
       </div>
     </section>
-  </main>
-</Layout>
 
-<style>
+  </main>
+
+<style is:global>
   .admin {
     max-width: 960px;
     margin: 0 auto;
@@ -177,11 +315,20 @@ import Layout from "../../layouts/Layout.astro";
   }
   .admin__panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .admin__panel-header h2 { font-size: 1rem; margin: 0; }
+  .admin__panel-header-actions { display: flex; align-items: center; gap: 8px; }
   .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   .admin-table th { text-align: left; padding: 8px 6px; color: #777; font-weight: 500; border-bottom: 1px solid #ddd; }
   .admin-table td { padding: 8px 6px; border-bottom: 1px solid #eee; }
   .admin-table tr[data-order-row] { cursor: pointer; }
   .admin-table tr[data-order-row]:hover { background: #f7f6f3; }
+  .admin-table tr[data-customer-row] { cursor: pointer; }
+  .admin-table tr[data-customer-row]:hover { background: #f7f6f3; }
+  .admin-table__checkbox-col { width: 28px; }
+  .btn-primary--small { padding: 4px 10px; font-size: 0.78rem; }
+  .admin-link-btn {
+    background: none; border: none; padding: 0; font: inherit; color: var(--accent, #1a1a1a);
+    text-decoration: underline; cursor: pointer;
+  }
   .admin-table__empty { color: #888; text-align: center; padding: 20px !important; }
   .admin__order-detail { background: #fff; border: 1px solid #e2e0db; border-radius: 10px; padding: 18px; }
   .admin-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.88rem; margin: 0 0 14px; }
@@ -189,6 +336,8 @@ import Layout from "../../layouts/Layout.astro";
   .admin-kv dd { margin: 0; }
   .admin-list { list-style: none; padding: 0; margin: 0 0 14px; font-size: 0.88rem; }
   .admin-list li { padding: 6px 0; border-bottom: 1px solid #eee; }
+  .admin-list--inline { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .admin-list--inline li { border-bottom: none; padding: 0; font-size: 0.85rem; }
   .admin-muted { color: #777; font-size: 0.85rem; }
   .admin-card {
     background: #fff; border: 1px solid #e2e0db; border-radius: 10px;
@@ -207,19 +356,94 @@ import Layout from "../../layouts/Layout.astro";
   @media (min-width: 620px) {
     .admin-grid { grid-template-columns: repeat(3, 1fr); }
   }
+  /* --- Buttons: every actionable button gets a visible hover/active state
+     and a colour that signals what it does (black = normal action, red =
+     destructive/removes something, outlined = secondary/toggle). --- */
   .btn-primary {
-    margin-top: 14px; padding: 9px 16px; border: none; border-radius: 6px;
-    background: #1a1a1a; color: #fff; font-size: 0.88rem; cursor: pointer;
+    margin-top: 14px; padding: 9px 16px; border: 1px solid #1a1a1a; border-radius: 6px;
+    background: #1a1a1a; color: #fff; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    transition: background-color 0.12s ease, transform 0.05s ease;
   }
-  .btn-primary:disabled { opacity: 0.6; cursor: default; }
+  .btn-primary:hover:not(:disabled) { background: #3a3a3a; }
+  .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+  .btn-primary:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary--ship { background: #1a5f3f; border-color: #1a5f3f; }
+  .btn-primary--ship:hover:not(:disabled) { background: #227a51; }
+  .btn-danger {
+    margin-top: 14px; padding: 9px 16px; border: 1px solid #b3261e; border-radius: 6px;
+    background: #fff; color: #b3261e; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease, transform 0.05s ease;
+  }
+  .btn-danger:hover:not(:disabled) { background: #b3261e; color: #fff; }
+  .btn-danger:active:not(:disabled) { transform: translateY(1px); }
+  .btn-danger:focus-visible { outline: 2px solid #b3261e; outline-offset: 2px; }
+  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-ghost {
     background: none; border: 1px solid #ccc; border-radius: 6px; padding: 7px 12px;
-    font-size: 0.85rem; cursor: pointer; color: #333;
+    font-size: 0.85rem; cursor: pointer; color: #333; transition: background-color 0.12s ease, border-color 0.12s ease;
   }
+  .btn-ghost:hover:not(:disabled) { background: #f2f1ee; border-color: #999; }
+  .btn-ghost:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
   .btn-ghost--small { padding: 4px 10px; font-size: 0.78rem; }
+  .admin__actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .admin__hint { font-size: 0.82rem; margin-top: 8px; }
   .admin__hint.is-success { color: #1a7f37; }
   .admin__hint.is-error { color: #b3261e; }
+
+  /* --- Manual order --- */
+  .admin-card--collapsible { cursor: default; }
+  .admin-card--collapsible > summary {
+    cursor: pointer; font-weight: 600; font-size: 0.92rem; list-style: none;
+  }
+  .admin-card--collapsible > summary::-webkit-details-marker { display: none; }
+  .admin-manual-order { margin-top: 14px; }
+  .admin-manual-order__subheading { font-size: 0.88rem; margin: 18px 0 4px; font-weight: 600; }
+  .admin-checkbox-label {
+    display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
+    color: #333; margin: 16px 0 6px; cursor: pointer;
+  }
+  .admin-checkbox-label input { width: auto; margin: 0; }
+
+  /* --- Inventory: drop cards --- */
+  .admin-drop-card { display: flex; gap: 16px; }
+  .admin-drop-photo {
+    width: 72px; height: 72px; flex: 0 0 auto; border-radius: 8px; object-fit: cover;
+    background: #f2f1ee; border: 1px solid #e2e0db;
+  }
+  .admin-drop-body { flex: 1 1 auto; min-width: 0; }
+  .admin-drop-code {
+    display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8rem; font-weight: 700; background: #1a1a1a; color: #fff;
+    padding: 2px 8px; border-radius: 4px; letter-spacing: 0.02em; margin-left: 8px;
+    vertical-align: middle;
+  }
+  .admin-status-chip {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.76rem;
+    background: #eee; color: #444; border: 1px solid #ddd;
+  }
+  .admin-status-chip[data-status="IN_STOCK"] { background: #e7f4ec; color: #1a5f3f; border-color: #bfe3cc; }
+  .admin-status-chip[data-status="RESERVED"] { background: #fff6e0; color: #8a6d1a; border-color: #f0dfa3; }
+  .admin-status-chip[data-status="SOLD"], .admin-status-chip[data-status="SHIPPED"], .admin-status-chip[data-status="DELIVERED"] {
+    background: #e8eefc; color: #2b4c9b; border-color: #c7d5f5;
+  }
+  .admin-status-chip[data-status="VOID"] { background: #f5eaea; color: #8a3a3a; border-color: #e6c9c9; text-decoration: line-through; }
+  .admin-flag {
+    display: inline-block; font-size: 0.72rem; font-weight: 700; color: #8a3a1a;
+    background: #fdece0; border: 1px solid #f0c9a8; border-radius: 4px;
+    padding: 1px 6px; margin-left: 6px; vertical-align: middle; cursor: help;
+  }
+  .admin-flag--muted { color: #666; background: #f2f2f2; border-color: #ddd; font-weight: 400; }
+  .admin-shipby--overdue { color: #a33a3a; font-weight: 700; }
+  .admin-units-toggle {
+    background: none; border: none; padding: 4px 0; font-size: 0.82rem; color: #555;
+    text-decoration: underline; cursor: pointer; margin-top: 6px;
+  }
+  .admin-units-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 8px; }
+  .admin-units-table th { text-align: left; padding: 4px 6px; color: #888; font-weight: 500; }
+  .admin-units-table td { padding: 4px 6px; border-top: 1px solid #eee; }
+  .admin-restock-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .admin-restock-row .admin-field-row { margin-right: 4px; }
 </style>
 
 <script>
@@ -230,8 +454,46 @@ import Layout from "../../layouts/Layout.astro";
     totalCents: number;
     currency: string;
     createdAt: string;
+    expectedShipAt?: string | null;
+    shippedAt?: string | null;
+    internalNote?: string | null;
     customer: { email: string; name: string | null };
   };
+
+  function orderTypeLabel(note: string | null | undefined): string {
+    if (!note) return "—";
+    const match = note.match(/^\[(Drop sale|Workshop|Commission|Other)\]/);
+    return match ? match[1] : "—";
+  }
+
+  type CustomerSummary = {
+    id: string;
+    email: string;
+    name: string | null;
+    createdAt: string;
+    orderCount: number;
+    totalSpentCents: number;
+  };
+
+  // Selection state for the bulk-email workflow — shared across the Orders
+  // and Customers tabs so either one can hand its picks to the Send Email
+  // tab. Keyed by order id / customer email respectively; emails are the
+  // natural key for customers since that's what a send ultimately needs.
+  const selectedOrderIds = new Set<string>();
+  const orderEmailsById = new Map<string, string>();
+  const selectedCustomerEmails = new Set<string>();
+
+  function updateOrdersEmailButton() {
+    const btn = document.getElementById("orders-email-selected") as HTMLButtonElement;
+    btn.hidden = selectedOrderIds.size === 0;
+    btn.textContent = `Email ${selectedOrderIds.size} selected`;
+  }
+
+  function updateCustomersEmailButton() {
+    const btn = document.getElementById("customers-email-selected") as HTMLButtonElement;
+    btn.hidden = selectedCustomerEmails.size === 0;
+    btn.textContent = `Email ${selectedCustomerEmails.size} selected`;
+  }
 
   function money(cents: number, currency = "AUD") {
     return `${currency} $${(cents / 100).toFixed(2)}`;
@@ -274,16 +536,19 @@ import Layout from "../../layouts/Layout.astro";
   }
 
   // --- Tabs ---
-  document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => t.classList.remove("is-active"));
-      tab.classList.add("is-active");
-      const target = tab.dataset.tab;
-      document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
-        panel.hidden = panel.dataset.panel !== target;
-      });
-      if (target === "pricing") loadProduct();
+  function activateTab(target: string) {
+    document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => {
+      t.classList.toggle("is-active", t.dataset.tab === target);
     });
+    document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== target;
+    });
+    if (target === "pricing") loadProduct();
+    if (target === "inventory") loadInventory();
+    if (target === "customers") loadCustomers();
+  }
+  document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
+    tab.addEventListener("click", () => activateTab(tab.dataset.tab as string));
   });
 
   document.getElementById("logout-btn")?.addEventListener("click", async () => {
@@ -298,29 +563,86 @@ import Layout from "../../layouts/Layout.astro";
       const res = await api("/api/admin/orders");
       if (!res.ok) throw new Error("Failed to load orders");
       const { orders } = (await res.json()) as { orders: OrderSummary[] };
+      orderEmailsById.clear();
       if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">No orders yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">No orders yet.</td></tr>`;
+        updateOrdersEmailButton();
         return;
       }
+      const now = Date.now();
       tbody.innerHTML = orders
-        .map(
-          (o) => `
+        .map((o) => {
+          orderEmailsById.set(o.id, o.customer?.email || "");
+          const noteTitle = o.internalNote ? o.internalNote.replace(/"/g, "&quot;") : "";
+          const noteFlag = o.internalNote?.includes("⚠️")
+            ? ` <span class="admin-flag" title="${noteTitle}">⚠️ review</span>`
+            : o.internalNote
+              ? ` <span class="admin-flag admin-flag--muted" title="${noteTitle}">📝</span>`
+              : "";
+          const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= now;
+          const shipByCell = o.shippedAt
+            ? `Shipped ${new Date(o.shippedAt).toLocaleDateString()}`
+            : o.expectedShipAt
+              ? `<span class="${overdue ? "admin-shipby--overdue" : ""}">${overdue ? "Overdue — " : ""}${new Date(o.expectedShipAt).toLocaleDateString()}</span>`
+              : "—";
+          return `
         <tr data-order-row data-id="${o.id}">
-          <td>${o.orderNumber}</td>
+          <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${o.id}" aria-label="Select order ${o.orderNumber}" /></td>
+          <td>${o.orderNumber}${noteFlag}</td>
           <td>${o.customer?.name || o.customer?.email || "—"}</td>
+          <td>${orderTypeLabel(o.internalNote)}</td>
           <td>${o.status}</td>
           <td>${money(o.totalCents, o.currency)}</td>
+          <td>${shipByCell}</td>
           <td>${new Date(o.createdAt).toLocaleDateString()}</td>
-        </tr>`,
-        )
+        </tr>`;
+        })
         .join("");
       tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => {
-        row.addEventListener("click", () => openOrderDetail(row.dataset.id as string));
+        row.addEventListener("click", (e) => {
+          if ((e.target as HTMLElement).closest("[data-checkbox-cell]")) return;
+          openOrderDetail(row.dataset.id as string);
+        });
       });
+      tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox").forEach((cb) => {
+        cb.checked = selectedOrderIds.has(cb.dataset.orderId as string);
+        cb.addEventListener("click", (e) => e.stopPropagation());
+        cb.addEventListener("change", () => {
+          const id = cb.dataset.orderId as string;
+          if (cb.checked) selectedOrderIds.add(id);
+          else selectedOrderIds.delete(id);
+          updateOrdersEmailButton();
+          const all = tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox");
+          const selectAll = document.getElementById("orders-select-all") as HTMLInputElement;
+          selectAll.checked = all.length > 0 && tbody.querySelectorAll(".order-select-checkbox:checked").length === all.length;
+        });
+      });
+      updateOrdersEmailButton();
     } catch {
-      tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">Couldn't load orders.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">Couldn't load orders.</td></tr>`;
     }
   }
+
+  document.getElementById("orders-select-all")?.addEventListener("change", (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
+    tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox").forEach((cb) => {
+      cb.checked = checked;
+      const id = cb.dataset.orderId as string;
+      if (checked) selectedOrderIds.add(id);
+      else selectedOrderIds.delete(id);
+    });
+    updateOrdersEmailButton();
+  });
+
+  document.getElementById("orders-email-selected")?.addEventListener("click", () => {
+    const emails = Array.from(selectedOrderIds)
+      .map((id) => orderEmailsById.get(id))
+      .filter((e): e is string => !!e);
+    const unique = Array.from(new Set(emails));
+    (document.getElementById("email-to") as HTMLTextAreaElement).value = unique.join("\n");
+    activateTab("email");
+  });
 
   async function openOrderDetail(id: string) {
     const detail = document.getElementById("order-detail") as HTMLDivElement;
@@ -335,6 +657,7 @@ import Layout from "../../layouts/Layout.astro";
         <dt>Status</dt><dd>${order.status}</dd>
         <dt>Total</dt><dd>${money(order.totalCents, order.currency)}</dd>
         <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
+        <dt>Shipped</dt><dd>${order.shippedAt ? new Date(order.shippedAt).toLocaleString() : "Not yet"}</dd>
       `;
       (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
         .map(
@@ -343,13 +666,112 @@ import Layout from "../../layouts/Layout.astro";
         )
         .join("") || "<li>No items</li>";
       const addr = order.deliveryAddress;
-      (document.getElementById("detail-address") as HTMLElement).textContent = addr
-        ? `${addr.recipientName}, ${addr.line1}${addr.line2 ? ", " + addr.line2 : ""}, ${addr.suburb} ${addr.state} ${addr.postcode}, ${addr.country}`
-        : "No delivery address on file.";
+      (document.getElementById("detail-address-empty-hint") as HTMLElement).hidden = !!addr;
+      (document.getElementById("detail-addr-recipient") as HTMLInputElement).value = addr?.recipientName || "";
+      (document.getElementById("detail-addr-line1") as HTMLInputElement).value = addr?.line1 || "";
+      (document.getElementById("detail-addr-line2") as HTMLInputElement).value = addr?.line2 || "";
+      (document.getElementById("detail-addr-suburb") as HTMLInputElement).value = addr?.suburb || "";
+      (document.getElementById("detail-addr-state") as HTMLInputElement).value = addr?.state || "";
+      (document.getElementById("detail-addr-postcode") as HTMLInputElement).value = addr?.postcode || "";
+      (document.getElementById("detail-note") as HTMLTextAreaElement).value = order.internalNote || "";
+
+      const orderSaveBtn = document.getElementById("detail-order-save") as HTMLButtonElement;
+      const orderSaveStatus = document.getElementById("order-details-status") as HTMLElement;
+      orderSaveStatus.hidden = true;
+      orderSaveBtn.onclick = async () => {
+        orderSaveBtn.disabled = true;
+        orderSaveStatus.hidden = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({
+              action: "update-order-details",
+              orderId: order.id,
+              recipientName: (document.getElementById("detail-addr-recipient") as HTMLInputElement).value.trim(),
+              addressLine1: (document.getElementById("detail-addr-line1") as HTMLInputElement).value.trim(),
+              addressLine2: (document.getElementById("detail-addr-line2") as HTMLInputElement).value.trim(),
+              suburb: (document.getElementById("detail-addr-suburb") as HTMLInputElement).value.trim(),
+              state: (document.getElementById("detail-addr-state") as HTMLInputElement).value.trim(),
+              postcode: (document.getElementById("detail-addr-postcode") as HTMLInputElement).value.trim(),
+              internalNote: (document.getElementById("detail-note") as HTMLTextAreaElement).value.trim(),
+            }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(orderSaveStatus, "Saved.", true);
+            loadOrders();
+          } else {
+            showHint(orderSaveStatus, data.error || "Failed to save.", false);
+          }
+        } catch {
+          showHint(orderSaveStatus, "Network error.", false);
+        } finally {
+          orderSaveBtn.disabled = false;
+        }
+      };
+
       (document.getElementById("detail-payments") as HTMLElement).innerHTML =
         order.payments
           .map((p: any) => `<li>${p.provider} — ${p.status} — ${money(p.amountCents, order.currency)}</li>`)
           .join("") || "<li>No payments recorded</li>";
+
+      const shipDateInput = document.getElementById("detail-ship-date") as HTMLInputElement;
+      const shipDateSaveBtn = document.getElementById("detail-ship-date-save") as HTMLButtonElement;
+      const shipDateStatus = document.getElementById("ship-date-status") as HTMLElement;
+      shipDateStatus.hidden = true;
+      shipDateInput.value = order.expectedShipAt ? new Date(order.expectedShipAt).toISOString().slice(0, 10) : "";
+      shipDateSaveBtn.onclick = async () => {
+        const value = shipDateInput.value;
+        if (!value) {
+          showHint(shipDateStatus, "Pick a date first.", false);
+          return;
+        }
+        shipDateSaveBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "update-ship-date", orderId: order.id, expectedShipAt: value }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(shipDateStatus, "Ship-by date updated.", true);
+            loadOrders();
+          } else {
+            showHint(shipDateStatus, data.error || "Failed to update.", false);
+          }
+        } catch {
+          showHint(shipDateStatus, "Network error.", false);
+        } finally {
+          shipDateSaveBtn.disabled = false;
+        }
+      };
+
+      const paidBtn = document.getElementById("mark-paid") as HTMLButtonElement;
+      const paidStatus = document.getElementById("paid-status") as HTMLElement;
+      paidStatus.hidden = true;
+      paidBtn.hidden = order.status !== "PENDING_PAYMENT";
+      paidBtn.onclick = async () => {
+        paidBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "mark-paid", orderId: order.id }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(paidStatus, "Marked as paid.", true);
+            paidBtn.hidden = true;
+            openOrderDetail(order.id);
+            loadOrders();
+          } else {
+            showHint(paidStatus, data.error || "Failed to update.", false);
+            paidBtn.disabled = false;
+          }
+        } catch {
+          showHint(paidStatus, "Network error.", false);
+          paidBtn.disabled = false;
+        }
+      };
 
       const resendBtn = document.getElementById("resend-confirmation") as HTMLButtonElement;
       const resendStatus = document.getElementById("resend-status") as HTMLElement;
@@ -370,6 +792,62 @@ import Layout from "../../layouts/Layout.astro";
           resendBtn.disabled = false;
         }
       };
+
+      const shipBtn = document.getElementById("mark-shipped") as HTMLButtonElement;
+      const shipStatus = document.getElementById("ship-status") as HTMLElement;
+      shipStatus.hidden = true;
+      shipBtn.disabled = !!order.shippedAt;
+      shipBtn.textContent = order.shippedAt ? "Already marked shipped" : "Mark as shipped";
+      shipBtn.onclick = async () => {
+        shipBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "mark-shipped", orderId: order.id }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(shipStatus, "Marked as shipped.", true);
+            shipBtn.textContent = "Already marked shipped";
+            openOrderDetail(order.id);
+            loadOrders();
+          } else {
+            showHint(shipStatus, data.error || "Failed to update.", false);
+            shipBtn.disabled = false;
+          }
+        } catch {
+          showHint(shipStatus, "Network error.", false);
+          shipBtn.disabled = false;
+        }
+      };
+
+      const deleteBtn = document.getElementById("delete-test-order") as HTMLButtonElement;
+      const deleteStatus = document.getElementById("delete-order-status") as HTMLElement;
+      deleteStatus.hidden = true;
+      deleteBtn.onclick = async () => {
+        const warning = order.shippedAt
+          ? `Order ${order.orderNumber} has already been marked shipped — this permanently deletes it and puts any numbered unit(s) it sold back IN_STOCK as if never sold. This cannot be undone. Continue?`
+          : `Permanently delete order ${order.orderNumber} and put any numbered unit(s) it sold back IN_STOCK as if never sold? This cannot be undone.`;
+        if (!window.confirm(warning)) return;
+        deleteBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "delete-test-order", orderId: order.id }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            (document.getElementById("order-detail") as HTMLDivElement).hidden = true;
+            loadOrders();
+          } else {
+            showHint(deleteStatus, data.error || "Failed to delete.", false);
+            deleteBtn.disabled = false;
+          }
+        } catch {
+          showHint(deleteStatus, "Network error.", false);
+          deleteBtn.disabled = false;
+        }
+      };
     } catch {
       showGlobalError("Couldn't load that order.");
     }
@@ -379,6 +857,495 @@ import Layout from "../../layouts/Layout.astro";
     (document.getElementById("order-detail") as HTMLDivElement).hidden = true;
   });
   document.getElementById("orders-refresh")?.addEventListener("click", loadOrders);
+
+  // --- Customers ---
+  async function loadCustomers() {
+    const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
+    try {
+      const res = await api("/api/admin/customers");
+      if (!res.ok) throw new Error("Failed to load customers");
+      const { customers } = (await res.json()) as { customers: CustomerSummary[] };
+      if (customers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No customers yet.</td></tr>`;
+        updateCustomersEmailButton();
+        return;
+      }
+      tbody.innerHTML = customers
+        .map(
+          (c) => `
+        <tr data-customer-row data-customer-id="${c.id}">
+          <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${c.email}" aria-label="Select ${c.email}" /></td>
+          <td>${c.email}</td>
+          <td>${c.name || "—"}</td>
+          <td>${c.orderCount}</td>
+          <td>${money(c.totalSpentCents)}</td>
+          <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+        </tr>`,
+        )
+        .join("");
+      tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox").forEach((cb) => {
+        cb.checked = selectedCustomerEmails.has(cb.dataset.email as string);
+        cb.addEventListener("change", (e) => {
+          e.stopPropagation();
+          const email = cb.dataset.email as string;
+          if (cb.checked) selectedCustomerEmails.add(email);
+          else selectedCustomerEmails.delete(email);
+          updateCustomersEmailButton();
+          const all = tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox");
+          const selectAll = document.getElementById("customers-select-all") as HTMLInputElement;
+          selectAll.checked = all.length > 0 && tbody.querySelectorAll(".customer-select-checkbox:checked").length === all.length;
+        });
+      });
+      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-customer-row]").forEach((row) => {
+        row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId as string));
+      });
+      updateCustomersEmailButton();
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load customers.</td></tr>`;
+    }
+  }
+
+  async function openCustomerDetail(id: string) {
+    const detail = document.getElementById("customer-detail") as HTMLDivElement;
+    const status = document.getElementById("customer-detail-status") as HTMLElement;
+    status.hidden = true;
+    try {
+      const res = await api(`/api/admin/customers?id=${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error("not found");
+      const { customer } = await res.json();
+      detail.hidden = false;
+      (document.getElementById("cd-email") as HTMLInputElement).value = customer.email;
+      (document.getElementById("cd-name") as HTMLInputElement).value = customer.name || "";
+      (document.getElementById("cd-phone") as HTMLInputElement).value = customer.phone || "";
+
+      const saveBtn = document.getElementById("customer-detail-save") as HTMLButtonElement;
+      saveBtn.onclick = async () => {
+        const email = (document.getElementById("cd-email") as HTMLInputElement).value.trim();
+        const name = (document.getElementById("cd-name") as HTMLInputElement).value.trim();
+        const phone = (document.getElementById("cd-phone") as HTMLInputElement).value.trim();
+        if (!email) return showHint(status, "Email can't be blank.", false);
+        saveBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/customers", {
+            method: "POST",
+            body: JSON.stringify({ customerId: id, email, name: name || null, phone: phone || null }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(status, "Saved.", true);
+            loadCustomers();
+          } else {
+            showHint(status, data.error || "Failed to save.", false);
+          }
+        } catch {
+          showHint(status, "Network error.", false);
+        } finally {
+          saveBtn.disabled = false;
+        }
+      };
+    } catch {
+      showGlobalError("Couldn't load that customer.");
+    }
+  }
+
+  document.getElementById("customer-detail-close")?.addEventListener("click", () => {
+    (document.getElementById("customer-detail") as HTMLDivElement).hidden = true;
+  });
+
+  document.getElementById("customers-select-all")?.addEventListener("change", (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
+    tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox").forEach((cb) => {
+      cb.checked = checked;
+      const email = cb.dataset.email as string;
+      if (checked) selectedCustomerEmails.add(email);
+      else selectedCustomerEmails.delete(email);
+    });
+    updateCustomersEmailButton();
+  });
+
+  document.getElementById("customers-refresh")?.addEventListener("click", loadCustomers);
+
+  document.getElementById("customers-email-selected")?.addEventListener("click", () => {
+    (document.getElementById("email-to") as HTMLTextAreaElement).value = Array.from(selectedCustomerEmails).join("\n");
+    activateTab("email");
+  });
+
+  // --- Inventory ---
+  type UnitSummary = { id: string; serial: string; editionNumber: number; status: string };
+  type DropSummary = {
+    id: string;
+    dropCode: string;
+    status: string;
+    totalUnits: number;
+    releaseAt: string | null;
+    product: { id: string; name: string; slug: string; sku: string; imageUrl: string | null };
+    statusCounts: Record<string, number>;
+    units: UnitSummary[];
+  };
+
+  const UNIT_STATUS_LABELS: Record<string, string> = {
+    IN_STOCK: "In stock",
+    RESERVED: "Reserved",
+    SOLD: "Sold",
+    SHIPPED: "Shipped",
+    DELIVERED: "Delivered",
+    REGISTERED: "Registered",
+    RETURNED: "Returned",
+    VOID: "Void (removed)",
+  };
+
+  // Every unit's serial doubles as its passport URL slug (see
+  // api/admin/inventory.js), so the QR just needs to encode a permanent
+  // link — no dynamic QR service needed, since the *page* the code points
+  // to is what changes as the unit's status/owner updates, not the code
+  // itself (see the project doc's "QR code" note). Generated entirely in
+  // the browser, so there's no server route or image-generation dependency
+  // added to the app itself.
+  //
+  // Loaded via a dynamic import() of jsDelivr's "+esm" build rather than a
+  // classic <script src> tag exposing a window.QRCode global — the qrcode
+  // package's own browser bundle (lib/browser.min.js) is raw CommonJS
+  // (require()/exports, no UMD wrapper), so it throws immediately if
+  // loaded as a plain script; only the "+esm" endpoint actually wraps it
+  // into something a browser can import directly. Cached in qrModulePromise
+  // so it's only fetched once per page load, not once per QR download.
+  let qrModulePromise: Promise<any> | null = null;
+  function loadQrCodeModule() {
+    if (!qrModulePromise) {
+      qrModulePromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
+    }
+    return qrModulePromise;
+  }
+
+  // Renders the QR into a canvas and then stamps the serial as a printed
+  // caption underneath, in the exported PNG itself — not just the download
+  // filename — since the filename is easy to lose track of once a batch of
+  // these gets printed or dropped into a shared folder, and a bare QR code
+  // gives no visual way to tell units apart at a glance.
+  async function downloadUnitQr(serial: string) {
+    const url = `${window.location.origin}/passport/${encodeURIComponent(serial)}`;
+    const qrSize = 512;
+    const labelHeight = 64;
+    try {
+      const mod = await loadQrCodeModule();
+      const toCanvas: (canvas: HTMLCanvasElement, text: string, opts: any) => Promise<void> =
+        mod.toCanvas || mod.default?.toCanvas;
+
+      const qrCanvas = document.createElement("canvas");
+      await toCanvas(qrCanvas, url, { width: qrSize, margin: 2 });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = qrSize;
+      canvas.height = qrSize + labelHeight;
+      const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(qrCanvas, 0, 0);
+      ctx.fillStyle = "#111111";
+      ctx.font = "600 32px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(serial, canvas.width / 2, qrSize + labelHeight / 2);
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `${serial}-qr.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      // Let the next click retry the import in case this failure was a
+      // transient network hiccup rather than something permanently wrong.
+      qrModulePromise = null;
+      window.alert("Couldn't generate that QR code — check your network connection and try again.");
+    }
+  }
+
+  let inventoryLoaded = false;
+  async function loadInventory(force = false) {
+    if (inventoryLoaded && !force) return;
+    const loadingEl = document.getElementById("inventory-loading") as HTMLElement;
+    const contentEl = document.getElementById("inventory-content") as HTMLElement;
+    loadingEl.hidden = false;
+    loadingEl.textContent = "Loading drops…";
+    try {
+      const res = await api("/api/admin/inventory");
+      if (!res.ok) throw new Error("Failed to load inventory");
+      const { drops } = (await res.json()) as { drops: DropSummary[] };
+      inventoryLoaded = true;
+      loadingEl.hidden = true;
+      contentEl.hidden = false;
+
+      if (drops.length === 0) {
+        contentEl.innerHTML = `<p class="admin-muted">No drops yet.</p>`;
+        return;
+      }
+
+      contentEl.innerHTML = drops
+        .map((drop) => {
+          const countsHtml =
+            Object.entries(drop.statusCounts)
+              .map(
+                ([status, count]) =>
+                  `<li><span class="admin-status-chip" data-status="${status}">${UNIT_STATUS_LABELS[status] || status}</span> <strong>${count}</strong></li>`,
+              )
+              .join("") || "<li>No units yet</li>";
+          const inStockCount = drop.statusCounts.IN_STOCK || 0;
+          const reservedCount = drop.statusCounts.RESERVED || 0;
+          const voidCount = drop.statusCounts.VOID || 0;
+          const unitsRows = drop.units
+            .map(
+              (u) =>
+                `<tr><td>${u.serial}</td><td>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td><button type="button" class="admin-link-btn" data-qr-btn="${u.serial}">Download QR</button></td></tr>`,
+            )
+            .join("");
+          return `
+        <div class="admin-card" data-drop-card="${drop.id}">
+          <div class="admin-drop-card">
+            <img class="admin-drop-photo" src="${drop.product.imageUrl || ""}" alt="${drop.product.name}" onerror="this.style.visibility='hidden'" />
+            <div class="admin-drop-body">
+              <h2>${drop.product.name}<span class="admin-drop-code">${drop.dropCode}</span> <span class="admin-muted">(${drop.status})</span></h2>
+              <ul class="admin-list admin-list--inline">${countsHtml}</ul>
+              <p class="admin-muted">${drop.totalUnits} unit(s) total${drop.releaseAt ? ` · released ${new Date(drop.releaseAt).toLocaleDateString()}` : ""}</p>
+
+              <button type="button" class="admin-units-toggle" data-units-toggle="${drop.id}">Show all ${drop.units.length} unit(s) &amp; serials ▾</button>
+              <table class="admin-units-table" data-units-table="${drop.id}" hidden>
+                <thead><tr><th>Serial</th><th>Edition</th><th>Status</th><th>Passport QR</th></tr></thead>
+                <tbody>${unitsRows || '<tr><td colspan="4">No units yet</td></tr>'}</tbody>
+              </table>
+
+              <div class="admin-restock-row">
+                <div class="admin-field-row">
+                  <label for="restock-qty-${drop.id}">Add stock</label>
+                  <input id="restock-qty-${drop.id}" type="number" min="1" max="500" step="1" value="10" />
+                  <button class="btn-primary" data-restock-btn="${drop.id}" title="Adds new numbered units to this drop">+ Add units</button>
+                </div>
+                <div class="admin-field-row">
+                  <label for="void-qty-${drop.id}">Remove stock</label>
+                  <input id="void-qty-${drop.id}" type="number" min="1" max="${Math.max(1, inStockCount)}" step="1" value="1" ${inStockCount === 0 ? "disabled" : ""} />
+                  <button class="btn-danger" data-void-btn="${drop.id}" title="Undoes an accidental restock — only removes in-stock units, never a reserved or sold one" ${inStockCount === 0 ? "disabled" : ""}>− Remove units</button>
+                </div>
+                ${
+                  voidCount > 0
+                    ? `<div class="admin-field-row">
+                         <label for="undo-void-qty-${drop.id}">Bring back</label>
+                         <input id="undo-void-qty-${drop.id}" type="number" min="1" max="${voidCount}" step="1" value="1" />
+                         <button class="btn-ghost" data-undo-void-btn="${drop.id}" title="Brings the most recently voided units back to In stock — safe, nothing was deleted">↺ Undo void</button>
+                       </div>`
+                    : ""
+                }
+              </div>
+              <p class="admin-muted">Remove takes back the most recently added in-stock units — it can never touch a unit that's already reserved or sold.</p>
+              ${
+                reservedCount > 0
+                  ? `<div class="admin-field-row">
+                       <button class="btn-ghost" data-release-stale-btn="${drop.id}" title="Hands back units stuck in Reserved from an abandoned checkout whose expiry webhook never arrived — only touches reservations older than 30 minutes, never one a customer might still be mid-payment on">↺ Release stuck reservations</button>
+                       <span class="admin-muted">${reservedCount} unit(s) currently Reserved</span>
+                     </div>`
+                  : ""
+              }
+              ${
+                voidCount > 0
+                  ? `<div class="admin-field-row">
+                       <button class="btn-danger" data-delete-void-btn="${drop.id}" title="Permanently deletes every voided unit on this drop from the database — cannot be undone">⨯ Permanently delete ${voidCount} voided unit(s)</button>
+                       <span class="admin-muted">Frees these edition numbers for the next restock. Only safe if none of these serials were ever printed on a real tag.</span>
+                     </div>`
+                  : ""
+              }
+              <p class="admin__hint" data-restock-status="${drop.id}" hidden></p>
+            </div>
+          </div>
+        </div>`;
+        })
+        .join("");
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-units-toggle]").forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          const dropId = toggle.dataset.unitsToggle as string;
+          const table = document.querySelector(`[data-units-table="${dropId}"]`) as HTMLElement;
+          table.hidden = !table.hidden;
+          const count = table.querySelectorAll("tbody tr").length;
+          toggle.textContent = table.hidden ? `Show all ${count} unit(s) & serials ▾` : `Hide unit list ▴`;
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
+        btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-restock-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.restockBtn as string;
+          const qtyInput = document.getElementById(`restock-qty-${dropId}`) as HTMLInputElement;
+          const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
+          const quantity = parseInt(qtyInput.value, 10);
+          if (!Number.isFinite(quantity) || quantity < 1) {
+            return showHint(status, "Enter a valid quantity.", false);
+          }
+          btn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId, action: "restock", quantity }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              showHint(status, `Added ${data.unitsAdded} unit(s), starting at edition ${data.startingEdition}.`, true);
+              loadInventory(true);
+            } else {
+              showHint(status, data.error || "Restock failed.", false);
+            }
+          } catch {
+            showHint(status, "Network error.", false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-void-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.voidBtn as string;
+          const qtyInput = document.getElementById(`void-qty-${dropId}`) as HTMLInputElement;
+          const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
+          const quantity = parseInt(qtyInput.value, 10);
+          if (!Number.isFinite(quantity) || quantity < 1) {
+            return showHint(status, "Enter a valid quantity.", false);
+          }
+          if (!window.confirm(`Remove ${quantity} unit(s) from this drop? This only affects in-stock units, never a reserved or sold one.`)) {
+            return;
+          }
+          btn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId, action: "void", quantity }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              showHint(status, `Removed ${data.unitsVoided} unit(s): ${data.voidedSerials.join(", ")}.`, true);
+              loadInventory(true);
+            } else {
+              showHint(status, data.error || "Couldn't remove those units.", false);
+            }
+          } catch {
+            showHint(status, "Network error.", false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-release-stale-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.releaseStaleBtn as string;
+          const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
+          if (
+            !window.confirm(
+              "Release units stuck in Reserved for over 30 minutes back to in-stock? This never touches a reservation a customer could still be actively paying for.",
+            )
+          ) {
+            return;
+          }
+          btn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId, action: "release-stale" }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              showHint(
+                status,
+                data.unitsReleased > 0
+                  ? `Released ${data.unitsReleased} unit(s): ${data.releasedSerials.join(", ")}.`
+                  : "Nothing to release — no reservation is over 30 minutes old.",
+                true,
+              );
+              loadInventory(true);
+            } else {
+              showHint(status, data.error || "Couldn't release those units.", false);
+            }
+          } catch {
+            showHint(status, "Network error.", false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-undo-void-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.undoVoidBtn as string;
+          const qtyInput = document.getElementById(`undo-void-qty-${dropId}`) as HTMLInputElement;
+          const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
+          const quantity = parseInt(qtyInput.value, 10);
+          if (!Number.isFinite(quantity) || quantity < 1) {
+            return showHint(status, "Enter a valid quantity.", false);
+          }
+          btn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId, action: "undo-void", quantity }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              showHint(status, `Brought back ${data.unitsReactivated} unit(s): ${data.reactivatedSerials.join(", ")}.`, true);
+              loadInventory(true);
+            } else {
+              showHint(status, data.error || "Couldn't bring those units back.", false);
+            }
+          } catch {
+            showHint(status, "Network error.", false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-delete-void-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.deleteVoidBtn as string;
+          const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
+          if (
+            !window.confirm(
+              "Permanently delete every voided unit on this drop? This cannot be undone, and only makes sense if none of those serials were ever printed on a real QR tag/postcard — reusing a printed serial breaks its link to the physical kit.",
+            )
+          ) {
+            return;
+          }
+          btn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId, action: "delete-void" }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              showHint(
+                status,
+                data.unitsDeleted > 0
+                  ? `Permanently deleted ${data.unitsDeleted} unit(s): ${data.deletedSerials.join(", ")}.`
+                  : "Nothing to delete — no voided units on this drop.",
+                true,
+              );
+              loadInventory(true);
+            } else {
+              showHint(status, data.error || "Couldn't delete those units.", false);
+            }
+          } catch {
+            showHint(status, "Network error.", false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+    } catch {
+      loadingEl.textContent = "Couldn't load inventory.";
+    }
+  }
 
   // --- Pricing ---
   let productLoaded = false;
@@ -511,21 +1478,159 @@ import Layout from "../../layouts/Layout.astro";
     }
   });
 
+  // --- Manual orders ---
+  const moSendEmailCheckbox = document.getElementById("mo-send-email") as HTMLInputElement;
+  const moEmailFields = document.getElementById("mo-email-fields") as HTMLDivElement;
+  moSendEmailCheckbox?.addEventListener("change", () => {
+    moEmailFields.hidden = !moSendEmailCheckbox.checked;
+  });
+
+  document.getElementById("mo-submit")?.addEventListener("click", async () => {
+    const status = document.getElementById("mo-status") as HTMLElement;
+    const btn = document.getElementById("mo-submit") as HTMLButtonElement;
+    const email = (document.getElementById("mo-email") as HTMLInputElement).value.trim();
+    const name = (document.getElementById("mo-name") as HTMLInputElement).value.trim();
+    const type = (document.getElementById("mo-type") as HTMLSelectElement).value;
+    const quantity = parseInt((document.getElementById("mo-quantity") as HTMLInputElement).value, 10);
+    const priceStr = (document.getElementById("mo-price") as HTMLInputElement).value.trim();
+    const deliveryMethod = (document.getElementById("mo-delivery") as HTMLSelectElement).value;
+    const postcode = (document.getElementById("mo-postcode") as HTMLInputElement).value.trim();
+    const deliveryFeeStr = (document.getElementById("mo-delivery-fee") as HTMLInputElement).value.trim();
+    const paymentStatus = (document.getElementById("mo-payment-status") as HTMLSelectElement).value;
+    const shipDate = (document.getElementById("mo-ship-date") as HTMLInputElement).value.trim();
+    const note = (document.getElementById("mo-note") as HTMLInputElement).value.trim();
+    const recipientName = (document.getElementById("mo-recipient") as HTMLInputElement).value.trim();
+    const addressLine1 = (document.getElementById("mo-address1") as HTMLInputElement).value.trim();
+    const addressLine2 = (document.getElementById("mo-address2") as HTMLInputElement).value.trim();
+    const suburb = (document.getElementById("mo-suburb") as HTMLInputElement).value.trim();
+    const state = (document.getElementById("mo-state") as HTMLInputElement).value.trim();
+    const sendEmail = moSendEmailCheckbox.checked;
+    const emailMessage = (document.getElementById("mo-email-message") as HTMLTextAreaElement).value.trim();
+    const emailSignatureName = (document.getElementById("mo-email-sig-name") as HTMLInputElement).value.trim();
+    const emailSignatureRole = (document.getElementById("mo-email-sig-role") as HTMLInputElement).value.trim();
+
+    if (!email) return showHint(status, "Enter a customer email.", false);
+    if (!Number.isFinite(quantity) || quantity < 1) return showHint(status, "Enter a valid quantity.", false);
+    const unitPriceCents = priceStr ? dollarsToCents(priceStr) : undefined;
+    if (priceStr && unitPriceCents === null) return showHint(status, "Price override isn't a valid number.", false);
+    const deliveryFeeOverrideCents = deliveryFeeStr ? dollarsToCents(deliveryFeeStr) : undefined;
+    if (deliveryFeeStr && deliveryFeeOverrideCents === null) return showHint(status, "Delivery fee override isn't a valid number.", false);
+    if ((type === "COMMISSION" || type === "OTHER") && unitPriceCents === undefined) {
+      if (!window.confirm("No price override set — this will default to the current retail price. Continue?")) {
+        return;
+      }
+    }
+    if ((deliveryMethod === "SELF_DELIVERY" || deliveryMethod === "AUSPOST") && !postcode && deliveryFeeOverrideCents === undefined) {
+      if (!window.confirm("No postcode or delivery fee override set — this order will be charged $0 delivery. Continue?")) {
+        return;
+      }
+    }
+    if ((addressLine1 || suburb || state) && !(addressLine1 && suburb && state && postcode)) {
+      if (!window.confirm("The shipping address looks incomplete (needs address line 1, suburb, state and postcode) — it won't be saved. Continue anyway?")) {
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await api("/api/admin/manual-order", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          name: name || undefined,
+          type,
+          quantity,
+          unitPriceCents: unitPriceCents ?? undefined,
+          deliveryMethod,
+          postcode: postcode || undefined,
+          deliveryFeeOverrideCents: deliveryFeeOverrideCents ?? undefined,
+          recipientName: recipientName || undefined,
+          addressLine1: addressLine1 || undefined,
+          addressLine2: addressLine2 || undefined,
+          suburb: suburb || undefined,
+          state: state || undefined,
+          paymentStatus,
+          expectedShipAtOverride: shipDate || undefined,
+          note: note || undefined,
+          sendEmail,
+          emailMessage: sendEmail && emailMessage ? emailMessage : undefined,
+          emailSignatureName: sendEmail && emailSignatureName ? emailSignatureName : undefined,
+          emailSignatureRole: sendEmail && emailSignatureRole ? emailSignatureRole : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(
+          status,
+          `Order ${data.order.orderNumber} created${paymentStatus === "UNPAID" ? " as an unpaid quote." : "."} (delivery ${money(data.order.deliveryFeeCents, data.order.currency)})${sendEmail ? (data.emailSent ? " — confirmation emailed." : " — email failed to send.") : ""}`,
+          true,
+        );
+        (document.getElementById("mo-email") as HTMLInputElement).value = "";
+        (document.getElementById("mo-name") as HTMLInputElement).value = "";
+        (document.getElementById("mo-type") as HTMLSelectElement).value = "DROP_SALE";
+        (document.getElementById("mo-quantity") as HTMLInputElement).value = "1";
+        (document.getElementById("mo-price") as HTMLInputElement).value = "";
+        (document.getElementById("mo-postcode") as HTMLInputElement).value = "";
+        (document.getElementById("mo-delivery-fee") as HTMLInputElement).value = "";
+        (document.getElementById("mo-payment-status") as HTMLSelectElement).value = "PAID";
+        (document.getElementById("mo-ship-date") as HTMLInputElement).value = "";
+        (document.getElementById("mo-note") as HTMLInputElement).value = "";
+        (document.getElementById("mo-recipient") as HTMLInputElement).value = "";
+        (document.getElementById("mo-address1") as HTMLInputElement).value = "";
+        (document.getElementById("mo-address2") as HTMLInputElement).value = "";
+        (document.getElementById("mo-suburb") as HTMLInputElement).value = "";
+        (document.getElementById("mo-state") as HTMLInputElement).value = "";
+        moSendEmailCheckbox.checked = false;
+        moEmailFields.hidden = true;
+        (document.getElementById("mo-email-message") as HTMLTextAreaElement).value = "";
+        (document.getElementById("mo-email-sig-name") as HTMLInputElement).value = "";
+        (document.getElementById("mo-email-sig-role") as HTMLInputElement).value = "";
+        loadOrders();
+      } else {
+        showHint(status, data.error || "Failed to create order.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   // --- Email ---
+  document.getElementById("email-goto-customers")?.addEventListener("click", () => activateTab("customers"));
+  document.getElementById("email-goto-orders")?.addEventListener("click", () => activateTab("orders"));
+
   document.getElementById("email-send")?.addEventListener("click", async () => {
     const status = document.getElementById("email-status") as HTMLElement;
-    const email = (document.getElementById("email-to") as HTMLInputElement).value.trim();
+    const to = (document.getElementById("email-to") as HTMLTextAreaElement).value.trim();
     const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
     const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
-    if (!email || !subject || !message) return showHint(status, "Fill in all fields.", false);
+    const gifUrl = (document.getElementById("email-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("email-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("email-sig-role") as HTMLInputElement).value.trim();
+    if (!to || !subject || !message) return showHint(status, "Fill in all fields.", false);
     try {
       const res = await api("/api/admin/send-email", {
         method: "POST",
-        body: JSON.stringify({ mode: "custom", email, subject, message }),
+        body: JSON.stringify({
+          mode: "custom",
+          to,
+          subject,
+          message,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+        }),
       });
       const data = await res.json();
-      if (res.ok) showHint(status, "Email sent.", true);
-      else showHint(status, data.error || "Failed to send.", false);
+      if (res.ok) {
+        const parts = [`Sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}.`];
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        if (data.skippedInvalid?.length) parts.push(`Skipped invalid: ${data.skippedInvalid.join(", ")}`);
+        showHint(status, parts.join(" "), !data.failed?.length && !data.skippedInvalid?.length);
+      } else {
+        showHint(status, data.error || "Failed to send.", false);
+      }
     } catch {
       showHint(status, "Network error.", false);
     }
@@ -533,3 +1638,4 @@ import Layout from "../../layouts/Layout.astro";
 
   loadOrders();
 </script>
+</Layout>

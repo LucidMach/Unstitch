@@ -32,4 +32,16 @@ export const CreateCheckoutSessionSchema = z.object({
     .optional()
     .nullable()
     .transform((val) => val || undefined),
+
+  // Collected on our own site *before* redirecting to Stripe, so the
+  // delivery fee can be resolved and added as a real line item up front —
+  // see src/lib/deliveryZones.js. Stripe's own hosted page separately
+  // collects a full shipping address afterwards; if a customer types a
+  // different postcode there, the charged fee won't match their actual
+  // zone (a known limitation — re-collecting/re-pricing after Stripe's own
+  // address step would need a bigger checkout redesign).
+  postcode: z
+    .string({ required_error: 'Postcode is required' })
+    .trim()
+    .regex(/^[0-9]{4}$/, 'Enter a valid 4-digit postcode'),
 });

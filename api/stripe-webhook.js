@@ -20,6 +20,10 @@ import { releaseUnits, markUnitsSold } from '../src/lib/inventory.js';
 import { sendJson } from '../src/lib/apiHelper.js';
 import { sign } from '../src/lib/signedToken.js';
 import { getSiteOrigin } from '../src/lib/siteOrigin.js';
+import { computeExpectedShipDate, deliveryMethodLabel } from '../src/lib/shipping.js';
+import { generateOrderNumber } from '../src/lib/orderNumber.js';
+import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../src/lib/deliveryZones.js';
+import { orderConfirmationEmail } from '../src/lib/emailTemplate.js';
 
 // How long an order's magic link (mailed in the confirmation email) stays
 // valid — matches the link issued by api/order-lookup-request.js so both
@@ -39,15 +43,17 @@ function getRawBody(req) {
   });
 }
 
-function generateOrderNumber() {
-  const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, '0');
-  return `UX-${year}-${rand}`;
-}
-
-async function sendOrderConfirmationEmail({ email, orderId, orderNumber, totalCents, currency }) {
+async function sendOrderConfirmationEmail({
+  email,
+  orderId,
+  orderNumber,
+  totalCents,
+  currency,
+  items,
+  deliveryMethodLabel: methodLabel,
+  deliveryFeeCents,
+  deliveryAddress,
+}) {
   // Every order gets a magic link back to its own status page — no
   // account/password needed (see api/order-lookup.js). Reuses the same
   // signed-token format as api/order-lookup-request.js's email-based flow.
@@ -62,26 +68,25 @@ async function sendOrderConfirmationEmail({ email, orderId, orderNumber, totalCe
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
-    const amount = (totalCents / 100).toFixed(2);
+
+    const { html, text } = orderConfirmationEmail({
+      orderNumber,
+      totalCents,
+      currency,
+      lookupLink,
+      items,
+      deliveryMethodLabel: methodLabel,
+      deliveryFeeCents,
+      deliveryAddress,
+    });
 
     const send = (from) =>
       resend.emails.send({
         from,
         to: email,
         subject: `Your Unstitch order ${orderNumber} is confirmed`,
-        text: [
-          `Thanks for your order!`,
-          '',
-          `Order number: ${orderNumber}`,
-          `Total: ${currency.toUpperCase()} $${amount}`,
-          '',
-          "We'll be in touch with shipping details soon.",
-          '',
-          'Track your order any time:',
-          lookupLink,
-          '',
-          'Unstitch — Naarm, Melbourne Australia',
-        ].join('\n'),
+        html,
+        text,
       });
 
     let result = await send(fromEmail);
@@ -138,6 +143,50 @@ async function handleCheckoutCompleted(session) {
   const shipping = session.collected_information?.shipping_details;
   const totalCents = session.amount_total ?? 0;
   const currency = (session.currency || 'aud').toUpperCase();
+  // Set by create-checkout-session.js from the postcode-resolved zone (see
+  // src/lib/deliveryZones.js). amount_total already includes this fee —
+  // subtotalCents below backs it back out so the two numbers add up.
+  const deliveryFeeCents = metadata.deliveryFeeCents ? parseInt(metadata.deliveryFeeCents, 10) : 0;
+  const deliveryZoneId = metadata.deliveryZoneId || null;
+  const subtotalCents = totalCents - deliveryFeeCents;
+
+  // The zone's `method` (SELF_DELIVERY/AUSPOST/PICKUP) drives the expected
+  // ship date (see src/lib/shipping.js); fall back to a conservative default
+  // if the zone can't be looked up for some reason rather than leaving the
+  // order with no estimate at all.
+  const deliveryZoneRow = deliveryZoneId
+    ? await prisma.deliveryZone.findUnique({ where: { id: deliveryZoneId }, select: { method: true } })
+    : null;
+  const createdAt = new Date();
+  const expectedShipAt = computeExpectedShipDate(createdAt, deliveryZoneRow?.method);
+
+  // Stripe's own hosted page collects a full shipping address *after* the
+  // delivery fee was already locked in from the postcode entered in the
+  // cart (see src/lib/deliveryZones.js and create-checkout-session.js). If
+  // the customer typed a different postcode here — enough to land in a
+  // different zone, or even outside Victoria entirely — this order was
+  // priced (and validated) against the wrong address. Rather than silently
+  // shipping it or blocking the webhook, flag it for a human to check.
+  let postcodeMismatchNote = null;
+  const shippingPostcode = shipping?.address?.postal_code;
+  if (shippingPostcode) {
+    try {
+      const actualZone = await resolveDeliveryZone(prisma, shippingPostcode);
+      if (!actualZone || actualZone.id !== deliveryZoneId) {
+        postcodeMismatchNote = `⚠️ Shipping address postcode (${shippingPostcode}) entered on Stripe doesn't match the zone this order was priced/quoted for — check the delivery fee before shipping.`;
+      }
+    } catch (err) {
+      if (err instanceof OutOfDeliveryAreaError) {
+        postcodeMismatchNote = `⚠️ Shipping address postcode (${shippingPostcode}) is outside Victoria — this order may need a refund or manual arrangement rather than standard shipping.`;
+      } else {
+        console.error('[stripe-webhook] Failed to re-check delivery zone for shipping postcode:', err);
+      }
+    }
+  }
+
+  // Captured inside the transaction below (product name isn't known until
+  // then) so the confirmation email can show an item breakdown.
+  let orderItemsForEmail = [];
 
   const order = await prisma.$transaction(async (tx) => {
     const customer = await tx.customer.upsert({
@@ -169,10 +218,14 @@ async function handleCheckoutCompleted(session) {
         customerId: customer.id,
         channel: 'ONLINE',
         status: 'PAID',
-        subtotalCents: totalCents,
+        subtotalCents,
+        deliveryFeeCents,
         totalCents,
         currency,
         deliveryAddressId,
+        deliveryZoneId,
+        expectedShipAt,
+        internalNote: postcodeMismatchNote,
         idempotencyKey: session.id,
       },
     });
@@ -180,6 +233,7 @@ async function handleCheckoutCompleted(session) {
     if (productId && unitIds.length > 0) {
       const product = await tx.product.findUnique({ where: { id: productId } });
       if (product) {
+        orderItemsForEmail = [{ name: product.name, quantity: unitIds.length }];
         const unitPriceCents = Math.round(totalCents / unitIds.length);
         for (const unitId of unitIds) {
           await tx.orderItem.create({
@@ -218,6 +272,18 @@ async function handleCheckoutCompleted(session) {
     orderNumber: order.orderNumber,
     totalCents,
     currency,
+    items: orderItemsForEmail,
+    deliveryMethodLabel: deliveryMethodLabel(deliveryZoneRow?.method),
+    deliveryFeeCents,
+    deliveryAddress: shipping?.address
+      ? {
+          line1: shipping.address.line1 || '',
+          line2: shipping.address.line2 || null,
+          suburb: shipping.address.city || '',
+          state: shipping.address.state || '',
+          postcode: shipping.address.postal_code || '',
+        }
+      : null,
   }).catch(() => {});
 }
 

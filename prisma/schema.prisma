@@ -72,6 +72,7 @@ enum UnitStatus {
   DELIVERED // handed to customer
   REGISTERED // owner has claimed the digital passport
   RETURNED // came back (fault / return)
+  VOID // restocked by mistake and manually removed — never sellable, kept for audit trail only
 
   @@map("unit_status")
 }
@@ -108,6 +109,7 @@ enum OrderChannel {
 enum PaymentProvider {
   STRIPE
   SQUARE
+  MANUAL // admin-recorded sale not processed through Stripe/Square — cash, bank transfer, comp
 
   @@map("payment_provider")
 }
@@ -320,6 +322,12 @@ model Product {
   givingTilesPerKit               Int     @default(0) @map("giving_tiles_per_kit")
   givingInternalValueCentsPerTile Int     @default(0) @map("giving_internal_value_cents_per_tile")
   givingDescription                String? @map("giving_description")
+
+  // Product photo shown on the PDP, in the cart, and next to units in the
+  // admin Inventory tab. Defaulted to the one real photo the site has today
+  // so existing rows backfill correctly on `db push`; swap per-product once
+  // a second SKU with its own photo exists.
+  imageUrl String? @default("/SlowBloom.png") @map("image_url")
 
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
@@ -570,6 +578,18 @@ model Order {
   giftWrap          Boolean       @default(false) @map("gift_wrap")
   giftMessage       String?       @map("gift_message")
   orderNote         String?       @map("order_note")
+
+  // Admin-only note — never shown to the customer. Mainly used for manual
+  // orders (e.g. "cash sale at market", "workshop giveaway kit #3") but
+  // available on any order.
+  internalNote String? @map("internal_note")
+
+  // Fulfilment/ship-date tracking. expectedShipAt is computed at order
+  // creation (see src/lib/shipping.js) from the delivery method's handling
+  // time; shippedAt is set once by the admin "Mark as shipped" action
+  // (api/admin/orders.js) and never overwritten automatically.
+  expectedShipAt DateTime? @map("expected_ship_at")
+  shippedAt      DateTime? @map("shipped_at")
 
   // Idempotency: one key per checkout attempt from the client, enforced
   // unique so retried/double-submitted requests can't create duplicate

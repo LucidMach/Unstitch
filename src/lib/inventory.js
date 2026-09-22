@@ -145,3 +145,25 @@ export async function releaseUnits(unitIds) {
     WHERE id IN (${Prisma.join(unitIds)}) AND status = 'RESERVED'
   `);
 }
+
+/**
+ * Reverts SOLD (or VOID) units back to IN_STOCK and clears ownership —
+ * unlike releaseUnits (which only touches still-RESERVED units left over
+ * from an abandoned checkout), this undoes a *completed* sale. Used by
+ * api/admin/orders.js's "delete test order" action to clean up test data:
+ * the order itself is deleted entirely, and its units need to look exactly
+ * like they were never sold — same edition numbers, no gaps, nothing to
+ * suggest they were ever SOLD.
+ *
+ * @param {any} tx - a Prisma transaction client
+ * @param {string[]} unitIds
+ * @returns {Promise<void>}
+ */
+export async function revertUnitsToStock(tx, unitIds) {
+  if (unitIds.length === 0) return;
+  await tx.$executeRaw(Prisma.sql`
+    UPDATE units
+    SET status = 'IN_STOCK', current_owner_customer_id = NULL, registered_at = NULL, updated_at = now()
+    WHERE id IN (${Prisma.join(unitIds)})
+  `);
+}

@@ -142,6 +142,10 @@ const included = [
             Add to Bag
           </button>
           <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
+          <p class="product-hero__sold-out" data-sold-out-note hidden>
+            This drop is sold out — check back for the next one, or
+            <a href="/contact">get in touch</a> to be notified.
+          </p>
         </div>
       </div>
     </section>
@@ -416,6 +420,13 @@ const included = [
     color: var(--accent);
     text-align: center;
   }
+  .product-hero__sold-out {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #8a3a3a;
+    text-align: center;
+  }
+  .product-hero__sold-out a { color: inherit; text-decoration: underline; }
 
   .archive-teaser {
     text-align: center;
@@ -603,6 +614,35 @@ const included = [
       increaseBtn?.addEventListener("click", () => setValue(Number(input?.value || min) + 1));
       input?.addEventListener("change", () => setValue(Number(input.value || min)));
     }
+
+    // Live stock check — this page's product data (name, price, included
+    // items) is still static build-time content (see the `product` const
+    // above), but sold-out state changes far more often than that and must
+    // never lag behind the admin Inventory tab. Real oversell prevention
+    // still happens server-side in create-checkout-session.js regardless —
+    // this only controls what the page shows, so it fails safe (leaves
+    // buying enabled) if the check itself errors out.
+    async function checkStockStatus() {
+      const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+      const stepper = document.querySelector<HTMLElement>("[data-qty-stepper]");
+      const soldOutNote = document.querySelector<HTMLElement>("[data-sold-out-note]");
+      if (!addBtn) return;
+      try {
+        const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.available) {
+          addBtn.disabled = true;
+          addBtn.textContent = "Sold out";
+          if (stepper) stepper.style.display = "none";
+          if (soldOutNote) soldOutNote.hidden = false;
+        }
+      } catch {
+        // Network error — leave the static (assumed-available) state as is
+        // rather than blocking a real sale over a failed status check.
+      }
+    }
+    checkStockStatus();
 
     const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
     const feedback = document.querySelector<HTMLElement>("[data-add-to-bag-feedback]");

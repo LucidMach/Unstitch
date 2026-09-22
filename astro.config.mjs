@@ -47,6 +47,19 @@ function apiDevMiddleware() {
          * @param {() => void} next
          */
         async (req, res, next) => {
+          // Mirrors vercel.json's rewrite for local dev: the digital
+          // passport's clean URL (/passport/UX-D001-007 — what's actually
+          // printed on a physical kit's QR code) has no matching static
+          // route under `output: "static"` with no dynamic segments, so it
+          // rewrites to the single static page + a query param, same as
+          // production. Query-param form (/passport?serial=...) keeps
+          // working unchanged either way.
+          if (req.url && /^\/passport\/[^/?]+/.test(req.url)) {
+            const [, rest] = req.url.split('/passport/');
+            const serial = decodeURIComponent(rest.split('?')[0]);
+            req.url = `/passport?serial=${encodeURIComponent(serial)}`;
+          }
+
           if (req.url && req.url.startsWith('/api/')) {
             const endpoint = req.url.split('?')[0];
             /** @type {any} */
@@ -74,10 +87,22 @@ function apiDevMiddleware() {
               handler = (await import('./api/admin/product.js')).default;
             } else if (endpoint === '/api/admin/send-email') {
               handler = (await import('./api/admin/send-email.js')).default;
+            } else if (endpoint === '/api/admin/inventory') {
+              handler = (await import('./api/admin/inventory.js')).default;
+            } else if (endpoint === '/api/admin/manual-order') {
+              handler = (await import('./api/admin/manual-order.js')).default;
+            } else if (endpoint === '/api/admin/customers') {
+              handler = (await import('./api/admin/customers.js')).default;
             } else if (endpoint === '/api/order-lookup-request') {
               handler = (await import('./api/order-lookup-request.js')).default;
             } else if (endpoint === '/api/order-lookup') {
               handler = (await import('./api/order-lookup.js')).default;
+            } else if (endpoint === '/api/delivery-quote') {
+              handler = (await import('./api/delivery-quote.js')).default;
+            } else if (endpoint === '/api/drop-status') {
+              handler = (await import('./api/drop-status.js')).default;
+            } else if (endpoint === '/api/passport') {
+              handler = (await import('./api/passport.js')).default;
             }
 
             // The webhook needs the exact raw request bytes for Stripe

@@ -657,6 +657,49 @@ button { font-family: inherit; cursor: pointer; }
   color: #b3261e;
   text-align: center;
 }
+.cart-sheet__postcode-label {
+  display: block;
+  font-size: 0.78rem;
+  color: #6b6b6b;
+  margin-bottom: 6px;
+}
+.cart-sheet__postcode-hint {
+  color: #999;
+  font-weight: 400;
+}
+.cart-sheet__postcode-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius, 6px);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+.cart-sheet__delivery-quote {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #444;
+  margin: 0 0 12px;
+}
+.cart-sheet__delivery-quote-label {
+  flex: 1 1 auto;
+}
+.cart-sheet__delivery-quote-value {
+  flex: 0 0 auto;
+  text-align: right;
+  font-weight: 600;
+}
+.cart-sheet__delivery-quote.is-error {
+  color: #b3261e;
+}
+.cart-sheet__total {
+  border-top: 1px dashed #ccc;
+  padding-top: 10px;
+}
 
 /* ==========================================================================
    MENU SHEET

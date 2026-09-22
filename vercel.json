@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/passport/:serial",
+      "destination": "/passport?serial=:serial"
+    }
+  ]
+}

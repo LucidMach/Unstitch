@@ -1,0 +1,391 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+/**
+ * The digital passport / QR-scan page — one static page (query-param
+ * driven, like /order/lookup) rather than a per-unit dynamic route, since
+ * the site builds statically with no SSR adapter. The clean URL printed on
+ * a physical kit's QR code (/passport/UX-D001-007) rewrites here with the
+ * serial as ?serial=... — see astro.config.mjs (local dev) and
+ * vercel.json (production) for the matching rewrite rule. Data comes from
+ * api/passport.js at runtime; nothing here is known at build time.
+ */
+---
+
+<Layout
+  title="Product Passport | Unstitch"
+  description="Look up your Unstitch kit's digital passport — edition number, care instructions, and registration."
+  noindex
+>
+  <main>
+    <section class="wrap section passport">
+      <!-- No ?serial= yet: a small lookup box so this page still does
+           something sensible if someone lands on /passport directly. -->
+      <div id="passport-search" class="passport__panel">
+        <p class="passport__eyebrow">Product Passport</p>
+        <h1 class="passport__title">Look up your kit</h1>
+        <p class="passport__body">
+          Enter the passport code printed on your Unstitch Mail postcard (e.g. <strong>UX-D001-007</strong>), or scan the QR code again.
+        </p>
+        <form id="passport-search-form" class="passport__form">
+          <input id="passport-search-input" type="text" placeholder="UX-D001-007" required autocapitalize="characters" />
+          <button type="submit" class="btn btn-filled">Look it up</button>
+        </form>
+      </div>
+
+      <div id="passport-loading" class="passport__panel" hidden>
+        <p class="passport__eyebrow">One moment</p>
+        <p class="passport__body">Fetching your passport…</p>
+      </div>
+
+      <div id="passport-error" class="passport__panel" hidden>
+        <p class="passport__eyebrow">Hmm</p>
+        <h1 class="passport__title">We couldn't find that one</h1>
+        <p class="passport__body" id="passport-error-message">Double-check the code and try again.</p>
+        <a href="/passport" class="btn btn-outline">Try another code</a>
+      </div>
+
+      <div id="passport-result" hidden>
+        <div class="passport-hero">
+          <p class="passport__eyebrow">Product Passport</p>
+          <h1 id="p-product-name" class="passport-hero__title"></h1>
+          <p id="p-edition" class="passport-hero__edition"></p>
+          <span class="passport-authenticity">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#6b4a5f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Verified Unstitch original
+          </span>
+          <p id="p-serial-row" class="passport-hero__serial"></p>
+        </div>
+
+        <section class="passport-card">
+          <h2>Your kit</h2>
+          <div class="passport-specs">
+            <div>
+              <span class="passport-specs__label">Colour palette</span>
+              <span id="p-swatches" class="passport-specs__swatches"></span>
+            </div>
+            <div>
+              <span class="passport-specs__label">Material</span>
+              <span id="p-material" class="passport-specs__value"></span>
+            </div>
+            <div>
+              <span class="passport-specs__label">Made</span>
+              <span id="p-made" class="passport-specs__value"></span>
+            </div>
+            <div>
+              <span class="passport-specs__label">Status</span>
+              <span id="p-status" class="passport-specs__value"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Care & assembly instructions — written steps are the reliable
+             baseline every viewer can use regardless of connection/device;
+             optional photo/video/PDF slots render only when the matching
+             data attribute is filled in (see PASSPORT_CARE_MEDIA below),
+             so this section is ready for whichever format is decided on
+             without another round of page changes. -->
+        <section class="passport-card">
+          <h2>Assembly &amp; care</h2>
+          <ol id="p-care-steps" class="passport-steps"></ol>
+          <div id="p-care-media"></div>
+        </section>
+
+        <!-- Separate from "Assembly & care" above (which is how to build
+             and look after the kit you have) — this is for the design
+             patterns/build instructions themselves, e.g. a downloadable
+             layout guide. Deliberately its own section, kept empty until
+             real content exists (a PDF is the likely format, per your
+             note) rather than shipping placeholder copy that would need
+             to be swapped out later. -->
+        <section id="p-designs-section" class="passport-card" hidden>
+          <h2>Designs &amp; instructions</h2>
+          <p class="passport__body">A layout guide for this kit's designs.</p>
+          <div id="p-designs-media"></div>
+        </section>
+
+        <section id="passport-register" class="passport-card passport-card--accent">
+          <div id="p-register-form-wrap">
+            <h2>Register this kit</h2>
+            <p class="passport__body">
+              Claim your passport with your email — we'll let you know about care tips and future drops, and your reviews will show as verified.
+            </p>
+            <form id="passport-register-form" class="passport__form passport__form--stacked">
+              <input id="p-register-name" type="text" placeholder="Name (optional)" autocomplete="name" />
+              <input id="p-register-email" type="email" placeholder="you@example.com" required autocomplete="email" />
+              <button type="submit" class="btn btn-filled">Register</button>
+            </form>
+            <p id="p-register-status" class="passport__body" hidden></p>
+          </div>
+          <div id="p-registered-wrap" hidden>
+            <h2>Registered</h2>
+            <p id="p-registered-message" class="passport__body"></p>
+          </div>
+        </section>
+
+        <section class="passport-card passport-card--center">
+          <h2>Show it off</h2>
+          <p id="p-review-copy" class="passport__body"></p>
+          <a href="/shop" class="btn btn-filled">Write a verified review</a>
+        </section>
+
+        <section class="passport-card">
+          <h2>Scan again anytime</h2>
+          <p class="passport__body">
+            This same code is printed on your Unstitch Mail postcard — scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.
+          </p>
+        </section>
+
+        <div class="passport-footer">
+          <a href="/shop" class="btn btn-outline">See the current drop</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<style>
+  .passport { min-height: 50vh; padding-top: 40px; padding-bottom: 60px; }
+  .passport__panel { max-width: 480px; margin: 0 auto; text-align: center; }
+  .passport__eyebrow {
+    text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.08em;
+    color: var(--accent); font-weight: 600; margin: 0 0 6px;
+  }
+  .passport__title { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 10px; }
+  .passport__body { font-size: 0.92rem; color: #444; margin: 0 0 18px; line-height: 1.6; }
+  .passport__form { display: flex; gap: 8px; }
+  .passport__form--stacked { flex-direction: column; align-items: stretch; }
+  .passport__form input {
+    flex: 1; padding: 11px 14px; border: 1px solid #ccc; border-radius: var(--radius);
+    font-family: var(--font-body); font-size: 0.9rem;
+  }
+
+  .passport-hero { max-width: 560px; margin: 0 auto; text-align: center; padding-bottom: 8px; }
+  .passport-hero__title { font-family: var(--font-display); font-size: 2rem; margin: 0 0 4px; line-height: 1.1; }
+  .passport-hero__edition { font-family: var(--font-display); font-size: 1.15rem; color: var(--accent); font-weight: 600; margin: 6px 0 18px; }
+  .passport-authenticity {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--accent-pale);
+    border-radius: 999px; padding: 8px 16px; font-size: 0.8rem; font-weight: 600; color: #6b4a5f;
+  }
+  .passport-authenticity svg { width: 14px; height: 14px; flex: none; }
+  .passport-hero__serial { text-align: center; font-size: 0.82rem; color: #666; margin: 14px 0 0; }
+  .passport-hero__serial strong { color: var(--ink); font-family: var(--font-display); letter-spacing: 0.03em; }
+
+  .passport-card {
+    max-width: 560px; margin: 20px auto; border: 1px solid #eee; border-radius: 10px; padding: 22px;
+  }
+  .passport-card h2 { font-family: var(--font-display); font-size: 1rem; margin: 0 0 14px; }
+  .passport-card--accent { background: var(--accent-pale); border-color: transparent; }
+  .passport-card--center { text-align: center; background: #fafafa; }
+
+  .passport-specs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .passport-specs__label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 4px; }
+  .passport-specs__value { font-weight: 600; font-size: 0.92rem; }
+  .passport-specs__swatches { display: flex; gap: 6px; }
+  .passport-swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); display: inline-block; }
+
+  .passport-steps { margin: 0; padding-left: 20px; }
+  .passport-steps li { margin-bottom: 10px; font-size: 0.92rem; }
+  .passport-care-media { margin-top: 14px; }
+  .passport-care-media iframe, .passport-care-media video { width: 100%; border-radius: 8px; border: none; }
+  .passport-care-media a.btn { margin-top: 4px; }
+
+  .passport-footer { text-align: center; margin: 40px 0 20px; }
+</style>
+
+<script>
+  type PassportUnit = {
+    serial: string;
+    editionNumber: number;
+    status: string;
+    registered: boolean;
+    registeredOwnerName: string | null;
+    drop: { dropCode: string; totalUnits: number; madeLocation: string; madeYear: number };
+    product: {
+      name: string;
+      slug: string;
+      tagline: string | null;
+      colourPalette: string[];
+      tileMaterial: string | null;
+      materialRigidity: string | null;
+      kitContents: string[];
+      imageUrl: string | null;
+    };
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    SOLD: "Sold",
+    SHIPPED: "Shipped",
+    DELIVERED: "Delivered",
+    REGISTERED: "Registered",
+    RETURNED: "Returned",
+  };
+
+  // Placeholder written steps until the real assembly/care copy (and a
+  // decision on photos/video/PDF — flagged separately) replaces this —
+  // same placeholder-and-flag approach as the earlier static mock.
+  const DEFAULT_CARE_STEPS = [
+    "Unfold the Furoshiki wrap flat and lay out all your tiles by colour.",
+    "Follow the fold guide on your Unstitch Mail postcard to interlock the first row.",
+    "Hand wash cold, lay flat to dry — avoid the tumble dryer.",
+    "Re-fold along the original stitch lines when storing between uses.",
+  ];
+
+  // Optional richer care media — leave both blank to show just the written
+  // steps above. Fill in once a format (photos/video/PDF) is decided:
+  //   PASSPORT_CARE_VIDEO_URL: an embeddable video URL (e.g. a YouTube/
+  //     Vimeo embed link, or a direct .mp4) shown inline below the steps.
+  //   PASSPORT_CARE_PDF_URL: a link to a downloadable/printable care guide.
+  const PASSPORT_CARE_VIDEO_URL = "";
+  const PASSPORT_CARE_PDF_URL = "";
+
+  function els() {
+    return {
+      search: document.getElementById("passport-search") as HTMLElement,
+      loading: document.getElementById("passport-loading") as HTMLElement,
+      error: document.getElementById("passport-error") as HTMLElement,
+      errorMessage: document.getElementById("passport-error-message") as HTMLElement,
+      result: document.getElementById("passport-result") as HTMLElement,
+    };
+  }
+
+  function showOnly(which: HTMLElement) {
+    const { search, loading, error, result } = els();
+    for (const el of [search, loading, error, result]) el.hidden = el !== which;
+  }
+
+  function renderCareSteps() {
+    const list = document.getElementById("p-care-steps") as HTMLOListElement;
+    list.innerHTML = DEFAULT_CARE_STEPS.map((s) => `<li>${s}</li>`).join("");
+    const mediaEl = document.getElementById("p-care-media") as HTMLElement;
+    const parts: string[] = [];
+    if (PASSPORT_CARE_VIDEO_URL) {
+      parts.push(`<div class="passport-care-media"><iframe src="${PASSPORT_CARE_VIDEO_URL}" allowfullscreen loading="lazy" height="315"></iframe></div>`);
+    }
+    if (PASSPORT_CARE_PDF_URL) {
+      parts.push(`<div class="passport-care-media"><a class="btn btn-outline" href="${PASSPORT_CARE_PDF_URL}" target="_blank" rel="noopener">Download the care guide (PDF)</a></div>`);
+    }
+    mediaEl.innerHTML = parts.join("");
+  }
+
+  // Empty by default — the "Designs & instructions" section stays hidden
+  // (see the <section hidden> in the markup above) until this is filled
+  // in, since there's no placeholder content worth showing for it yet.
+  // Fill in once the real guide exists (a PDF is the likely format).
+  const PASSPORT_DESIGNS_PDF_URL = "";
+
+  function renderDesignsSection() {
+    const section = document.getElementById("p-designs-section") as HTMLElement;
+    if (!PASSPORT_DESIGNS_PDF_URL) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    (document.getElementById("p-designs-media") as HTMLElement).innerHTML =
+      `<a class="btn btn-outline" href="${PASSPORT_DESIGNS_PDF_URL}" target="_blank" rel="noopener">Download the design &amp; instructions guide (PDF)</a>`;
+  }
+
+  function renderUnit(unit: PassportUnit) {
+    (document.getElementById("p-product-name") as HTMLElement).textContent = unit.product.name;
+    (document.getElementById("p-edition") as HTMLElement).textContent = `Edition ${String(unit.editionNumber).padStart(2, "0")} of ${unit.drop.totalUnits}`;
+    (document.getElementById("p-serial-row") as HTMLElement).innerHTML =
+      `Passport code <strong>${unit.serial}</strong> · Drop ${unit.drop.dropCode} · ${unit.drop.madeYear}`;
+
+    const swatches = document.getElementById("p-swatches") as HTMLElement;
+    swatches.innerHTML = (unit.product.colourPalette || [])
+      .map((hex) => `<span class="passport-swatch" style="background:${hex}"></span>`)
+      .join("");
+    (document.getElementById("p-material") as HTMLElement).textContent = unit.product.tileMaterial || "—";
+    (document.getElementById("p-made") as HTMLElement).textContent = `${unit.drop.madeLocation}, by hand`;
+    (document.getElementById("p-status") as HTMLElement).textContent = STATUS_LABELS[unit.status] || unit.status;
+
+    renderCareSteps();
+    renderDesignsSection();
+
+    (document.getElementById("p-review-copy") as HTMLElement).textContent =
+      `You're the ${unit.registered ? "verified owner" : "keeper"} of edition ${unit.editionNumber} of ${unit.drop.totalUnits}. Leave a review and it'll show as "Verified — ${unit.product.name} #${unit.editionNumber} of ${unit.drop.totalUnits}."`;
+
+    const formWrap = document.getElementById("p-register-form-wrap") as HTMLElement;
+    const registeredWrap = document.getElementById("p-registered-wrap") as HTMLElement;
+    if (unit.registered) {
+      formWrap.hidden = true;
+      registeredWrap.hidden = false;
+      (document.getElementById("p-registered-message") as HTMLElement).textContent = unit.registeredOwnerName
+        ? `Registered to ${unit.registeredOwnerName}. Scanning this code again? You can re-register below to move it to a new owner.`
+        : "This kit is registered.";
+    } else {
+      formWrap.hidden = false;
+      registeredWrap.hidden = true;
+    }
+
+    showOnly(els().result);
+  }
+
+  async function lookupSerial(serial: string) {
+    showOnly(els().loading);
+    try {
+      const res = await fetch(`/api/passport?serial=${encodeURIComponent(serial)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        (document.getElementById("passport-error-message") as HTMLElement).textContent =
+          data.error || "Double-check the code and try again.";
+        showOnly(els().error);
+        return;
+      }
+      currentSerial = serial;
+      renderUnit(data.unit);
+    } catch {
+      (document.getElementById("passport-error-message") as HTMLElement).textContent =
+        "Network error — please try again.";
+      showOnly(els().error);
+    }
+  }
+
+  let currentSerial = "";
+
+  const params = new URLSearchParams(window.location.search);
+  const initialSerial = params.get("serial");
+  if (initialSerial) {
+    lookupSerial(initialSerial.trim());
+  }
+
+  document.getElementById("passport-search-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const value = (document.getElementById("passport-search-input") as HTMLInputElement).value.trim();
+    if (!value) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("serial", value);
+    window.history.replaceState({}, "", url.toString());
+    lookupSerial(value);
+  });
+
+  document.getElementById("passport-register-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const status = document.getElementById("p-register-status") as HTMLElement;
+    const name = (document.getElementById("p-register-name") as HTMLInputElement).value.trim();
+    const email = (document.getElementById("p-register-email") as HTMLInputElement).value.trim();
+    if (!email || !currentSerial) return;
+    const submitBtn = (e.target as HTMLFormElement).querySelector("button[type=submit]") as HTMLButtonElement;
+    submitBtn.disabled = true;
+    status.hidden = true;
+    try {
+      const res = await fetch("/api/passport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial: currentSerial, email, name: name || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        renderUnit(data.unit);
+      } else {
+        status.textContent = data.error || "Couldn't register this kit — please try again.";
+        status.hidden = false;
+      }
+    } catch {
+      status.textContent = "Network error — please try again.";
+      status.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</Layout>
