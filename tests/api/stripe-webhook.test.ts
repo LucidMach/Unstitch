@@ -3,6 +3,14 @@ import Stripe from 'stripe';
 
 const ORIGINAL_ENV = { ...process.env };
 
+// src/lib/stripe.js and src/lib/prisma.js both fall back to reading a local
+// .env*/​.env.local file for any var that isn't already in process.env. A
+// real dev checkout (this one included) has a .env.local with real-looking
+// keys, which would silently repopulate a var this file just deleted and
+// defeat the "not configured" tests below. Stub fs so that fallback is
+// always a no-op here, regardless of what's actually on disk.
+vi.mock('node:fs', () => ({ default: { existsSync: () => false, readFileSync: () => '' } }));
+
 const mockSend = vi.fn().mockResolvedValue({ id: 'mock-email-id' });
 vi.mock('resend', () => ({
   Resend: class {

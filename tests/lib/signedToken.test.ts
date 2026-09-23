@@ -21,9 +21,9 @@ describe('signedToken (sign/verify)', () => {
     const token = sign({ kind: 'order-lookup', orderId: 42 }, 60);
     const payload = verify(token);
     expect(payload).not.toBeNull();
-    expect(payload.kind).toBe('order-lookup');
-    expect(payload.orderId).toBe(42);
-    expect(typeof payload.exp).toBe('number');
+    expect(payload!.kind).toBe('order-lookup');
+    expect(payload!.orderId).toBe(42);
+    expect(typeof payload!.exp).toBe('number');
   });
 
   it('rejects a token whose signature has been tampered with', async () => {

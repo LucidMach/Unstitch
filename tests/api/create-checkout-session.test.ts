@@ -54,6 +54,12 @@ const PRODUCT = {
 
 const DROP = { id: 'drop-1', productId: 'prod-1', status: 'LIVE' };
 
+// api/create-checkout-session.js fetches the product and its one candidate
+// live drop in a single query (`product.findUnique({ include: { drops: {
+// where: { status: 'LIVE' }, take: 1 } } })`) rather than two separate
+// queries — so the mocked product must carry its own `drops` array.
+const PRODUCT_WITH_LIVE_DROP = { ...PRODUCT, drops: [DROP] };
+
 const ZONE = { id: 'zone-1', name: 'Local (0-5km)', method: 'SELF_DELIVERY', maxDistanceKm: 5, active: true, feeCents: 500 };
 
 function validBody(overrides = {}) {
@@ -78,8 +84,7 @@ describe('create-checkout-session API handler', () => {
     vi.restoreAllMocks();
     mockSessionsCreate.mockReset();
 
-    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue(PRODUCT as any);
-    vi.spyOn(prisma.drop, 'findFirst').mockResolvedValue(DROP as any);
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue(PRODUCT_WITH_LIVE_DROP as any);
     vi.spyOn(prisma.deliveryZone, 'findFirst').mockResolvedValue(ZONE as any);
     vi.spyOn(prisma, '$transaction').mockResolvedValue([
       { id: 'unit-1', serial: 'SN0001' },
@@ -112,7 +117,7 @@ describe('create-checkout-session API handler', () => {
   });
 
   it('returns 404 for an inactive product', async () => {
-    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ ...PRODUCT, isActive: false } as any);
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ ...PRODUCT_WITH_LIVE_DROP, isActive: false } as any);
     const req = { method: 'POST', headers: { 'x-real-ip': nextIp() }, body: validBody() };
     const res = createMockRes();
 
@@ -121,7 +126,7 @@ describe('create-checkout-session API handler', () => {
   });
 
   it('returns 409 when there is no live drop', async () => {
-    vi.spyOn(prisma.drop, 'findFirst').mockResolvedValue(null);
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ ...PRODUCT, drops: [] } as any);
     const req = { method: 'POST', headers: { 'x-real-ip': nextIp() }, body: validBody() };
     const res = createMockRes();
 
