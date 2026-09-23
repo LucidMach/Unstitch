@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import productHandler from '../../api/admin/product.js';
+import productHandler from '../../src/server/admin/product.js';
 import { buildAdminSessionCookie } from '../../src/lib/adminAuth.js';
 
 function createMockRes() {

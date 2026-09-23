@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import orderLookupHandler from '../../api/order-lookup.js';
+import orderLookupHandler from '../../src/server/order-lookup.js';
 import { sign } from '../../src/lib/signedToken.js';
 
 function createMockRes() {

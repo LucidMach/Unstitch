@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import orderLookupRequestHandler from '../../api/order-lookup-request.js';
+import orderLookupRequestHandler from '../../src/server/order-lookup-request.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
 const mockSend = vi.fn().mockResolvedValue({ id: 'mock-email-id' });
