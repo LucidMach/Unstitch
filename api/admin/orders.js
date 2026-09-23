@@ -151,7 +151,14 @@ export default async function handler(req, res) {
           return sendJson(res, 400, { error: `This order is already ${existing.status}, not awaiting payment.` });
         }
         const [order] = await prisma.$transaction([
-          prisma.order.update({ where: { id: existing.id }, data: { status: 'PAID' } }),
+          // `customer` is included so the admin panel can patch this order's
+          // table row in place (see patchOrderRow in admin/index.astro)
+          // instead of refetching and rebuilding the entire orders list.
+          prisma.order.update({
+            where: { id: existing.id },
+            data: { status: 'PAID' },
+            include: { customer: { select: { email: true, name: true } } },
+          }),
           prisma.payment.create({
             data: {
               orderId: existing.id,
@@ -249,9 +256,13 @@ export default async function handler(req, res) {
             error: `Ship date must be at least ${MIN_PRODUCTION_DAYS} business days from the order date (${minDate.toLocaleDateString('en-AU')} or later).`,
           });
         }
+        // `customer` included for the same reason as mark-paid above — lets
+        // the admin panel patch the order row in place rather than
+        // refetching the whole list.
         const order = await prisma.order.update({
           where: { id: existing.id },
           data: { expectedShipAt: candidate },
+          include: { customer: { select: { email: true, name: true } } },
         });
         return sendJson(res, 200, { order });
       } catch (err) {
@@ -308,10 +319,12 @@ export default async function handler(req, res) {
           }
         }
 
+        // `customer` included alongside `deliveryAddress` for the same
+        // in-place row-patch reason as the other admin order actions above.
         const order = await prisma.order.update({
           where: { id: existing.id },
           data: { deliveryAddressId, internalNote: internalNote || null },
-          include: { deliveryAddress: true },
+          include: { deliveryAddress: true, customer: { select: { email: true, name: true } } },
         });
         return sendJson(res, 200, { order });
       } catch (err) {
@@ -332,6 +345,8 @@ export default async function handler(req, res) {
       });
       if (!existing) return sendJson(res, 404, { error: 'Order not found.' });
       const alreadyShipped = !!existing.shippedAt;
+      // `customer` included so the admin panel can patch this order's table
+      // row in place instead of refetching the whole orders list.
       const order = await prisma.order.update({
         where: { id: existing.id },
         data: {
@@ -340,6 +355,7 @@ export default async function handler(req, res) {
           // admin (or a refund) has already moved it to (CANCELLED, etc.).
           status: existing.status === 'PAID' || existing.status === 'PACKED' ? 'OUT_FOR_DELIVERY' : existing.status,
         },
+        include: { customer: { select: { email: true, name: true } } },
       });
       // Only email on the first "mark as shipped" for this order — clicking
       // it again (there's no real "already shipped" guard on the button,

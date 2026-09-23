@@ -604,6 +604,8 @@ model Order {
   givingLedger GivingLedgerEntry[]
   reviews      Review[]
 
+  @@index([customerId], map: "orders_customer_idx")
+  @@index([createdAt], map: "orders_created_at_idx")
   @@map("orders")
 }
 

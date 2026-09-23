@@ -559,6 +559,64 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Orders ---
+  // Renders one order table row. Extracted from loadOrders() so both the
+  // full-list render and a single-row patch (after mark-paid/mark-shipped/
+  // update-ship-date/update-order-details, see patchOrderRow below) share
+  // exactly one implementation. Every interpolated value is passed through
+  // esc() — this function must be XSS-safe standing on its own, since a
+  // customer-supplied value (billing/order name) can flow into o.customer
+  // via Stripe checkout.
+  function renderOrderRow(o: OrderSummary): string {
+    const noteTitle = o.internalNote ? esc(o.internalNote) : "";
+    const noteFlag = o.internalNote?.includes("⚠️")
+      ? ` <span class="admin-flag" title="${noteTitle}">⚠️ review</span>`
+      : o.internalNote
+        ? ` <span class="admin-flag admin-flag--muted" title="${noteTitle}">📝</span>`
+        : "";
+    const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= Date.now();
+    const shipByCell = o.shippedAt
+      ? `Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}`
+      : o.expectedShipAt
+        ? `<span class="${overdue ? "admin-shipby--overdue" : ""}">${overdue ? "Overdue — " : ""}${esc(new Date(o.expectedShipAt).toLocaleDateString())}</span>`
+        : "—";
+    const id = esc(o.id);
+    return `
+        <tr data-order-row data-id="${id}">
+          <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${id}" aria-label="Select order ${esc(o.orderNumber)}" /></td>
+          <td>${esc(o.orderNumber)}${noteFlag}</td>
+          <td>${esc(o.customer?.name || o.customer?.email || "—")}</td>
+          <td>${esc(orderTypeLabel(o.internalNote))}</td>
+          <td>${esc(o.status)}</td>
+          <td>${esc(money(o.totalCents, o.currency))}</td>
+          <td>${shipByCell}</td>
+          <td>${esc(new Date(o.createdAt).toLocaleDateString())}</td>
+        </tr>`;
+  }
+
+  // Attaches the row-click and checkbox listeners to one already-rendered
+  // <tr data-order-row>. Shared between the full-list render (one pass over
+  // every row) and a single-row patch (just the replaced row) so a patched
+  // row never ends up without its click/select behaviour.
+  function bindOrderRow(row: HTMLTableRowElement, tbody: HTMLTableSectionElement) {
+    row.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest("[data-checkbox-cell]")) return;
+      openOrderDetail(row.dataset.id as string);
+    });
+    const cb = row.querySelector<HTMLInputElement>(".order-select-checkbox");
+    if (!cb) return;
+    cb.checked = selectedOrderIds.has(cb.dataset.orderId as string);
+    cb.addEventListener("click", (e) => e.stopPropagation());
+    cb.addEventListener("change", () => {
+      const id = cb.dataset.orderId as string;
+      if (cb.checked) selectedOrderIds.add(id);
+      else selectedOrderIds.delete(id);
+      updateOrdersEmailButton();
+      const all = tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox");
+      const selectAll = document.getElementById("orders-select-all") as HTMLInputElement;
+      selectAll.checked = all.length > 0 && tbody.querySelectorAll(".order-select-checkbox:checked").length === all.length;
+    });
+  }
+
   async function loadOrders() {
     const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
     try {
@@ -571,58 +629,31 @@ import Layout from "../../layouts/Layout.astro";
         updateOrdersEmailButton();
         return;
       }
-      const now = Date.now();
-      tbody.innerHTML = orders
-        .map((o) => {
-          orderEmailsById.set(o.id, o.customer?.email || "");
-          const noteTitle = o.internalNote ? esc(o.internalNote) : "";
-          const noteFlag = o.internalNote?.includes("⚠️")
-            ? ` <span class="admin-flag" title="${noteTitle}">⚠️ review</span>`
-            : o.internalNote
-              ? ` <span class="admin-flag admin-flag--muted" title="${noteTitle}">📝</span>`
-              : "";
-          const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= now;
-          const shipByCell = o.shippedAt
-            ? `Shipped ${new Date(o.shippedAt).toLocaleDateString()}`
-            : o.expectedShipAt
-              ? `<span class="${overdue ? "admin-shipby--overdue" : ""}">${overdue ? "Overdue — " : ""}${new Date(o.expectedShipAt).toLocaleDateString()}</span>`
-              : "—";
-          return `
-        <tr data-order-row data-id="${o.id}">
-          <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${o.id}" aria-label="Select order ${o.orderNumber}" /></td>
-          <td>${esc(o.orderNumber)}${noteFlag}</td>
-          <td>${esc(o.customer?.name || o.customer?.email || "—")}</td>
-          <td>${orderTypeLabel(o.internalNote)}</td>
-          <td>${o.status}</td>
-          <td>${money(o.totalCents, o.currency)}</td>
-          <td>${shipByCell}</td>
-          <td>${new Date(o.createdAt).toLocaleDateString()}</td>
-        </tr>`;
-        })
-        .join("");
-      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => {
-        row.addEventListener("click", (e) => {
-          if ((e.target as HTMLElement).closest("[data-checkbox-cell]")) return;
-          openOrderDetail(row.dataset.id as string);
-        });
-      });
-      tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox").forEach((cb) => {
-        cb.checked = selectedOrderIds.has(cb.dataset.orderId as string);
-        cb.addEventListener("click", (e) => e.stopPropagation());
-        cb.addEventListener("change", () => {
-          const id = cb.dataset.orderId as string;
-          if (cb.checked) selectedOrderIds.add(id);
-          else selectedOrderIds.delete(id);
-          updateOrdersEmailButton();
-          const all = tbody.querySelectorAll<HTMLInputElement>(".order-select-checkbox");
-          const selectAll = document.getElementById("orders-select-all") as HTMLInputElement;
-          selectAll.checked = all.length > 0 && tbody.querySelectorAll(".order-select-checkbox:checked").length === all.length;
-        });
-      });
+      orders.forEach((o) => orderEmailsById.set(o.id, o.customer?.email || ""));
+      tbody.innerHTML = orders.map(renderOrderRow).join("");
+      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => bindOrderRow(row, tbody));
       updateOrdersEmailButton();
     } catch {
       tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">Couldn't load orders.</td></tr>`;
     }
+  }
+
+  // Replaces exactly the one row for updatedOrder in place, instead of the
+  // full 200-row loadOrders() refetch + tbody rebuild the four order-detail
+  // actions used to trigger. Falls back to a full loadOrders() only if the
+  // row can't be found (e.g. it scrolled out of the currently-loaded list),
+  // so behaviour degrades safely rather than silently doing nothing.
+  function patchOrderRow(updatedOrder: OrderSummary) {
+    orderEmailsById.set(updatedOrder.id, updatedOrder.customer?.email || "");
+    const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
+    const existingRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-order-row][data-id="${CSS.escape(updatedOrder.id)}"]`);
+    if (!existingRow) {
+      loadOrders();
+      return;
+    }
+    existingRow.outerHTML = renderOrderRow(updatedOrder);
+    const newRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-order-row][data-id="${CSS.escape(updatedOrder.id)}"]`);
+    if (newRow) bindOrderRow(newRow, tbody);
   }
 
   document.getElementById("orders-select-all")?.addEventListener("change", (e) => {
@@ -701,7 +732,7 @@ import Layout from "../../layouts/Layout.astro";
           const data = await r.json();
           if (r.ok) {
             showHint(orderSaveStatus, "Saved.", true);
-            loadOrders();
+            patchOrderRow(data.order);
           } else {
             showHint(orderSaveStatus, data.error || "Failed to save.", false);
           }
@@ -737,7 +768,7 @@ import Layout from "../../layouts/Layout.astro";
           const data = await r.json();
           if (r.ok) {
             showHint(shipDateStatus, "Ship-by date updated.", true);
-            loadOrders();
+            patchOrderRow(data.order);
           } else {
             showHint(shipDateStatus, data.error || "Failed to update.", false);
           }
@@ -764,7 +795,7 @@ import Layout from "../../layouts/Layout.astro";
             showHint(paidStatus, "Marked as paid.", true);
             paidBtn.hidden = true;
             openOrderDetail(order.id);
-            loadOrders();
+            patchOrderRow(data.order);
           } else {
             showHint(paidStatus, data.error || "Failed to update.", false);
             paidBtn.disabled = false;
@@ -812,7 +843,7 @@ import Layout from "../../layouts/Layout.astro";
             showHint(shipStatus, "Marked as shipped.", true);
             shipBtn.textContent = "Already marked shipped";
             openOrderDetail(order.id);
-            loadOrders();
+            patchOrderRow(data.order);
           } else {
             showHint(shipStatus, data.error || "Failed to update.", false);
             shipBtn.disabled = false;
@@ -861,50 +892,97 @@ import Layout from "../../layouts/Layout.astro";
   document.getElementById("orders-refresh")?.addEventListener("click", loadOrders);
 
   // --- Customers ---
+  // Cache of the currently-rendered customer list, keyed by id. Lets a
+  // single-row patch (see patchCustomerRow below) carry forward orderCount/
+  // totalSpentCents — derived aggregates the customer-edit endpoint doesn't
+  // (and shouldn't) recompute — while still reflecting the freshly-saved
+  // email/name/createdAt.
+  const customersCache = new Map<string, CustomerSummary>();
+
+  // Renders one customer table row. Extracted from loadCustomers() so both
+  // the full-list render and a single-row patch (after saving the customer-
+  // detail form) share one implementation. Every interpolated value is
+  // passed through esc() — this function must be XSS-safe standing on its
+  // own, since name/email ultimately trace back to customer-supplied input
+  // (Stripe checkout billing details).
+  function renderCustomerRow(c: CustomerSummary): string {
+    const email = esc(c.email);
+    return `
+        <tr data-customer-row data-customer-id="${esc(c.id)}">
+          <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${email}" aria-label="Select ${email}" /></td>
+          <td>${email}</td>
+          <td>${esc(c.name || "—")}</td>
+          <td>${esc(c.orderCount)}</td>
+          <td>${esc(money(c.totalSpentCents))}</td>
+          <td>${esc(new Date(c.createdAt).toLocaleDateString())}</td>
+        </tr>`;
+  }
+
+  // Attaches the row-click and checkbox listeners to one already-rendered
+  // <tr data-customer-row>. Shared between the full-list render and a
+  // single-row patch, same reasoning as bindOrderRow above.
+  function bindCustomerRow(row: HTMLTableRowElement, tbody: HTMLTableSectionElement) {
+    const cb = row.querySelector<HTMLInputElement>(".customer-select-checkbox");
+    if (cb) {
+      cb.checked = selectedCustomerEmails.has(cb.dataset.email as string);
+      cb.addEventListener("change", (e) => {
+        e.stopPropagation();
+        const email = cb.dataset.email as string;
+        if (cb.checked) selectedCustomerEmails.add(email);
+        else selectedCustomerEmails.delete(email);
+        updateCustomersEmailButton();
+        const all = tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox");
+        const selectAll = document.getElementById("customers-select-all") as HTMLInputElement;
+        selectAll.checked = all.length > 0 && tbody.querySelectorAll(".customer-select-checkbox:checked").length === all.length;
+      });
+    }
+    row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId as string));
+  }
+
   async function loadCustomers() {
     const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
     try {
       const res = await api("/api/admin/customers");
       if (!res.ok) throw new Error("Failed to load customers");
       const { customers } = (await res.json()) as { customers: CustomerSummary[] };
+      customersCache.clear();
       if (customers.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No customers yet.</td></tr>`;
         updateCustomersEmailButton();
         return;
       }
-      tbody.innerHTML = customers
-        .map(
-          (c) => `
-        <tr data-customer-row data-customer-id="${c.id}">
-          <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${esc(c.email)}" aria-label="Select ${esc(c.email)}" /></td>
-          <td>${esc(c.email)}</td>
-          <td>${esc(c.name || "—")}</td>
-          <td>${c.orderCount}</td>
-          <td>${money(c.totalSpentCents)}</td>
-          <td>${new Date(c.createdAt).toLocaleDateString()}</td>
-        </tr>`,
-        )
-        .join("");
-      tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox").forEach((cb) => {
-        cb.checked = selectedCustomerEmails.has(cb.dataset.email as string);
-        cb.addEventListener("change", (e) => {
-          e.stopPropagation();
-          const email = cb.dataset.email as string;
-          if (cb.checked) selectedCustomerEmails.add(email);
-          else selectedCustomerEmails.delete(email);
-          updateCustomersEmailButton();
-          const all = tbody.querySelectorAll<HTMLInputElement>(".customer-select-checkbox");
-          const selectAll = document.getElementById("customers-select-all") as HTMLInputElement;
-          selectAll.checked = all.length > 0 && tbody.querySelectorAll(".customer-select-checkbox:checked").length === all.length;
-        });
-      });
-      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-customer-row]").forEach((row) => {
-        row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId as string));
-      });
+      customers.forEach((c) => customersCache.set(c.id, c));
+      tbody.innerHTML = customers.map(renderCustomerRow).join("");
+      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-customer-row]").forEach((row) => bindCustomerRow(row, tbody));
       updateCustomersEmailButton();
     } catch {
       tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load customers.</td></tr>`;
     }
+  }
+
+  // Replaces exactly the one row for the saved customer in place, instead
+  // of the full loadCustomers() refetch + tbody rebuild the customer-detail
+  // save flow used to trigger. orderCount/totalSpentCents come from the
+  // cache (see customersCache above) since editing a customer's own details
+  // never changes their order history. Falls back to a full loadCustomers()
+  // if the row/cache entry can't be found.
+  function patchCustomerRow(saved: { id: string; email: string; name: string | null; createdAt: string }) {
+    const previous = customersCache.get(saved.id);
+    if (!previous) {
+      loadCustomers();
+      return;
+    }
+    const updated: CustomerSummary = { ...previous, email: saved.email, name: saved.name, createdAt: saved.createdAt };
+    customersCache.set(saved.id, updated);
+    const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
+    const existingRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-customer-row][data-customer-id="${CSS.escape(saved.id)}"]`);
+    if (!existingRow) {
+      loadCustomers();
+      return;
+    }
+    existingRow.outerHTML = renderCustomerRow(updated);
+    const newRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-customer-row][data-customer-id="${CSS.escape(saved.id)}"]`);
+    if (newRow) bindCustomerRow(newRow, tbody);
   }
 
   async function openCustomerDetail(id: string) {
@@ -935,7 +1013,7 @@ import Layout from "../../layouts/Layout.astro";
           const data = await r.json();
           if (r.ok) {
             showHint(status, "Saved.", true);
-            loadCustomers();
+            patchCustomerRow(data.customer);
           } else {
             showHint(status, data.error || "Failed to save.", false);
           }

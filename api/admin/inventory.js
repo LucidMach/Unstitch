@@ -98,6 +98,12 @@ export default async function handler(req, res) {
     if (!requireAdmin(req, res)) return;
 
     const drops = await prisma.drop.findMany({
+      // Archived drops are done-with; the default admin Inventory view has
+      // no use for them and they only grow the response over time as more
+      // drops get archived. Excluded by default rather than paginated —
+      // full pagination/aggregate-counts for this endpoint is a larger
+      // redesign left for a future pass.
+      where: { status: { not: 'ARCHIVED' } },
       orderBy: { createdAt: 'desc' },
       include: {
         product: { select: { id: true, name: true, slug: true, sku: true, imageUrl: true } },

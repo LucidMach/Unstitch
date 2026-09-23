@@ -1,5 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Image } from "astro:assets";
+import SlowBloomImage from "../assets/SlowBloom.png";
 ---
 
 <Layout
@@ -133,7 +135,7 @@ import Layout from "../layouts/Layout.astro";
 
         <div class="latest-drop-live__media">
           <div class="ph" style="aspect-ratio: 1 / 1;">
-            <img src="/SlowBloom.png" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+            <Image src={SlowBloomImage} width={433} height={577} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
           </div>
         </div>
 

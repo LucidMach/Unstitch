@@ -1,5 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Image, getImage } from "astro:assets";
+import SlowBloomImage from "../assets/SlowBloom.png";
 
 /**
  * HERO PRODUCT PAGE — one of three product-page templates in this repo:
@@ -38,13 +40,20 @@ const included = [
   { label: "Product Passport" },
   { label: "Gift Message" },
 ];
+
+// og:image (Layout's `image` prop) and the cart drawer's data-product-image
+// attribute both need a plain URL string rather than the <Image> component,
+// so run the same source through Astro's image pipeline via getImage() to
+// get an optimized, hashed URL instead of pointing either at the old raw
+// /SlowBloom.png public path.
+const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, height: 577, format: "webp" });
 ---
 
 <Layout
   title="Slow Bloom — Modular Textile Kit | Unstitch"
   description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
   keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
-  image="/SlowBloom.png"
+  image={slowBloomOptimized.src}
   imageAlt="Slow Bloom modular textile kit"
   ogType="product"
 >
@@ -55,12 +64,12 @@ const included = [
 
       <div class="product-hero__grid">
         <div class="product-hero__media">
-          <!-- Plain placeholder box, no decorative backdrop — swap in the
-               real photo at /SlowBloom.png whenever it's ready, no markup
-               change needed. -->
+          <!-- Plain placeholder box, no decorative backdrop — real photo
+               now imported from src/assets/SlowBloom.png (see the frontmatter
+               above), served through astro:assets' <Image> component. -->
           <div class="product-hero__image-wrap">
             <div class="ph product-hero__image" style="aspect-ratio: 1 / 1;">
-              <img src="/SlowBloom.png" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+              <Image src={SlowBloomImage} width={433} height={577} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
             </div>
           </div>
 
@@ -136,7 +145,7 @@ const included = [
             data-product-id="slow-bloom"
             data-product-name={product.name}
             data-product-price={product.priceCents}
-            data-product-image="/SlowBloom.png"
+            data-product-image={slowBloomOptimized.src}
             data-product-max={product.totalUnits}
           >
             Add to Bag
