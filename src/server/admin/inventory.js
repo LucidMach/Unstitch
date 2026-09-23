@@ -47,10 +47,10 @@
 //         can never snatch back a unit a customer is mid-payment on.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import prisma from '../../src/lib/prisma.js';
-import { releaseUnits } from '../../src/lib/inventory.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import prisma from '../../lib/prisma.js';
+import { releaseUnits } from '../../lib/inventory.js';
 
 // Mirrors SESSION_HOLD_SECONDS in api/create-checkout-session.js — a real
 // in-progress checkout never holds a reservation longer than this, so

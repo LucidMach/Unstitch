@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import shareHandler from '../../api/share.js';
+import shareHandler from '../../src/server/share.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
 const mockSend = vi.fn().mockResolvedValue({ data: { id: 'mock-share-email-id' }, error: null });

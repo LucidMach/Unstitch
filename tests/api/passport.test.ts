@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import passportHandler from '../../api/passport.js';
-import confirmTransferHandler from '../../api/passport-confirm-transfer.js';
+import passportHandler from '../../src/server/passport.js';
+import confirmTransferHandler from '../../src/server/passport-confirm-transfer.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 import { sign } from '../../src/lib/signedToken.js';
 

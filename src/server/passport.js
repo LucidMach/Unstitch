@@ -45,12 +45,12 @@
 //     serial.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../src/lib/apiHelper.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { sign } from '../src/lib/signedToken.js';
-import { getSiteOrigin } from '../src/lib/siteOrigin.js';
-import { passportTransferConfirmationEmail } from '../src/lib/emailTemplate.js';
-import prisma from '../src/lib/prisma.js';
+import { sendJson, parseRequestBody, formatZodError } from '../lib/apiHelper.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { sign } from '../lib/signedToken.js';
+import { getSiteOrigin } from '../lib/siteOrigin.js';
+import { passportTransferConfirmationEmail } from '../lib/emailTemplate.js';
+import prisma from '../lib/prisma.js';
 
 const REGISTERABLE_STATUSES = new Set(['SOLD', 'SHIPPED', 'DELIVERED', 'REGISTERED']);
 

@@ -14,9 +14,9 @@
 // since the email was sent, so it can never reassign away from a *different*
 // owner than the one who was asked to confirm.
 
-import { sendJson } from '../src/lib/apiHelper.js';
-import { verify } from '../src/lib/signedToken.js';
-import prisma from '../src/lib/prisma.js';
+import { sendJson } from '../lib/apiHelper.js';
+import { verify } from '../lib/signedToken.js';
+import prisma from '../lib/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

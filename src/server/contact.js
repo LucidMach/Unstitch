@@ -1,10 +1,10 @@
 // api/contact.js
 // Vercel Serverless Function for contact form submissions
 
-import { ContactSchema, subjectLabels } from '../src/lib/schemas/contact.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { formatZodError, sendJson, parseRequestBody } from '../src/lib/apiHelper.js';
-import prisma from '../src/lib/prisma.js';
+import { ContactSchema, subjectLabels } from '../lib/schemas/contact.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
+import prisma from '../lib/prisma.js';
 
 const NOTIFY_EMAIL = 'hello@unstitchx.com';
 

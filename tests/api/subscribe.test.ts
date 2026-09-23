@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import subscribeHandler from '../../api/subscribe.js';
+import subscribeHandler from '../../src/server/subscribe.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
 const mockSend = vi.fn().mockResolvedValue({ data: { id: 'mock-raffle-email-id' }, error: null });

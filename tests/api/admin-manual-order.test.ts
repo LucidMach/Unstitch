@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import manualOrderHandler from '../../api/admin/manual-order.js';
+import manualOrderHandler from '../../src/server/admin/manual-order.js';
 import { buildAdminSessionCookie } from '../../src/lib/adminAuth.js';
 
 const mockSend = vi.fn().mockResolvedValue({ id: 'mock-email-id' });

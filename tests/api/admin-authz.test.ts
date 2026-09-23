@@ -5,12 +5,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
 
-import customersHandler from '../../api/admin/customers.js';
-import inventoryHandler from '../../api/admin/inventory.js';
-import manualOrderHandler from '../../api/admin/manual-order.js';
-import ordersHandler from '../../api/admin/orders.js';
-import productHandler from '../../api/admin/product.js';
-import sendEmailHandler from '../../api/admin/send-email.js';
+import customersHandler from '../../src/server/admin/customers.js';
+import inventoryHandler from '../../src/server/admin/inventory.js';
+import manualOrderHandler from '../../src/server/admin/manual-order.js';
+import ordersHandler from '../../src/server/admin/orders.js';
+import productHandler from '../../src/server/admin/product.js';
+import sendEmailHandler from '../../src/server/admin/send-email.js';
 
 function createMockRes() {
   const res: any = {

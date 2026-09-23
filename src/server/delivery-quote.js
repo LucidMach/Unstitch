@@ -5,10 +5,10 @@
 // server-side in create-checkout-session.js — this endpoint is read-only
 // and never trusted for the real charge.
 
-import { sendJson } from '../src/lib/apiHelper.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../src/lib/deliveryZones.js';
-import prisma from '../src/lib/prisma.js';
+import { sendJson } from '../lib/apiHelper.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../lib/deliveryZones.js';
+import prisma from '../lib/prisma.js';
 
 const POSTCODE_RE = /^[0-9]{4}$/;
 

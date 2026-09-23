@@ -1,6 +1,6 @@
 // api/admin/logout.js
-import { sendJson } from '../../src/lib/apiHelper.js';
-import { buildAdminLogoutCookie } from '../../src/lib/adminAuth.js';
+import { sendJson } from '../../lib/apiHelper.js';
+import { buildAdminLogoutCookie } from '../../lib/adminAuth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

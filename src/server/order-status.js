@@ -6,10 +6,10 @@
 // Stripe directly for a session that hasn't been webhook-processed yet,
 // since webhook delivery can lag a few seconds behind the browser redirect).
 
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { sendJson } from '../src/lib/apiHelper.js';
-import prisma from '../src/lib/prisma.js';
-import stripe from '../src/lib/stripe.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { sendJson } from '../lib/apiHelper.js';
+import prisma from '../lib/prisma.js';
+import stripe from '../lib/stripe.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

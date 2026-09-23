@@ -4,9 +4,9 @@
 // cookie on success.
 
 import crypto from 'node:crypto';
-import { checkRateLimit } from '../../src/lib/rateLimit.js';
-import { sendJson, parseRequestBody } from '../../src/lib/apiHelper.js';
-import { buildAdminSessionCookie } from '../../src/lib/adminAuth.js';
+import { checkRateLimit } from '../../lib/rateLimit.js';
+import { sendJson, parseRequestBody } from '../../lib/apiHelper.js';
+import { buildAdminSessionCookie } from '../../lib/adminAuth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

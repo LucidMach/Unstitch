@@ -10,11 +10,11 @@
 // hasn't) ordered from the site.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../src/lib/apiHelper.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { sign } from '../src/lib/signedToken.js';
-import { getSiteOrigin } from '../src/lib/siteOrigin.js';
-import prisma from '../src/lib/prisma.js';
+import { sendJson, parseRequestBody, formatZodError } from '../lib/apiHelper.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { sign } from '../lib/signedToken.js';
+import { getSiteOrigin } from '../lib/siteOrigin.js';
+import prisma from '../lib/prisma.js';
 
 const RequestSchema = z.object({
   email: z.string().trim().toLowerCase().email(),

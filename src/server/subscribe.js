@@ -1,10 +1,10 @@
 // api/subscribe.js
 // Vercel Serverless Function for newsletter signups
 
-import { SubscribeSchema } from '../src/lib/schemas/subscribe.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { formatZodError, sendJson, parseRequestBody } from '../src/lib/apiHelper.js';
-import prisma from '../src/lib/prisma.js';
+import { SubscribeSchema } from '../lib/schemas/subscribe.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
+import prisma from '../lib/prisma.js';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
 

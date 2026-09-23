@@ -1,9 +1,9 @@
 // api/share.js
 // Vercel Serverless Function for emailing 3D parametric textile creations
 
-import { ShareSchema } from '../src/lib/schemas/share.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import { formatZodError, sendJson, parseRequestBody } from '../src/lib/apiHelper.js';
+import { ShareSchema } from '../lib/schemas/share.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import prisma from '../../src/lib/prisma.js';
-import sendEmailHandler from '../../api/admin/send-email.js';
+import sendEmailHandler from '../../src/server/admin/send-email.js';
 import { buildAdminSessionCookie } from '../../src/lib/adminAuth.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 

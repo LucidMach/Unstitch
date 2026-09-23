@@ -10,14 +10,14 @@
 //                                                 nobody's address is ever exposed to another via CC/BCC.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import { checkRateLimit } from '../../src/lib/rateLimit.js';
-import { sign } from '../../src/lib/signedToken.js';
-import { getSiteOrigin } from '../../src/lib/siteOrigin.js';
-import prisma from '../../src/lib/prisma.js';
-import { brandedEmailHtml, orderConfirmationEmail, esc } from '../../src/lib/emailTemplate.js';
-import { deliveryMethodLabel } from '../../src/lib/shipping.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import { checkRateLimit } from '../../lib/rateLimit.js';
+import { sign } from '../../lib/signedToken.js';
+import { getSiteOrigin } from '../../lib/siteOrigin.js';
+import prisma from '../../lib/prisma.js';
+import { brandedEmailHtml, orderConfirmationEmail, esc } from '../../lib/emailTemplate.js';
+import { deliveryMethodLabel } from '../../lib/shipping.js';
 
 // Matches api/stripe-webhook.js and api/order-lookup-request.js, so a
 // resent confirmation carries the same style of link as the original.
