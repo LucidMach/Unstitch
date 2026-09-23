@@ -1013,6 +1013,11 @@ import Layout from "../../layouts/Layout.astro";
   let qrModulePromise: Promise<any> | null = null;
   function loadQrCodeModule() {
     if (!qrModulePromise) {
+      // @ts-expect-error — a browser-native dynamic import of a fully
+      // qualified https:// URL. TypeScript has no way to resolve a module
+      // type for a URL specifier like this (it isn't a package name or a
+      // relative path), so `astro check`/tsc always flags it as "Cannot
+      // find module" even though it resolves fine at runtime.
       qrModulePromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
     }
     return qrModulePromise;
