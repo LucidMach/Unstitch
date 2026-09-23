@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { Image, getImage } from "astro:assets";
-import SlowBloomImage from "../assets/SlowBloom.png";
+import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
 
 /**
  * HERO PRODUCT PAGE — one of three product-page templates in this repo:
@@ -24,21 +24,23 @@ const product = {
   eyebrow: "2026 RESET x Zero Waste Festival",
   dropCode: "D001",
   priceCents: 2900, // AUD 29 — the real confirmed retail price.
-  totalUnits: 10, // Whole batch size for this drop.
+  totalUnits: 11, // Whole batch size for this drop.
   tilesPerKit: 22,
-  colourPalette: ["#E8D8C3", "#B7C4A4", "#D98E73"],
-  materialRigidity: "Soft / low-rigidity",
+  colourPalette: ["#383433", "#90c4c4", "#002644"],
+  // "Feel" spec (was labelled "Rigidity") — rendered as two stacked lines.
+  feel: ["Soft", "Low-rigidity"],
   ageRangeMin: 4,
-  ageRangeMax: 99,
+  ageRangeMax: "100+",
 };
 
 const included = [
-  { label: "3 Designs" },
-  { label: "Furoshiki Wrap" },
-  { label: "Unstitch Mail" },
-  { label: "Tiles" },
-  { label: "Product Passport" },
-  { label: "Gift Message" },
+  { label: "3 Designs", icon: "/assets/icons/three-designs.svg" },
+  { label: "Wrap Build Mat", icon: "/assets/icons/furoshiki-wrap.svg" },
+  { label: "Unstitch Mail", icon: "/assets/icons/mail-postcard.svg" },
+  { label: "Tiles", icon: "/assets/icons/tile.svg" },
+  { label: "x3 Tile for Change", icon: "/assets/icons/tile-for-change.svg" },
+  { label: "Product Passport", icon: "/assets/icons/digital-passport.svg" },
+  { label: "Gift Message (optional)", icon: "/assets/icons/gifting-message.svg" },
 ];
 
 // og:image (Layout's `image` prop) and the cart drawer's data-product-image
@@ -46,7 +48,7 @@ const included = [
 // so run the same source through Astro's image pipeline via getImage() to
 // get an optimized, hashed URL instead of pointing either at the old raw
 // /SlowBloom.png public path.
-const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, height: 577, format: "webp" });
+const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700, height: 495, format: "webp" });
 ---
 
 <Layout
@@ -68,8 +70,8 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
                now imported from src/assets/SlowBloom.png (see the frontmatter
                above), served through astro:assets' <Image> component. -->
           <div class="product-hero__image-wrap">
-            <div class="ph product-hero__image" style="aspect-ratio: 1 / 1;">
-              <Image src={SlowBloomImage} width={433} height={577} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+            <div class="product-hero__image" style="aspect-ratio: 1 / 1;">
+              <Image src={SlowBloomHeroImage} width={900} height={900} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-cover" onerror="this.style.display='none'" />
             </div>
           </div>
 
@@ -87,8 +89,10 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
               </span>
             </div>
             <div class="product-specs__col">
-              <span class="product-specs__label">Rigidity</span>
-              <span class="product-specs__value">{product.materialRigidity}</span>
+              <span class="product-specs__label">Feel</span>
+              <span class="product-specs__value product-specs__value--stacked">
+                {product.feel.map((line) => <span>{line}</span>)}
+              </span>
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Ages</span>
@@ -104,16 +108,18 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
         <div class="product-hero__info">
           <p class="section__eyebrow">{product.eyebrow}</p>
           <h1 class="product-hero__title">{product.name}</h1>
-          <p class="product-hero__ref">Ref: Drop {product.dropCode}</p>
+          <p class="product-hero__ref">Ref: Drop {product.dropCode} <span class="product-qty__note">&middot; Only {product.totalUnits} kits in this batch</span></p>
           <p class="product-hero__price">AUD {(product.priceCents / 100).toFixed(0)}</p>
 
           <hr class="product-hero__divider" />
 
-          <h2 class="product-hero__included-title">What's included?</h2>
+          <h2 class="product-hero__included-title">What's in your kit</h2>
           <div class="product-included">
             {included.map((item) => (
               <div class="product-included__item">
-                <div class="ph product-included__icon" aria-hidden="true">icon</div>
+                <div class="product-included__icon" aria-hidden="true">
+                  <img src={item.icon} alt="" width="48" height="48" loading="lazy" />
+                </div>
                 <p class="product-included__label">{item.label}</p>
               </div>
             ))}
@@ -135,7 +141,6 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
               />
               <button type="button" class="product-qty__btn" data-qty-increase aria-label="Increase quantity">+</button>
             </div>
-            <span class="product-qty__note">Only {product.totalUnits} kits in this batch</span>
           </div>
 
           <button
@@ -155,6 +160,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
             This drop is sold out — check back for the next one, or
             <a href="/contact">get in touch</a> to be notified.
           </p>
+          <p class="product-hero__made-to-order">Made to order — please allow 5–7 business days before shipping.</p>
         </div>
       </div>
     </section>
@@ -173,7 +179,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
       </div>
       <div class="reviews__empty">
         <p>No reviews yet — Slow Bloom just dropped.</p>
-        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified — Slow Bloom #7 of 10").</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of 10").</p>
       </div>
     </section>
 
@@ -190,7 +196,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
 
     <!-- ============ EMAIL SIGNUP ============ -->
     <section class="wrap signup">
-      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <p class="signup__text">Every tile saves something out of the landfill. Join the movement.</p>
       <form class="signup__form" data-subscribe-form="shop-footer-signup">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="signup-name">Your name</label>
@@ -295,7 +301,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
   }
 
   .product-hero__image-wrap { position: relative; }
-  .product-hero__image { min-height: 0; }
+  .product-hero__image { min-height: 0; overflow: hidden; }
 
   .product-specs {
     margin-top: 18px;
@@ -325,6 +331,16 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
   .product-specs__value {
     font-size: 0.88rem;
     font-weight: 600;
+  }
+  .product-specs__value--stacked {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+  .product-hero__made-to-order {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: #6b6b6b;
   }
   .product-specs__swatches { display: flex; gap: 6px; }
   .product-specs__swatch {
@@ -367,7 +383,13 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
   }
   .product-included__icon {
     aspect-ratio: 1 / 1;
-    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product-included__icon img {
+    width: 70%;
+    height: 70%;
   }
   .product-included__label {
     margin-top: 8px;
@@ -609,10 +631,12 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
       const input = stepper.querySelector<HTMLInputElement>("[data-qty-input]");
       const decreaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-decrease]");
       const increaseBtn = stepper.querySelector<HTMLButtonElement>("[data-qty-increase]");
-      const max = Number(input?.max || 1);
       const min = Number(input?.min || 1);
 
-      const clamp = (n: number) => Math.min(max, Math.max(min, n));
+      // Read max live rather than capturing it once: checkStockStatus()
+      // below updates input.max asynchronously once the real batch size
+      // comes back from /api/drop-status, and this needs to respect that.
+      const clamp = (n: number) => Math.min(Number(input?.max || 1), Math.max(min, n));
 
       const setValue = (n: number) => {
         if (!input) return;
@@ -640,6 +664,25 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
         const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
         if (!res.ok) return;
         const data = await res.json();
+
+        // Batch size (product.totalUnits) is still static build-time
+        // content, same as name/price/included items above — but unlike
+        // those, it drifts every time someone restocks/voids units in the
+        // admin Inventory tab. The "Only N kits" copy next to Ref: Drop
+        // stays static build-time text on purpose (not worth a layout
+        // flicker for), but the actual purchase limits must never lag
+        // behind real stock, so those alone get corrected live. Fails
+        // safe: on error/no data, the static max set at build time keeps
+        // showing.
+        if (typeof data.totalUnits === "number" && data.totalUnits > 0) {
+          const qtyInput = document.querySelector<HTMLInputElement>("[data-qty-input]");
+          if (qtyInput) {
+            qtyInput.max = String(data.totalUnits);
+            if (Number(qtyInput.value) > data.totalUnits) qtyInput.value = String(data.totalUnits);
+          }
+          addBtn.dataset.productMax = String(data.totalUnits);
+        }
+
         if (!data.available) {
           addBtn.disabled = true;
           addBtn.textContent = "Sold out";

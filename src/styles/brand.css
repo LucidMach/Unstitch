@@ -299,6 +299,10 @@ button { font-family: inherit; cursor: pointer; }
 .media-hero {
   position: relative;
   overflow: hidden;
+  /* Fixed height across every breakpoint (rather than sizing to
+     whatever the overlaid title/eyebrow text happens to wrap to) so
+     the banner doesn't visibly reflow as the viewport changes. */
+  height: 420px;
 }
 .media-hero__media {
   position: absolute;
@@ -839,12 +843,21 @@ button { font-family: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Fixed slot height so an icon that visually needs to be bigger than
+     the 24px baseline (like the scaled-up play icon) can overflow this
+     box symmetrically without shifting the label underneath it. */
+  height: 24px;
 }
 .mobile-nav__icon-wrap .cart-badge {
   top: -3px;
   right: -7px;
 }
-.mobile-nav__item img { height: 20px; width: auto; }
+.mobile-nav__item img { height: 24px; width: auto; }
+/* playground.svg has more internal padding baked into its viewBox than
+   the hand-drawn nav svgs, so it reads visibly smaller at the same
+   height — scaled up 30% to match. */
+.mobile-nav__item img.mobile-nav__play-icon { height: 37px; }
+.mobile-nav__item img.mobile-nav__home-icon { height: 22px; }
 .mobile-nav__item span {
   font-size: 0.7rem;
   letter-spacing: 0.02em;
@@ -901,43 +914,37 @@ button { font-family: inherit; cursor: pointer; }
   padding: 40px 0 24px;
 }
 .site-footer__nav {
-  list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 22px;
-  padding: 0;
+  gap: 40px;
   margin: 0 0 40px;
+}
+.site-footer__col {
+  min-width: 140px;
+}
+.site-footer__col-title {
+  margin: 0 0 12px;
   font-weight: 600;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-.site-footer__nav a:hover {
-  color: var(--accent);
-}
-.site-footer__navitem--group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-.site-footer__sublist {
+.site-footer__col-title a { color: inherit; }
+.site-footer__col ul {
   list-style: none;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 8px;
   padding: 0;
   margin: 0;
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: 500;
 }
-.site-footer__sublist a {
+.site-footer__col ul a {
   font-size: 0.78rem;
+  font-weight: 500;
   color: #555;
 }
-.site-footer__sublist a:hover {
+.site-footer__nav a:hover,
+.site-footer__col ul a:hover {
   color: var(--accent);
 }
 .site-footer__ack {

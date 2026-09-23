@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
-import SlowBloomImage from "../assets/SlowBloom.png";
+import SlowBloomImage from "../assets/slow-bloom-hero.png";
 
 /**
  * ALL-DROPS PAGE — one of three product-page templates in this repo:
@@ -56,14 +56,14 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
   <main>
     {heroDrop && (
       <section class="media-hero shop-all-hero">
-        <div class="ph media-hero__media" aria-hidden="true">
+        <div class="media-hero__media" aria-hidden="true">
           <Image
             src={heroDrop.image}
-            width={433}
-            height={577}
+            width={1600}
+            height={600}
             format="webp"
             alt=""
-            class="w-full h-full object-contain p-4"
+            class="w-full h-full object-cover"
             onerror="this.style.display='none'"
           />
         </div>
@@ -93,14 +93,14 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
         {drops.map((drop) => (
           <article class="product-card">
             <a href={drop.slug} class="product-card__media-link">
-              <div class="ph product-card__media" style="aspect-ratio: 1 / 1;">
+              <div class="product-card__media" style="aspect-ratio: 1 / 1; overflow: hidden;">
                 <Image
                   src={drop.image}
-                  width={433}
-                  height={577}
+                  width={700}
+                  height={700}
                   format="webp"
                   alt={drop.name}
-                  class="w-full h-full object-contain p-4"
+                  class="w-full h-full object-cover"
                   onerror="this.style.display='none'"
                 />
                 {drop.status === "live" && <span class="product-card__badge">Live now</span>}

@@ -587,6 +587,8 @@ import Layout from "../../layouts/Layout.astro";
   .admin-units-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 8px; }
   .admin-units-table th { text-align: left; padding: 4px 6px; color: #888; font-weight: 500; }
   .admin-units-table td { padding: 4px 6px; border-top: 1px solid #eee; }
+  .admin-unit-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .admin-unit-edit-input { width: 64px; padding: 2px 4px; font-size: 0.82rem; }
   .admin-restock-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .admin-restock-row .admin-field-row { margin-right: 4px; }
 
@@ -1820,7 +1822,7 @@ import Layout from "../../layouts/Layout.astro";
           const unitsRows = drop.units
             .map(
               (u) =>
-                `<tr><td>${esc(u.serial)}</td><td>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td><button type="button" class="admin-link-btn" data-qr-btn="${esc(u.serial)}">Download QR</button></td></tr>`,
+                `<tr><td>${esc(u.serial)}</td><td data-edition-cell>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td class="admin-unit-actions"><button type="button" class="admin-link-btn" data-qr-btn="${esc(u.serial)}">Download QR</button><button type="button" class="admin-link-btn" data-edit-unit-btn="${u.id}" data-drop-id="${drop.id}">Edit</button></td></tr>`,
             )
             .join("");
           return `
@@ -1895,6 +1897,74 @@ import Layout from "../../layouts/Layout.astro";
 
       contentEl.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
         btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
+      });
+
+      // Manually correct a single unit's edition number — e.g. when
+      // fillEditionGaps (see api/admin/inventory.js) skipped ahead because
+      // an old voided test unit still held the number that "should" have
+      // been next. Turns the Edition cell + action buttons into an inline
+      // input/Save/Cancel for that row only; both Save and Cancel end in a
+      // full loadInventory(true) refresh, same as every other action here,
+      // so there's never a stale row left with listeners bound to HTML
+      // that's since been swapped out from under them.
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-edit-unit-btn]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const unitId = btn.dataset.editUnitBtn as string;
+          const editDropId = btn.dataset.dropId as string;
+          const row = btn.closest("tr") as HTMLElement;
+          const editionCell = row.querySelector("[data-edition-cell]") as HTMLElement;
+          const actionsCell = row.querySelector(".admin-unit-actions") as HTMLElement;
+          const currentEdition = editionCell.textContent?.trim() || "1";
+
+          editionCell.innerHTML = `<input type="number" min="1" max="999" step="1" value="${esc(currentEdition)}" class="admin-unit-edit-input" data-edit-input />`;
+          actionsCell.innerHTML = `
+            <button type="button" class="btn-primary btn-primary--small" data-edit-save>Save</button>
+            <button type="button" class="btn-ghost btn-ghost--small" data-edit-cancel>Cancel</button>
+            <span class="admin__hint" data-edit-status hidden></span>
+          `;
+
+          const input = editionCell.querySelector<HTMLInputElement>("[data-edit-input]") as HTMLInputElement;
+          input.focus();
+          input.select();
+
+          actionsCell.querySelector("[data-edit-cancel]")?.addEventListener("click", () => loadInventory(true));
+
+          actionsCell.querySelector("[data-edit-save]")?.addEventListener("click", async () => {
+            const statusEl = actionsCell.querySelector("[data-edit-status]") as HTMLElement;
+            const newEdition = parseInt(input.value, 10);
+            if (!Number.isFinite(newEdition) || newEdition < 1) {
+              return showHint(statusEl, "Enter a valid edition number.", false);
+            }
+            if (String(newEdition) === currentEdition) {
+              return loadInventory(true);
+            }
+            if (
+              !window.confirm(
+                `Change this unit's edition to ${newEdition}? Its serial and QR slug update to match — only do this if the old serial was never printed on a physical tag.`,
+              )
+            ) {
+              return;
+            }
+            const saveBtn = actionsCell.querySelector("[data-edit-save]") as HTMLButtonElement;
+            saveBtn.disabled = true;
+            try {
+              const res = await api("/api/admin/inventory", {
+                method: "POST",
+                body: JSON.stringify({ dropId: editDropId, action: "edit-unit", unitId, editionNumber: newEdition }),
+              });
+              const data = await res.json();
+              if (res.ok) {
+                loadInventory(true);
+              } else {
+                showHint(statusEl, data.error || "Couldn't update that unit.", false);
+                saveBtn.disabled = false;
+              }
+            } catch {
+              showHint(statusEl, "Network error.", false);
+              saveBtn.disabled = false;
+            }
+          });
+        });
       });
 
       contentEl.querySelectorAll<HTMLButtonElement>("[data-restock-btn]").forEach((btn) => {
