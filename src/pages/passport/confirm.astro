@@ -1,0 +1,112 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+/**
+ * Confirms a passport ownership transfer — the link mailed to a unit's
+ * current registrant by api/passport.js when someone else tries to
+ * register their already-claimed kit with a different email (see that
+ * file's header comment for the full flow). Same "page calls the API"
+ * convention as src/pages/order/lookup.astro's magic-link handling:
+ * ?token=... is read client-side and handed to api/passport-confirm-
+ * transfer.js, which does the actual verification + reassignment.
+ */
+---
+
+<Layout
+  title="Confirm passport transfer | Unstitch"
+  description="Confirm handing your Unstitch kit's digital passport over to its new owner."
+  noindex
+>
+  <main>
+    <section class="wrap section passport-confirm">
+      <div id="confirm-loading" class="passport-confirm__panel">
+        <p class="passport-confirm__eyebrow">One moment</p>
+        <p class="passport-confirm__body">Confirming this transfer…</p>
+      </div>
+
+      <div id="confirm-success" class="passport-confirm__panel" hidden>
+        <p class="passport-confirm__eyebrow">Done</p>
+        <h1 class="passport-confirm__title">Transfer confirmed</h1>
+        <p class="passport-confirm__body" id="confirm-success-message"></p>
+        <a href="/passport" class="btn btn-outline">Back to Passports</a>
+      </div>
+
+      <div id="confirm-error" class="passport-confirm__panel" hidden>
+        <p class="passport-confirm__eyebrow">Hmm</p>
+        <h1 class="passport-confirm__title">We couldn't confirm that</h1>
+        <p class="passport-confirm__body" id="confirm-error-message">
+          It may have expired, or already been used. If you didn't request this, no action is needed — nothing was
+          changed.
+        </p>
+        <a href="/passport" class="btn btn-outline">Back to Passports</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .passport-confirm {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .passport-confirm__panel {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
+  }
+  .passport-confirm__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .passport-confirm__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin-bottom: 14px;
+  }
+  .passport-confirm__body {
+    color: #444;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+</style>
+
+<script>
+  const loading = document.getElementById("confirm-loading") as HTMLDivElement;
+  const success = document.getElementById("confirm-success") as HTMLDivElement;
+  const errorPanel = document.getElementById("confirm-error") as HTMLDivElement;
+
+  function showOnly(which: HTMLElement) {
+    for (const el of [loading, success, errorPanel]) el.hidden = el !== which;
+  }
+
+  const token = new URLSearchParams(window.location.search).get("token");
+
+  if (!token) {
+    (document.getElementById("confirm-error-message") as HTMLElement).textContent = "This link is missing its token.";
+    showOnly(errorPanel);
+  } else {
+    fetch(`/api/passport-confirm-transfer?token=${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          (document.getElementById("confirm-error-message") as HTMLElement).textContent =
+            data.error || "This link has expired or is invalid.";
+          showOnly(errorPanel);
+          return;
+        }
+        (document.getElementById("confirm-success-message") as HTMLElement).textContent =
+          data.message || "This transfer has been confirmed.";
+        showOnly(success);
+      })
+      .catch(() => {
+        (document.getElementById("confirm-error-message") as HTMLElement).textContent =
+          "Something went wrong confirming this transfer — please try the link again.";
+        showOnly(errorPanel);
+      });
+  }
+</script>

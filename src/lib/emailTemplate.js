@@ -256,6 +256,46 @@ export function orderConfirmationEmail({
 }
 
 /**
+ * Sent to the *current* registrant of a digital passport (api/passport.js)
+ * when someone else tries to register the same unit with a different
+ * email — see that file's header comment for the full flow. Never sent to
+ * the person taking the action; only ever to the existing owner, so they
+ * get a chance to notice/stop an unwanted transfer before it happens.
+ * @param {object} opts
+ * @param {string} opts.productName
+ * @param {string} opts.unitSerial
+ * @param {string} opts.newOwnerEmail - the email attempting to claim the unit (shown so the current owner can recognise a resale/gift they arranged)
+ * @param {string} opts.confirmLink
+ * @returns {{html: string, text: string}}
+ */
+export function passportTransferConfirmationEmail({ productName, unitSerial, newOwnerEmail, confirmLink }) {
+  const bodyHtml = `
+    <p style="margin:0 0 14px;">Someone just tried to register your Unstitch kit's digital passport (<strong>${esc(unitSerial)}</strong>, ${esc(productName)}) using a different email address (<strong>${esc(newOwnerEmail)}</strong>).</p>
+    <p style="margin:0 0 14px;">If you sold or gifted this kit and this is expected, confirm the transfer below — it'll move the passport (and registration) over to its new owner.</p>
+    <p style="margin:0;">If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.</p>`;
+  const html = brandedEmailHtml({
+    eyebrow: 'Confirm passport transfer',
+    heading: 'Someone wants to claim your Unstitch kit',
+    bodyHtml,
+    cta: { label: 'Confirm the transfer', href: confirmLink },
+  });
+  const text = [
+    'Someone wants to claim your Unstitch kit',
+    '',
+    `Someone just tried to register your Unstitch kit's digital passport (${unitSerial}, ${productName}) using a different email address (${newOwnerEmail}).`,
+    '',
+    'If you sold or gifted this kit and this is expected, confirm the transfer using the link below — it\'ll move the passport (and registration) over to its new owner.',
+    '',
+    "If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.",
+    '',
+    confirmLink,
+    '',
+    'Unstitch — Naarm, Melbourne Australia',
+  ].join('\n');
+  return { html, text };
+}
+
+/**
  * Sent from the "Mark as shipped" action (api/admin/orders.js) — best
  * effort, never blocks marking the order shipped if this fails to send.
  * @param {{orderNumber: string, lookupLink: string}} opts

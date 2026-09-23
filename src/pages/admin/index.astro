@@ -447,6 +447,8 @@ import Layout from "../../layouts/Layout.astro";
 </style>
 
 <script>
+  import { esc } from "../../lib/emailTemplate.js";
+
   type OrderSummary = {
     id: string;
     orderNumber: string;
@@ -573,7 +575,7 @@ import Layout from "../../layouts/Layout.astro";
       tbody.innerHTML = orders
         .map((o) => {
           orderEmailsById.set(o.id, o.customer?.email || "");
-          const noteTitle = o.internalNote ? o.internalNote.replace(/"/g, "&quot;") : "";
+          const noteTitle = o.internalNote ? esc(o.internalNote) : "";
           const noteFlag = o.internalNote?.includes("⚠️")
             ? ` <span class="admin-flag" title="${noteTitle}">⚠️ review</span>`
             : o.internalNote
@@ -588,8 +590,8 @@ import Layout from "../../layouts/Layout.astro";
           return `
         <tr data-order-row data-id="${o.id}">
           <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${o.id}" aria-label="Select order ${o.orderNumber}" /></td>
-          <td>${o.orderNumber}${noteFlag}</td>
-          <td>${o.customer?.name || o.customer?.email || "—"}</td>
+          <td>${esc(o.orderNumber)}${noteFlag}</td>
+          <td>${esc(o.customer?.name || o.customer?.email || "—")}</td>
           <td>${orderTypeLabel(o.internalNote)}</td>
           <td>${o.status}</td>
           <td>${money(o.totalCents, o.currency)}</td>
@@ -653,7 +655,7 @@ import Layout from "../../layouts/Layout.astro";
       detail.hidden = false;
       (document.getElementById("detail-number") as HTMLElement).textContent = order.orderNumber;
       (document.getElementById("detail-summary") as HTMLElement).innerHTML = `
-        <dt>Customer</dt><dd>${order.customer.email}${order.customer.name ? ` (${order.customer.name})` : ""}</dd>
+        <dt>Customer</dt><dd>${esc(order.customer.email)}${order.customer.name ? ` (${esc(order.customer.name)})` : ""}</dd>
         <dt>Status</dt><dd>${order.status}</dd>
         <dt>Total</dt><dd>${money(order.totalCents, order.currency)}</dd>
         <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
@@ -662,7 +664,7 @@ import Layout from "../../layouts/Layout.astro";
       (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
         .map(
           (it: any) =>
-            `<li>${it.quantity} × ${it.product?.name || "Item"}${it.unit?.serial ? ` — unit ${it.unit.serial}` : ""} — ${money(it.lineTotalCents, order.currency)}</li>`,
+            `<li>${it.quantity} × ${esc(it.product?.name || "Item")}${it.unit?.serial ? ` — unit ${esc(it.unit.serial)}` : ""} — ${money(it.lineTotalCents, order.currency)}</li>`,
         )
         .join("") || "<li>No items</li>";
       const addr = order.deliveryAddress;
@@ -712,7 +714,7 @@ import Layout from "../../layouts/Layout.astro";
 
       (document.getElementById("detail-payments") as HTMLElement).innerHTML =
         order.payments
-          .map((p: any) => `<li>${p.provider} — ${p.status} — ${money(p.amountCents, order.currency)}</li>`)
+          .map((p: any) => `<li>${esc(p.provider)} — ${esc(p.status)} — ${money(p.amountCents, order.currency)}</li>`)
           .join("") || "<li>No payments recorded</li>";
 
       const shipDateInput = document.getElementById("detail-ship-date") as HTMLInputElement;
@@ -874,9 +876,9 @@ import Layout from "../../layouts/Layout.astro";
         .map(
           (c) => `
         <tr data-customer-row data-customer-id="${c.id}">
-          <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${c.email}" aria-label="Select ${c.email}" /></td>
-          <td>${c.email}</td>
-          <td>${c.name || "—"}</td>
+          <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${esc(c.email)}" aria-label="Select ${esc(c.email)}" /></td>
+          <td>${esc(c.email)}</td>
+          <td>${esc(c.name || "—")}</td>
           <td>${c.orderCount}</td>
           <td>${money(c.totalSpentCents)}</td>
           <td>${new Date(c.createdAt).toLocaleDateString()}</td>
@@ -1102,15 +1104,15 @@ import Layout from "../../layouts/Layout.astro";
           const unitsRows = drop.units
             .map(
               (u) =>
-                `<tr><td>${u.serial}</td><td>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td><button type="button" class="admin-link-btn" data-qr-btn="${u.serial}">Download QR</button></td></tr>`,
+                `<tr><td>${esc(u.serial)}</td><td>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td><button type="button" class="admin-link-btn" data-qr-btn="${esc(u.serial)}">Download QR</button></td></tr>`,
             )
             .join("");
           return `
         <div class="admin-card" data-drop-card="${drop.id}">
           <div class="admin-drop-card">
-            <img class="admin-drop-photo" src="${drop.product.imageUrl || ""}" alt="${drop.product.name}" onerror="this.style.visibility='hidden'" />
+            <img class="admin-drop-photo" src="${esc(drop.product.imageUrl || "")}" alt="${esc(drop.product.name)}" onerror="this.style.visibility='hidden'" />
             <div class="admin-drop-body">
-              <h2>${drop.product.name}<span class="admin-drop-code">${drop.dropCode}</span> <span class="admin-muted">(${drop.status})</span></h2>
+              <h2>${esc(drop.product.name)}<span class="admin-drop-code">${esc(drop.dropCode)}</span> <span class="admin-muted">(${drop.status})</span></h2>
               <ul class="admin-list admin-list--inline">${countsHtml}</ul>
               <p class="admin-muted">${drop.totalUnits} unit(s) total${drop.releaseAt ? ` · released ${new Date(drop.releaseAt).toLocaleDateString()}` : ""}</p>
 
