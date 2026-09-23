@@ -53,23 +53,57 @@ export default async function handler(req, res) {
 
   const { slug, quantity, email, postcode } = parseResult.data;
 
-  const product = await prisma.product.findUnique({ where: { slug } });
+  // Single query instead of the previous product.findUnique -> drop.findFirst
+  // pair: pull the product and its one candidate live drop together. Still
+  // lets us tell "product doesn't exist/inactive" (404) apart from "product
+  // exists but has no live drop" (409) — the include just carries the live
+  // drop (if any) along for free instead of a second round-trip.
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: {
+      drops: {
+        where: { status: 'LIVE' },
+        orderBy: { releaseAt: 'asc' },
+        take: 1,
+      },
+    },
+  });
   if (!product || !product.isActive) {
     return sendJson(res, 404, { error: 'That product is not available.' });
   }
 
-  const drop = await prisma.drop.findFirst({
-    where: { productId: product.id, status: 'LIVE' },
-    orderBy: { releaseAt: 'asc' },
-  });
+  const drop = product.drops[0];
   if (!drop) {
     return sendJson(res, 409, { error: 'This drop is not currently live.' });
   }
 
-  let deliveryZone;
-  try {
-    deliveryZone = await resolveDeliveryZone(prisma, postcode);
-  } catch (err) {
+  // resolveDeliveryZone (postcode -> zone) and reserveUnitsForDrop (claim
+  // stock) are independent of each other — neither's input depends on the
+  // other's output — so run them concurrently instead of serially. Use
+  // allSettled (not Promise.all) so that if reservation succeeds but
+  // delivery-zone resolution fails (or vice versa), we still know whether
+  // units were actually reserved and can release them rather than leaking
+  // a reservation.
+  const [deliveryZoneResult, reservationResult] = await Promise.allSettled([
+    resolveDeliveryZone(prisma, postcode),
+    reserveUnitsForDrop(drop.id, quantity),
+  ]);
+
+  const releaseIfReserved = async () => {
+    if (reservationResult.status === 'fulfilled') {
+      const reservedUnitIds = reservationResult.value.map((u) => u.id);
+      await releaseUnits(reservedUnitIds).catch((releaseErr) => {
+        console.error('[create-checkout-session] Failed to release units after a parallel checkout-hotpath failure:', releaseErr);
+      });
+    }
+  };
+
+  // Preserve the original sequential code's error priority: a delivery-zone
+  // problem is reported before a stock problem, even though both now run
+  // concurrently.
+  if (deliveryZoneResult.status === 'rejected') {
+    await releaseIfReserved();
+    const err = deliveryZoneResult.reason;
     if (err instanceof OutOfDeliveryAreaError) {
       return sendJson(res, 400, {
         error: "We currently deliver within Victoria only. If you're interstate, email eshop@unstitchx.com and we'll see what we can arrange.",
@@ -77,15 +111,18 @@ export default async function handler(req, res) {
     }
     throw err;
   }
+
+  const deliveryZone = deliveryZoneResult.value;
   if (!deliveryZone) {
+    await releaseIfReserved();
     console.error('[create-checkout-session] No delivery zone configured (checked postcode', postcode, ')');
     return sendJson(res, 503, { error: 'Delivery pricing is not available right now. Please try again shortly.' });
   }
 
-  let reserved;
-  try {
-    reserved = await reserveUnitsForDrop(drop.id, quantity);
-  } catch (err) {
+  if (reservationResult.status === 'rejected') {
+    // Delivery zone resolved fine — nothing to release on this path, since
+    // a rejected reservation means reserveUnitsForDrop never held any units.
+    const err = reservationResult.reason;
     if (err instanceof InsufficientStockError) {
       return sendJson(res, 409, {
         error:
@@ -98,6 +135,7 @@ export default async function handler(req, res) {
     return sendJson(res, 500, { error: 'Unable to reserve stock. Please try again.' });
   }
 
+  const reserved = reservationResult.value;
   const unitIds = reserved.map((u) => u.id);
   const origin = getSiteOrigin(req);
 

@@ -84,18 +84,38 @@ export default async function handler(req, res) {
         email: true,
         name: true,
         createdAt: true,
-        orders: { select: { totalCents: true } },
       },
     });
 
-    const result = customers.map((c) => ({
-      id: c.id,
-      email: c.email,
-      name: c.name,
-      createdAt: c.createdAt,
-      orderCount: c.orders.length,
-      totalSpentCents: c.orders.reduce((sum, o) => sum + o.totalCents, 0),
-    }));
+    // Aggregate order count + lifetime spend per customer in the DB rather
+    // than loading every order row and reducing in JS (previously: a
+    // per-customer `orders: { select: { totalCents: true } }` relation load,
+    // O(customers x orders) rows over the wire for a number the DB can
+    // compute directly).
+    const customerIds = customers.map((c) => c.id);
+    const aggregates = customerIds.length
+      ? await prisma.order.groupBy({
+          by: ['customerId'],
+          where: { customerId: { in: customerIds } },
+          _count: true,
+          _sum: { totalCents: true },
+        })
+      : [];
+    const aggregateByCustomerId = new Map(
+      aggregates.map((a) => [a.customerId, a])
+    );
+
+    const result = customers.map((c) => {
+      const agg = aggregateByCustomerId.get(c.id);
+      return {
+        id: c.id,
+        email: c.email,
+        name: c.name,
+        createdAt: c.createdAt,
+        orderCount: agg?._count ?? 0,
+        totalSpentCents: agg?._sum.totalCents ?? 0,
+      };
+    });
 
     return sendJson(res, 200, { customers: result });
   } catch (err) {

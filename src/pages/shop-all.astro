@@ -1,5 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import SlowBloomImage from "../assets/SlowBloom.png";
 
 /**
  * ALL-DROPS PAGE — one of three product-page templates in this repo:
@@ -19,7 +22,7 @@ interface Drop {
   name: string;
   eyebrow: string;
   priceCents: number;
-  image: string;
+  image: ImageMetadata;
   status: DropStatus;
 }
 
@@ -29,7 +32,7 @@ const drops: Drop[] = [
     name: "Slow Bloom",
     eyebrow: "2026 RESET x Zero Waste Festival",
     priceCents: 2900,
-    image: "/SlowBloom.png",
+    image: SlowBloomImage,
     status: "live",
   },
 ];
@@ -54,8 +57,11 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
     {heroDrop && (
       <section class="media-hero shop-all-hero">
         <div class="ph media-hero__media" aria-hidden="true">
-          <img
+          <Image
             src={heroDrop.image}
+            width={433}
+            height={577}
+            format="webp"
             alt=""
             class="w-full h-full object-contain p-4"
             onerror="this.style.display='none'"
@@ -88,8 +94,11 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
           <article class="product-card">
             <a href={drop.slug} class="product-card__media-link">
               <div class="ph product-card__media" style="aspect-ratio: 1 / 1;">
-                <img
+                <Image
                   src={drop.image}
+                  width={433}
+                  height={577}
+                  format="webp"
                   alt={drop.name}
                   class="w-full h-full object-contain p-4"
                   onerror="this.style.display='none'"

@@ -42,6 +42,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "resend": "^6.27.0",
+    "sharp": "^0.34.4",
     "stripe": "^22.6.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.14",
