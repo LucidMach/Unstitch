@@ -35,6 +35,7 @@ import orderLookupRequest from '../src/server/order-lookup-request.js';
 import orderStatus from '../src/server/order-status.js';
 import passport from '../src/server/passport.js';
 import passportConfirmTransfer from '../src/server/passport-confirm-transfer.js';
+import events from '../src/server/events.js';
 
 const ROUTES = {
   contact,
@@ -47,6 +48,7 @@ const ROUTES = {
   'order-status': orderStatus,
   passport,
   'passport-confirm-transfer': passportConfirmTransfer,
+  events,
 };
 
 export default async function handler(req, res) {

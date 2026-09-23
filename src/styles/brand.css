@@ -408,38 +408,38 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .header-play-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  background: var(--accent-pale);
+  color: var(--ink);
+  border: 1px solid rgba(163, 110, 147, 0.22);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.header-play-link:hover {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.header-play-link:active {
+  transform: scale(0.96);
 }
 .header-play-link__icon {
-  width: 22px;
-  height: 22px;
-  padding: 6px;
-  border-radius: var(--radius);
-  box-sizing: content-box;
-  transition: background 0.15s ease;
-}
-.header-play-link__icon:hover {
-  background: #f0f0f0;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  display: block;
 }
 .header-play-link__text {
-  display: none;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   line-height: 1;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
-}
-/* Swaps in lockstep with .site-header__links below (revealed on
-   scroll) — icon button while the quick links are hidden, plain text
-   once they're showing, so Play doesn't sit there orphaned on its
-   own next to an empty gap at the top of the page. */
-.site-header.is-scrolled .header-play-link__icon {
-  display: none;
-}
-.site-header.is-scrolled .header-play-link__text {
-  display: inline-block;
 }
 
 .site-header__links {

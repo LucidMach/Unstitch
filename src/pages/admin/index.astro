@@ -30,6 +30,8 @@ import Layout from "../../layouts/Layout.astro";
       <button class="admin__tab" data-tab="inventory">Inventory</button>
       <button class="admin__tab" data-tab="pricing">Pricing</button>
       <button class="admin__tab" data-tab="customers">Customers</button>
+      <button class="admin__tab" data-tab="events">Events</button>
+      <button class="admin__tab" data-tab="batch-drops">Batch Drops</button>
       <button class="admin__tab" data-tab="email">Send email</button>
     </nav>
 
@@ -226,18 +228,40 @@ import Layout from "../../layouts/Layout.astro";
       </div>
     </section>
 
-    <!-- CUSTOMERS -->
+    <!-- CUSTOMERS & AUDIENCE DIRECTORY -->
     <section data-panel="customers" class="admin__panel" hidden>
       <div class="admin__panel-header">
-        <h2>Customers</h2>
+        <h2>Audience &amp; Customers</h2>
         <div class="admin__panel-header-actions">
           <button id="customers-email-selected" class="btn-primary btn-primary--small" hidden>Email 0 selected</button>
           <button id="customers-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
         </div>
       </div>
+      <p class="admin-muted">Live unified directory from Neon DB: buyers, newsletter subscribers, event raffle entries, contact submissions, and 3D playground creators.</p>
+
+      <div class="admin-pills" id="customer-filter-pills">
+        <button type="button" class="admin-pill is-active" data-filter="all">All (<span id="count-all">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="customers">Customers (<span id="count-customers">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="subscribers">Subscribers (<span id="count-subscribers">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="raffles">Raffle Entries (<span id="count-raffles">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="contacts">Contact Inquiries (<span id="count-contacts">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="exports">Playground Exports (<span id="count-exports">0</span>)</button>
+      </div>
+
+      <div class="admin-search-row" style="margin-bottom: 14px;">
+        <input id="customers-search" type="search" placeholder="Search by email, name, or role tag…" class="admin-search-input" />
+      </div>
+
       <table class="admin-table">
         <thead>
-          <tr><th class="admin-table__checkbox-col"><input type="checkbox" id="customers-select-all" aria-label="Select all customers" /></th><th>Email</th><th>Name</th><th>Orders</th><th>Total spent</th><th>Joined</th></tr>
+          <tr>
+            <th class="admin-table__checkbox-col"><input type="checkbox" id="customers-select-all" aria-label="Select all" /></th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Roles &amp; Sources</th>
+            <th>Orders / Spend</th>
+            <th>Date</th>
+          </tr>
         </thead>
         <tbody id="customers-tbody">
           <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
@@ -246,17 +270,138 @@ import Layout from "../../layouts/Layout.astro";
 
       <div class="admin__order-detail" id="customer-detail" hidden>
         <div class="admin__panel-header">
-          <h2>Edit customer</h2>
+          <h2 id="customer-detail-title">Contact details</h2>
           <button id="customer-detail-close" class="btn-ghost btn-ghost--small">Close</button>
         </div>
-        <p class="admin-muted">Changes here only affect the customer record — past orders keep the details that were on them at the time.</p>
+        <div id="customer-badges-row" style="margin-bottom: 12px;"></div>
         <div class="admin-grid">
           <label>Email<input id="cd-email" type="email" /></label>
           <label>Name<input id="cd-name" type="text" /></label>
           <label>Phone<input id="cd-phone" type="text" /></label>
         </div>
-        <button id="customer-detail-save" class="btn-primary">Save changes</button>
+        <div id="customer-extra-info" style="margin-top: 10px;"></div>
+        <button id="customer-detail-save" class="btn-primary" style="margin-top: 14px;">Save changes</button>
         <p id="customer-detail-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
+    <!-- EVENTS MANAGEMENT -->
+    <section data-panel="events" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Workshops &amp; Events</h2>
+        <div class="admin__panel-header-actions">
+          <button id="events-new" class="btn-primary btn-primary--small">+ New event</button>
+          <button id="events-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">Manage in-person workshops, festivals, and events. Custom event colors dynamically brand the storefront workshop callouts. Raffle buttons on the Playground auto-expire with zero redeployments.</p>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Title</th><th>Starts</th><th>Ends</th><th>Color</th><th>Raffle</th><th>Location</th></tr>
+        </thead>
+        <tbody id="events-tbody">
+          <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin__order-detail" id="event-detail" hidden>
+        <div class="admin__panel-header">
+          <h2 id="event-detail-heading">Edit event</h2>
+          <button id="event-detail-close" class="btn-ghost btn-ghost--small">Close</button>
+        </div>
+        <div class="admin-grid">
+          <label>Title<input id="ed-title" type="text" maxlength="200" placeholder="e.g. Zero Waste Festival" /></label>
+          <label>Slug <span class="admin-muted">(used for attribution tag — lowercase, hyphens only)</span><input id="ed-slug" type="text" maxlength="160" placeholder="zero-waste-festival-2026" /></label>
+          <label>Location <span class="admin-muted">(optional)</span><input id="ed-location" type="text" maxlength="200" placeholder="Fed Square, Melbourne" /></label>
+          <label>Starts<input id="ed-starts-at" type="datetime-local" /></label>
+          <label>Ends <span class="admin-muted">(optional)</span><input id="ed-ends-at" type="datetime-local" /></label>
+          <label>CTA label <span class="admin-muted">(optional)</span><input id="ed-cta-label" type="text" maxlength="100" placeholder="Learn More" /></label>
+          <label>CTA URL <span class="admin-muted">(optional)</span><input id="ed-cta-url" type="text" maxlength="500" placeholder="https://…" /></label>
+        </div>
+        <label>Description <span class="admin-muted">(optional — shown on the homepage callout)</span><textarea id="ed-description" rows="3"></textarea></label>
+
+        <!-- Color Customization -->
+        <div class="admin-card" style="margin-top: 14px; background: #faf9f6;">
+          <h3 style="margin: 0 0 6px; font-size: 0.95rem;">Event Color Customization</h3>
+          <p class="admin-muted">Custom brand accent applied to the homepage Workshop Callout and event badges.</p>
+          <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+            <input id="ed-color-picker" type="color" value="#6D771A" style="width: 44px; height: 38px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" />
+            <input id="ed-color" type="text" maxlength="7" placeholder="#6D771A" style="width: 110px; font-family: monospace; font-size: 0.9rem;" />
+            <span id="ed-color-preview-badge" style="padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: white; background: #6D771A;">Preview</span>
+          </div>
+          <div class="admin-color-presets" style="margin-top: 8px;">
+            <span class="admin-muted" style="margin-right: 6px; font-size: 0.78rem;">Presets:</span>
+            <button type="button" class="admin-color-swatch" data-color="#6D771A" style="background:#6D771A;" title="Olive"></button>
+            <button type="button" class="admin-color-swatch" data-color="#B45309" style="background:#B45309;" title="Terracotta"></button>
+            <button type="button" class="admin-color-swatch" data-color="#D97706" style="background:#D97706;" title="Ochre"></button>
+            <button type="button" class="admin-color-swatch" data-color="#4D7C0F" style="background:#4D7C0F;" title="Sage"></button>
+            <button type="button" class="admin-color-swatch" data-color="#1F2937" style="background:#1F2937;" title="Charcoal"></button>
+            <button type="button" class="admin-color-swatch" data-color="#A36E93" style="background:#A36E93;" title="Lilac"></button>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 16px;">Playground Raffle</h3>
+        <label class="admin-checkbox-label"><input id="ed-raffle-enabled" type="checkbox" /> This event has a raffle</label>
+        <div class="admin-grid">
+          <label>Raffle button label <span class="admin-muted">(optional — defaults to "Enter Raffle")</span><input id="ed-raffle-button-label" type="text" maxlength="100" placeholder="Enter Raffle" /></label>
+          <label>Raffle closes at <span class="admin-muted">(Playground button auto-hides once this passes)</span><input id="ed-raffle-closes-at" type="datetime-local" /></label>
+        </div>
+        <label>Raffle draw copy <span class="admin-muted">(optional — shown after user enters)</span><textarea id="ed-raffle-draw-copy" rows="2"></textarea></label>
+
+        <div class="admin__actions" style="margin-top: 16px; display: flex; gap: 10px;">
+          <button id="event-detail-save" class="btn-primary">Save event</button>
+          <button id="event-detail-delete" class="btn-danger" title="Permanently deletes this event" hidden>Delete event</button>
+        </div>
+        <p id="event-detail-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
+    <!-- BATCH DROPS AS EVENTS (DISTINCT SECTION) -->
+    <section data-panel="batch-drops" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Batch Drops as Events</h2>
+        <div class="admin__panel-header-actions">
+          <button id="batch-drops-new" class="btn-primary btn-primary--small">+ Schedule new drop</button>
+          <button id="batch-drops-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">Manage scheduled product drops as standalone launch events. The nearest upcoming drop with a release date automatically drives the countdown on the homepage and /shop-countdown.</p>
+      
+      <table class="admin-table">
+        <thead>
+          <tr><th>Drop Code</th><th>Product</th><th>Units</th><th>Release Schedule</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="batch-drops-tbody">
+          <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin__order-detail" id="batch-drop-detail" hidden>
+        <div class="admin__panel-header">
+          <h2 id="batch-drop-detail-heading">Schedule batch drop</h2>
+          <button id="batch-drop-detail-close" class="btn-ghost btn-ghost--small">Close</button>
+        </div>
+        <div class="admin-grid">
+          <label>Product
+            <select id="bd-product-id">
+              <option value="">Select a product…</option>
+            </select>
+          </label>
+          <label>Drop Code <span class="admin-muted">(e.g. D002)</span><input id="bd-drop-code" type="text" maxlength="20" placeholder="D002" /></label>
+          <label>Total Units<input id="bd-total-units" type="number" min="1" max="10000" value="100" /></label>
+          <label>Release Date &amp; Time <span class="admin-muted">(Countdown Target)</span><input id="bd-release-at" type="datetime-local" /></label>
+          <label>Status
+            <select id="bd-status">
+              <option value="UPCOMING">UPCOMING (Countdown Active)</option>
+              <option value="LIVE">LIVE (Purchasable)</option>
+              <option value="SOLD_OUT">SOLD OUT</option>
+              <option value="ARCHIVED">ARCHIVED</option>
+            </select>
+          </label>
+          <label>Made Location<input id="bd-made-location" type="text" value="Melbourne" /></label>
+        </div>
+        <button id="batch-drop-detail-save" class="btn-primary" style="margin-top: 14px;">Save batch drop</button>
+        <p id="batch-drop-detail-status" class="admin__hint" hidden></p>
       </div>
     </section>
 
@@ -444,6 +589,39 @@ import Layout from "../../layouts/Layout.astro";
   .admin-units-table td { padding: 4px 6px; border-top: 1px solid #eee; }
   .admin-restock-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .admin-restock-row .admin-field-row { margin-right: 4px; }
+
+  /* --- Audience, Events & Batch Drops enhancements --- */
+  .admin-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .admin-pill {
+    background: #f4f3ef; border: 1px solid #dcdad5; padding: 6px 14px; border-radius: 20px;
+    font-size: 0.8rem; font-weight: 500; cursor: pointer; color: #555; transition: all 0.15s ease;
+  }
+  .admin-pill:hover { background: #e8e6e0; color: #222; }
+  .admin-pill.is-active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 600; }
+  .admin-search-input {
+    width: 100%; max-width: 360px; padding: 7px 12px; border: 1px solid #ccc;
+    border-radius: 6px; font-size: 0.86rem; box-sizing: border-box;
+  }
+  .admin-badge {
+    display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem;
+    font-weight: 600; text-transform: uppercase; margin-right: 4px; letter-spacing: 0.03em;
+  }
+  .admin-badge--customer { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+  .admin-badge--subscriber { background: #e1f5fe; color: #0288d1; border: 1px solid #b3e5fc; }
+  .admin-badge--raffle { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+  .admin-badge--contact { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+  .admin-badge--playground_export { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
+
+  .event-color-chip {
+    display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+    vertical-align: middle; margin-right: 6px; border: 1px solid rgba(0,0,0,0.18);
+  }
+  .admin-color-presets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .admin-color-swatch {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #ccc; cursor: pointer; padding: 0; transition: transform 0.1s ease;
+  }
+  .admin-color-swatch:hover { transform: scale(1.15); }
 </style>
 
 <script>
@@ -472,9 +650,50 @@ import Layout from "../../layouts/Layout.astro";
     id: string;
     email: string;
     name: string | null;
+    phone?: string | null;
+    roles?: string[];
+    sources?: string[];
+    subject?: string | null;
     createdAt: string;
     orderCount: number;
     totalSpentCents: number;
+  };
+
+  type AdminEvent = {
+    id: string;
+    slug: string;
+    title: string;
+    location: string | null;
+    description: string | null;
+    color: string | null;
+    startsAt: string;
+    endsAt: string | null;
+    ctaLabel: string | null;
+    ctaUrl: string | null;
+    raffleEnabled: boolean;
+    raffleButtonLabel: string | null;
+    raffleClosesAt: string | null;
+    raffleDrawCopy: string | null;
+  };
+
+  type AdminBatchDrop = {
+    id: string;
+    dropCode: string;
+    productId: string;
+    totalUnits: number;
+    status: string;
+    madeLocation: string;
+    madeYear: number;
+    releaseAt: string | null;
+    product: { id: string; name: string; slug: string; imageUrl: string | null };
+    _count?: { units: number; reservations: number };
+  };
+
+  type AdminProductOption = {
+    id: string;
+    name: string;
+    slug: string;
+    imageUrl: string | null;
   };
 
   // Selection state for the bulk-email workflow — shared across the Orders
@@ -548,6 +767,8 @@ import Layout from "../../layouts/Layout.astro";
     if (target === "pricing") loadProduct();
     if (target === "inventory") loadInventory();
     if (target === "customers") loadCustomers();
+    if (target === "events") loadEvents();
+    if (target === "batch-drops") loadBatchDrops();
   }
   document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab as string));
@@ -891,36 +1112,47 @@ import Layout from "../../layouts/Layout.astro";
   });
   document.getElementById("orders-refresh")?.addEventListener("click", loadOrders);
 
-  // --- Customers ---
-  // Cache of the currently-rendered customer list, keyed by id. Lets a
-  // single-row patch (see patchCustomerRow below) carry forward orderCount/
-  // totalSpentCents — derived aggregates the customer-edit endpoint doesn't
-  // (and shouldn't) recompute — while still reflecting the freshly-saved
-  // email/name/createdAt.
+  // --- Customers & Audience Directory ---
+  let allCustomersCache: CustomerSummary[] = [];
+  let currentCustomerFilter = "all";
   const customersCache = new Map<string, CustomerSummary>();
 
-  // Renders one customer table row. Extracted from loadCustomers() so both
-  // the full-list render and a single-row patch (after saving the customer-
-  // detail form) share one implementation. Every interpolated value is
-  // passed through esc() — this function must be XSS-safe standing on its
-  // own, since name/email ultimately trace back to customer-supplied input
-  // (Stripe checkout billing details).
+  function renderRoleBadges(roles: string[] = []): string {
+    const labels: Record<string, string> = {
+      customer: "Buyer",
+      subscriber: "Subscriber",
+      raffle: "Raffle",
+      contact: "Inquiry",
+      playground_export: "3D Export",
+    };
+    return roles
+      .map((r) => `<span class="admin-badge admin-badge--${esc(r)}">${esc(labels[r] || r)}</span>`)
+      .join(" ");
+  }
+
   function renderCustomerRow(c: CustomerSummary): string {
     const email = esc(c.email);
+    const badgesHtml = renderRoleBadges(c.roles);
+    let activityText = "Lead";
+    if (c.orderCount > 0) {
+      activityText = `<strong>${esc(c.orderCount)}</strong> order(s) · ${esc(money(c.totalSpentCents))}`;
+    } else if (c.subject) {
+      activityText = `<span class="admin-muted">Inquiry:</span> ${esc(c.subject.slice(0, 30))}${c.subject.length > 30 ? "…" : ""}`;
+    } else if (c.sources && c.sources.length > 0) {
+      activityText = `<span class="admin-muted">Source:</span> ${esc(c.sources[0])}`;
+    }
+
     return `
         <tr data-customer-row data-customer-id="${esc(c.id)}">
           <td class="admin-table__checkbox-col"><input type="checkbox" class="customer-select-checkbox" data-email="${email}" aria-label="Select ${email}" /></td>
           <td>${email}</td>
           <td>${esc(c.name || "—")}</td>
-          <td>${esc(c.orderCount)}</td>
-          <td>${esc(money(c.totalSpentCents))}</td>
+          <td>${badgesHtml || '<span class="admin-muted">—</span>'}</td>
+          <td>${activityText}</td>
           <td>${esc(new Date(c.createdAt).toLocaleDateString())}</td>
         </tr>`;
   }
 
-  // Attaches the row-click and checkbox listeners to one already-rendered
-  // <tr data-customer-row>. Shared between the full-list render and a
-  // single-row patch, same reasoning as bindOrderRow above.
   function bindCustomerRow(row: HTMLTableRowElement, tbody: HTMLTableSectionElement) {
     const cb = row.querySelector<HTMLInputElement>(".customer-select-checkbox");
     if (cb) {
@@ -939,33 +1171,82 @@ import Layout from "../../layouts/Layout.astro";
     row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId as string));
   }
 
+  function renderFilteredCustomers() {
+    const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
+    const query = ((document.getElementById("customers-search") as HTMLInputElement)?.value || "").toLowerCase().trim();
+
+    let filtered = allCustomersCache;
+    if (currentCustomerFilter === "customers") {
+      filtered = filtered.filter((c) => c.roles?.includes("customer"));
+    } else if (currentCustomerFilter === "subscribers") {
+      filtered = filtered.filter((c) => c.roles?.includes("subscriber"));
+    } else if (currentCustomerFilter === "raffles") {
+      filtered = filtered.filter((c) => c.roles?.includes("raffle"));
+    } else if (currentCustomerFilter === "contacts") {
+      filtered = filtered.filter((c) => c.roles?.includes("contact"));
+    } else if (currentCustomerFilter === "exports") {
+      filtered = filtered.filter((c) => c.roles?.includes("playground_export"));
+    }
+
+    if (query) {
+      filtered = filtered.filter((c) =>
+        c.email.toLowerCase().includes(query) ||
+        (c.name && c.name.toLowerCase().includes(query)) ||
+        (c.roles && c.roles.some((r) => r.toLowerCase().includes(query))) ||
+        (c.subject && c.subject.toLowerCase().includes(query))
+      );
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No matching contacts found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(renderCustomerRow).join("");
+    tbody.querySelectorAll<HTMLTableRowElement>("tr[data-customer-row]").forEach((row) => bindCustomerRow(row, tbody));
+  }
+
   async function loadCustomers() {
     const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
     try {
       const res = await api("/api/admin/customers");
       if (!res.ok) throw new Error("Failed to load customers");
-      const { customers } = (await res.json()) as { customers: CustomerSummary[] };
+      const { customers, counts } = (await res.json()) as { customers: CustomerSummary[]; counts?: Record<string, number> };
+      allCustomersCache = customers;
       customersCache.clear();
-      if (customers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No customers yet.</td></tr>`;
-        updateCustomersEmailButton();
-        return;
-      }
       customers.forEach((c) => customersCache.set(c.id, c));
-      tbody.innerHTML = customers.map(renderCustomerRow).join("");
-      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-customer-row]").forEach((row) => bindCustomerRow(row, tbody));
+
+      if (counts) {
+        const updateCount = (id: string, val: number | undefined) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(val ?? 0);
+        };
+        updateCount("count-all", counts.all);
+        updateCount("count-customers", counts.customers);
+        updateCount("count-subscribers", counts.subscribers);
+        updateCount("count-raffles", counts.raffles);
+        updateCount("count-contacts", counts.contacts);
+        updateCount("count-exports", counts.exports);
+      }
+
+      renderFilteredCustomers();
       updateCustomersEmailButton();
     } catch {
       tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load customers.</td></tr>`;
     }
   }
 
-  // Replaces exactly the one row for the saved customer in place, instead
-  // of the full loadCustomers() refetch + tbody rebuild the customer-detail
-  // save flow used to trigger. orderCount/totalSpentCents come from the
-  // cache (see customersCache above) since editing a customer's own details
-  // never changes their order history. Falls back to a full loadCustomers()
-  // if the row/cache entry can't be found.
+  document.getElementById("customer-filter-pills")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".admin-pill");
+    if (!btn) return;
+    document.querySelectorAll("#customer-filter-pills .admin-pill").forEach((p) => p.classList.remove("is-active"));
+    btn.classList.add("is-active");
+    currentCustomerFilter = btn.dataset.filter || "all";
+    renderFilteredCustomers();
+  });
+
+  document.getElementById("customers-search")?.addEventListener("input", renderFilteredCustomers);
+
   function patchCustomerRow(saved: { id: string; email: string; name: string | null; createdAt: string }) {
     const previous = customersCache.get(saved.id);
     if (!previous) {
@@ -974,58 +1255,67 @@ import Layout from "../../layouts/Layout.astro";
     }
     const updated: CustomerSummary = { ...previous, email: saved.email, name: saved.name, createdAt: saved.createdAt };
     customersCache.set(saved.id, updated);
-    const tbody = document.getElementById("customers-tbody") as HTMLTableSectionElement;
-    const existingRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-customer-row][data-customer-id="${CSS.escape(saved.id)}"]`);
-    if (!existingRow) {
-      loadCustomers();
-      return;
-    }
-    existingRow.outerHTML = renderCustomerRow(updated);
-    const newRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-customer-row][data-customer-id="${CSS.escape(saved.id)}"]`);
-    if (newRow) bindCustomerRow(newRow, tbody);
+    const idx = allCustomersCache.findIndex((c) => c.id === saved.id);
+    if (idx !== -1) allCustomersCache[idx] = updated;
+    renderFilteredCustomers();
   }
 
   async function openCustomerDetail(id: string) {
     const detail = document.getElementById("customer-detail") as HTMLDivElement;
     const status = document.getElementById("customer-detail-status") as HTMLElement;
+    const badgesRow = document.getElementById("customer-badges-row") as HTMLElement;
+    const extraInfo = document.getElementById("customer-extra-info") as HTMLElement;
     status.hidden = true;
-    try {
-      const res = await api(`/api/admin/customers?id=${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error("not found");
-      const { customer } = await res.json();
-      detail.hidden = false;
-      (document.getElementById("cd-email") as HTMLInputElement).value = customer.email;
-      (document.getElementById("cd-name") as HTMLInputElement).value = customer.name || "";
-      (document.getElementById("cd-phone") as HTMLInputElement).value = customer.phone || "";
 
-      const saveBtn = document.getElementById("customer-detail-save") as HTMLButtonElement;
-      saveBtn.onclick = async () => {
-        const email = (document.getElementById("cd-email") as HTMLInputElement).value.trim();
-        const name = (document.getElementById("cd-name") as HTMLInputElement).value.trim();
-        const phone = (document.getElementById("cd-phone") as HTMLInputElement).value.trim();
-        if (!email) return showHint(status, "Email can't be blank.", false);
-        saveBtn.disabled = true;
-        try {
-          const r = await api("/api/admin/customers", {
-            method: "POST",
-            body: JSON.stringify({ customerId: id, email, name: name || null, phone: phone || null }),
-          });
-          const data = await r.json();
-          if (r.ok) {
-            showHint(status, "Saved.", true);
-            patchCustomerRow(data.customer);
-          } else {
-            showHint(status, data.error || "Failed to save.", false);
-          }
-        } catch {
-          showHint(status, "Network error.", false);
-        } finally {
-          saveBtn.disabled = false;
-        }
-      };
-    } catch {
-      showGlobalError("Couldn't load that customer.");
+    const contact = customersCache.get(id);
+    if (!contact) {
+      showGlobalError("Couldn't find that contact record.");
+      return;
     }
+
+    detail.hidden = false;
+    badgesRow.innerHTML = renderRoleBadges(contact.roles);
+    (document.getElementById("cd-email") as HTMLInputElement).value = contact.email;
+    (document.getElementById("cd-name") as HTMLInputElement).value = contact.name || "";
+    (document.getElementById("cd-phone") as HTMLInputElement).value = contact.phone || "";
+
+    const infoParts: string[] = [];
+    if (contact.orderCount > 0) {
+      infoParts.push(`<p class="admin-muted"><strong>Purchase History:</strong> ${contact.orderCount} order(s) totalling ${money(contact.totalSpentCents)}.</p>`);
+    }
+    if (contact.sources && contact.sources.length > 0) {
+      infoParts.push(`<p class="admin-muted"><strong>Capture Touchpoints:</strong> ${esc(contact.sources.join(", "))}</p>`);
+    }
+    if (contact.subject) {
+      infoParts.push(`<p class="admin-muted"><strong>Inquiry Subject:</strong> ${esc(contact.subject)}</p>`);
+    }
+    extraInfo.innerHTML = infoParts.join("");
+
+    const saveBtn = document.getElementById("customer-detail-save") as HTMLButtonElement;
+    saveBtn.onclick = async () => {
+      const email = (document.getElementById("cd-email") as HTMLInputElement).value.trim();
+      const name = (document.getElementById("cd-name") as HTMLInputElement).value.trim();
+      const phone = (document.getElementById("cd-phone") as HTMLInputElement).value.trim();
+      if (!email) return showHint(status, "Email can't be blank.", false);
+      saveBtn.disabled = true;
+      try {
+        const r = await api("/api/admin/customers", {
+          method: "POST",
+          body: JSON.stringify({ customerId: contact.id.startsWith("sub-") || contact.id.startsWith("ct-") ? undefined : contact.id, email, name: name || null, phone: phone || null }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          showHint(status, "Saved.", true);
+          patchCustomerRow(data.customer || { id: contact.id, email, name, createdAt: contact.createdAt });
+        } else {
+          showHint(status, data.error || "Failed to save.", false);
+        }
+      } catch {
+        showHint(status, "Network error.", false);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
   }
 
   document.getElementById("customer-detail-close")?.addEventListener("click", () => {
@@ -1049,6 +1339,354 @@ import Layout from "../../layouts/Layout.astro";
   document.getElementById("customers-email-selected")?.addEventListener("click", () => {
     (document.getElementById("email-to") as HTMLTextAreaElement).value = Array.from(selectedCustomerEmails).join("\n");
     activateTab("email");
+  });
+
+  // --- Events Management ---
+  const eventsCache = new Map<string, AdminEvent>();
+  let currentEditingEventId: string | null = null;
+
+  function toLocalDatetimeInput(dateStr: string | null | undefined): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function renderEventRow(e: AdminEvent): string {
+    const now = Date.now();
+    const effectiveEnd = (e.endsAt ? new Date(e.endsAt) : new Date(e.startsAt)).getTime();
+    const isUpcoming = effectiveEnd >= now;
+    const raffleOpen = e.raffleEnabled && e.raffleClosesAt && new Date(e.raffleClosesAt).getTime() > now;
+    const colorHex = e.color || "#6D771A";
+
+    const raffleStatusHtml = !e.raffleEnabled
+      ? '<span class="admin-muted">No raffle</span>'
+      : raffleOpen
+        ? '<span class="admin-status-chip" data-status="IN_STOCK">Raffle Open</span>'
+        : '<span class="admin-status-chip" data-status="VOID">Raffle Closed</span>';
+
+    return `
+      <tr data-event-row data-event-id="${esc(e.id)}">
+        <td><strong>${esc(e.title)}</strong> ${isUpcoming ? '<span class="admin-status-chip" data-status="IN_STOCK">Upcoming</span>' : '<span class="admin-muted">(Past)</span>'}</td>
+        <td>${esc(new Date(e.startsAt).toLocaleDateString())}</td>
+        <td>${esc(e.endsAt ? new Date(e.endsAt).toLocaleDateString() : "—")}</td>
+        <td><span class="event-color-chip" style="background:${esc(colorHex)};"></span> <code>${esc(colorHex)}</code></td>
+        <td>${raffleStatusHtml}</td>
+        <td>${esc(e.location || "—")}</td>
+      </tr>`;
+  }
+
+  async function loadEvents() {
+    const tbody = document.getElementById("events-tbody") as HTMLTableSectionElement;
+    try {
+      const res = await api("/api/admin/events");
+      if (!res.ok) throw new Error("Failed to load events");
+      const { events } = (await res.json()) as { events: AdminEvent[] };
+      eventsCache.clear();
+      if (events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No events yet. Click "+ New event" above.</td></tr>`;
+        return;
+      }
+      events.forEach((ev) => eventsCache.set(ev.id, ev));
+      tbody.innerHTML = events.map(renderEventRow).join("");
+      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-event-row]").forEach((row) => {
+        row.style.cursor = "pointer";
+        row.addEventListener("click", () => openEventDetail(row.dataset.eventId as string));
+      });
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load events.</td></tr>`;
+    }
+  }
+
+  function setEventColor(hex: string) {
+    const picker = document.getElementById("ed-color-picker") as HTMLInputElement;
+    const textInput = document.getElementById("ed-color") as HTMLInputElement;
+    const badge = document.getElementById("ed-color-preview-badge") as HTMLElement;
+    if (picker) picker.value = hex;
+    if (textInput) textInput.value = hex;
+    if (badge) badge.style.backgroundColor = hex;
+  }
+
+  document.getElementById("ed-color-picker")?.addEventListener("input", (e) => {
+    const val = (e.target as HTMLInputElement).value;
+    setEventColor(val);
+  });
+  document.getElementById("ed-color")?.addEventListener("input", (e) => {
+    const val = (e.target as HTMLInputElement).value.trim();
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) {
+      setEventColor(val);
+    }
+  });
+  document.querySelectorAll<HTMLButtonElement>(".admin-color-swatch").forEach((swatch) => {
+    swatch.addEventListener("click", () => {
+      const color = swatch.dataset.color;
+      if (color) setEventColor(color);
+    });
+  });
+
+  function openEventDetail(id?: string) {
+    const detail = document.getElementById("event-detail") as HTMLDivElement;
+    const heading = document.getElementById("event-detail-heading") as HTMLElement;
+    const deleteBtn = document.getElementById("event-detail-delete") as HTMLButtonElement;
+    const status = document.getElementById("event-detail-status") as HTMLElement;
+    status.hidden = true;
+    currentEditingEventId = id || null;
+
+    if (!id) {
+      heading.textContent = "New event";
+      deleteBtn.hidden = true;
+      (document.getElementById("ed-title") as HTMLInputElement).value = "";
+      (document.getElementById("ed-slug") as HTMLInputElement).value = "";
+      (document.getElementById("ed-location") as HTMLInputElement).value = "";
+      (document.getElementById("ed-starts-at") as HTMLInputElement).value = "";
+      (document.getElementById("ed-ends-at") as HTMLInputElement).value = "";
+      (document.getElementById("ed-cta-label") as HTMLInputElement).value = "";
+      (document.getElementById("ed-cta-url") as HTMLInputElement).value = "";
+      (document.getElementById("ed-description") as HTMLTextAreaElement).value = "";
+      setEventColor("#6D771A");
+      (document.getElementById("ed-raffle-enabled") as HTMLInputElement).checked = false;
+      (document.getElementById("ed-raffle-button-label") as HTMLInputElement).value = "";
+      (document.getElementById("ed-raffle-closes-at") as HTMLInputElement).value = "";
+      (document.getElementById("ed-raffle-draw-copy") as HTMLTextAreaElement).value = "";
+      detail.hidden = false;
+      return;
+    }
+
+    const event = eventsCache.get(id);
+    if (!event) return;
+    heading.textContent = `Edit event: ${event.title}`;
+    deleteBtn.hidden = false;
+    (document.getElementById("ed-title") as HTMLInputElement).value = event.title;
+    (document.getElementById("ed-slug") as HTMLInputElement).value = event.slug;
+    (document.getElementById("ed-location") as HTMLInputElement).value = event.location || "";
+    (document.getElementById("ed-starts-at") as HTMLInputElement).value = toLocalDatetimeInput(event.startsAt);
+    (document.getElementById("ed-ends-at") as HTMLInputElement).value = toLocalDatetimeInput(event.endsAt);
+    (document.getElementById("ed-cta-label") as HTMLInputElement).value = event.ctaLabel || "";
+    (document.getElementById("ed-cta-url") as HTMLInputElement).value = event.ctaUrl || "";
+    (document.getElementById("ed-description") as HTMLTextAreaElement).value = event.description || "";
+    setEventColor(event.color || "#6D771A");
+    (document.getElementById("ed-raffle-enabled") as HTMLInputElement).checked = !!event.raffleEnabled;
+    (document.getElementById("ed-raffle-button-label") as HTMLInputElement).value = event.raffleButtonLabel || "";
+    (document.getElementById("ed-raffle-closes-at") as HTMLInputElement).value = toLocalDatetimeInput(event.raffleClosesAt);
+    (document.getElementById("ed-raffle-draw-copy") as HTMLTextAreaElement).value = event.raffleDrawCopy || "";
+    detail.hidden = false;
+  }
+
+  document.getElementById("events-new")?.addEventListener("click", () => openEventDetail());
+  document.getElementById("events-refresh")?.addEventListener("click", loadEvents);
+  document.getElementById("event-detail-close")?.addEventListener("click", () => {
+    (document.getElementById("event-detail") as HTMLDivElement).hidden = true;
+  });
+
+  document.getElementById("event-detail-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("event-detail-status") as HTMLElement;
+    const title = (document.getElementById("ed-title") as HTMLInputElement).value.trim();
+    const slug = (document.getElementById("ed-slug") as HTMLInputElement).value.trim();
+    const location = (document.getElementById("ed-location") as HTMLInputElement).value.trim();
+    const startsAt = (document.getElementById("ed-starts-at") as HTMLInputElement).value;
+    const endsAt = (document.getElementById("ed-ends-at") as HTMLInputElement).value;
+    const ctaLabel = (document.getElementById("ed-cta-label") as HTMLInputElement).value.trim();
+    const ctaUrl = (document.getElementById("ed-cta-url") as HTMLInputElement).value.trim();
+    const description = (document.getElementById("ed-description") as HTMLTextAreaElement).value.trim();
+    const color = (document.getElementById("ed-color") as HTMLInputElement).value.trim();
+    const raffleEnabled = (document.getElementById("ed-raffle-enabled") as HTMLInputElement).checked;
+    const raffleButtonLabel = (document.getElementById("ed-raffle-button-label") as HTMLInputElement).value.trim();
+    const raffleClosesAt = (document.getElementById("ed-raffle-closes-at") as HTMLInputElement).value;
+    const raffleDrawCopy = (document.getElementById("ed-raffle-draw-copy") as HTMLTextAreaElement).value.trim();
+
+    if (!title || !slug || !startsAt) {
+      return showHint(status, "Title, slug, and start date are required.", false);
+    }
+
+    try {
+      const res = await api("/api/admin/events", {
+        method: "POST",
+        body: JSON.stringify({
+          id: currentEditingEventId || undefined,
+          title,
+          slug,
+          location: location || null,
+          startsAt: new Date(startsAt).toISOString(),
+          endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+          ctaLabel: ctaLabel || null,
+          ctaUrl: ctaUrl || null,
+          description: description || null,
+          color: color || null,
+          raffleEnabled,
+          raffleButtonLabel: raffleButtonLabel || null,
+          raffleClosesAt: raffleClosesAt ? new Date(raffleClosesAt).toISOString() : null,
+          raffleDrawCopy: raffleDrawCopy || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(status, "Event saved successfully.", true);
+        loadEvents();
+      } else {
+        showHint(status, data.error || "Failed to save event.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("event-detail-delete")?.addEventListener("click", async () => {
+    if (!currentEditingEventId) return;
+    if (!confirm("Are you sure you want to permanently delete this event?")) return;
+    const status = document.getElementById("event-detail-status") as HTMLElement;
+    try {
+      const res = await api(`/api/admin/events?id=${encodeURIComponent(currentEditingEventId)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        (document.getElementById("event-detail") as HTMLDivElement).hidden = true;
+        loadEvents();
+      } else {
+        const data = await res.json();
+        showHint(status, data.error || "Failed to delete event.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Batch Drops as Events (Distinct Section) ---
+  const batchDropsCache = new Map<string, AdminBatchDrop>();
+  let currentEditingDropId: string | null = null;
+
+  function renderBatchDropRow(d: AdminBatchDrop): string {
+    const releaseStr = d.releaseAt
+      ? `${new Date(d.releaseAt).toLocaleDateString()} ${new Date(d.releaseAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+      : "Unscheduled";
+    const statusMap: Record<string, string> = {
+      UPCOMING: '<span class="admin-status-chip" data-status="RESERVED">UPCOMING</span>',
+      LIVE: '<span class="admin-status-chip" data-status="IN_STOCK">LIVE</span>',
+      SOLD_OUT: '<span class="admin-status-chip" data-status="SOLD">SOLD OUT</span>',
+      ARCHIVED: '<span class="admin-status-chip" data-status="VOID">ARCHIVED</span>',
+    };
+
+    return `
+      <tr data-batch-drop-row data-drop-id="${esc(d.id)}">
+        <td><span class="admin-drop-code">${esc(d.dropCode)}</span></td>
+        <td><strong>${esc(d.product.name)}</strong></td>
+        <td>${esc(d.totalUnits)} total</td>
+        <td>${esc(releaseStr)}</td>
+        <td>${statusMap[d.status] || esc(d.status)}</td>
+        <td><button type="button" class="admin-link-btn" data-edit-drop="${esc(d.id)}">Configure</button></td>
+      </tr>`;
+  }
+
+  async function loadBatchDrops() {
+    const tbody = document.getElementById("batch-drops-tbody") as HTMLTableSectionElement;
+    const productSelect = document.getElementById("bd-product-id") as HTMLSelectElement;
+    try {
+      const res = await api("/api/admin/batch-drops");
+      if (!res.ok) throw new Error("Failed to load batch drops");
+      const { drops, products } = (await res.json()) as { drops: AdminBatchDrop[]; products: AdminProductOption[] };
+
+      batchDropsCache.clear();
+      drops.forEach((d) => batchDropsCache.set(d.id, d));
+
+      if (productSelect) {
+        productSelect.innerHTML =
+          '<option value="">Select a product…</option>' +
+          products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+      }
+
+      if (drops.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No batch drops found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = drops.map(renderBatchDropRow).join("");
+      tbody.querySelectorAll<HTMLButtonElement>("[data-edit-drop]").forEach((btn) => {
+        btn.addEventListener("click", () => openBatchDropDetail(btn.dataset.editDrop as string));
+      });
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load batch drops.</td></tr>`;
+    }
+  }
+
+  function openBatchDropDetail(id?: string) {
+    const detail = document.getElementById("batch-drop-detail") as HTMLDivElement;
+    const heading = document.getElementById("batch-drop-detail-heading") as HTMLElement;
+    const status = document.getElementById("batch-drop-detail-status") as HTMLElement;
+    status.hidden = true;
+    currentEditingDropId = id || null;
+
+    if (!id) {
+      heading.textContent = "Schedule new batch drop";
+      (document.getElementById("bd-product-id") as HTMLSelectElement).disabled = false;
+      (document.getElementById("bd-drop-code") as HTMLInputElement).disabled = false;
+      (document.getElementById("bd-drop-code") as HTMLInputElement).value = "";
+      (document.getElementById("bd-total-units") as HTMLInputElement).value = "100";
+      (document.getElementById("bd-release-at") as HTMLInputElement).value = "";
+      (document.getElementById("bd-status") as HTMLSelectElement).value = "UPCOMING";
+      (document.getElementById("bd-made-location") as HTMLInputElement).value = "Melbourne";
+      detail.hidden = false;
+      return;
+    }
+
+    const drop = batchDropsCache.get(id);
+    if (!drop) return;
+    heading.textContent = `Configure drop: ${drop.dropCode} (${drop.product.name})`;
+    const productSelect = document.getElementById("bd-product-id") as HTMLSelectElement;
+    productSelect.value = drop.productId;
+    productSelect.disabled = true;
+    const codeInput = document.getElementById("bd-drop-code") as HTMLInputElement;
+    codeInput.value = drop.dropCode;
+    codeInput.disabled = true;
+
+    (document.getElementById("bd-total-units") as HTMLInputElement).value = String(drop.totalUnits);
+    (document.getElementById("bd-release-at") as HTMLInputElement).value = toLocalDatetimeInput(drop.releaseAt);
+    (document.getElementById("bd-status") as HTMLSelectElement).value = drop.status;
+    (document.getElementById("bd-made-location") as HTMLInputElement).value = drop.madeLocation || "Melbourne";
+    detail.hidden = false;
+  }
+
+  document.getElementById("batch-drops-new")?.addEventListener("click", () => openBatchDropDetail());
+  document.getElementById("batch-drops-refresh")?.addEventListener("click", loadBatchDrops);
+  document.getElementById("batch-drop-detail-close")?.addEventListener("click", () => {
+    (document.getElementById("batch-drop-detail") as HTMLDivElement).hidden = true;
+  });
+
+  document.getElementById("batch-drop-detail-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("batch-drop-detail-status") as HTMLElement;
+    const productId = (document.getElementById("bd-product-id") as HTMLSelectElement).value;
+    const dropCode = (document.getElementById("bd-drop-code") as HTMLInputElement).value.trim();
+    const totalUnits = parseInt((document.getElementById("bd-total-units") as HTMLInputElement).value, 10);
+    const releaseAt = (document.getElementById("bd-release-at") as HTMLInputElement).value;
+    const dropStatusVal = (document.getElementById("bd-status") as HTMLSelectElement).value;
+    const madeLocation = (document.getElementById("bd-made-location") as HTMLInputElement).value.trim();
+
+    if (!currentEditingDropId && (!productId || !dropCode || !totalUnits)) {
+      return showHint(status, "Product, drop code, and total units are required.", false);
+    }
+
+    try {
+      const res = await api("/api/admin/batch-drops", {
+        method: "POST",
+        body: JSON.stringify({
+          id: currentEditingDropId || undefined,
+          productId: currentEditingDropId ? undefined : productId,
+          dropCode: currentEditingDropId ? undefined : dropCode,
+          totalUnits: isNaN(totalUnits) ? undefined : totalUnits,
+          releaseAt: releaseAt ? new Date(releaseAt).toISOString() : null,
+          status: dropStatusVal,
+          madeLocation: madeLocation || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(status, "Batch drop saved successfully.", true);
+        loadBatchDrops();
+      } else {
+        showHint(status, data.error || "Failed to save batch drop.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
   });
 
   // --- Inventory ---

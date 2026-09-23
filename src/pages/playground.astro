@@ -18,12 +18,12 @@ import Layout from "../layouts/Layout.astro";
     <PlayCanvas client:load />
   </div>
 
-  <!-- ============ ZERO WASTE FESTIVAL RAFFLE ENTRY ============
-       Persistent button (not an auto-popup) since this is a one-off —
-       people who want to enter can, without it interrupting anyone who
-       just wants to play. EDITABLE: swap the copy if the raffle period
-       ends or the event changes. -->
-  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog">
+  <!-- ============ EVENT RAFFLE ENTRY ============
+       Persistent button (not an auto-popup) since this is tied to a single
+       event's raffle window. Hidden by default and only revealed once
+       /api/events reports an upcoming event with an open raffle — auto-hides
+       with zero redeployment once the raffle closing date passes. -->
+  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog" hidden>
     Enter Raffle
   </button>
 
@@ -35,11 +35,11 @@ import Layout from "../layouts/Layout.astro";
     </button>
 
     <div id="raffle-form-state">
-      <p class="section__eyebrow">Zero Waste Festival</p>
+      <p class="section__eyebrow" id="raffle-eyebrow">Event Raffle</p>
       <h2 id="raffle-title" class="raffle-dialog__title">Enter the Raffle Draw</h2>
-      <p class="raffle-dialog__body">Playing at our stand today? Pop in your name and email for a chance to win one of Unstitch's latest drops.</p>
+      <p class="raffle-dialog__body" id="raffle-body">Playing at our stand today? Pop in your name and email for a chance to win one of Unstitch's latest drops.</p>
 
-      <form id="raffle-form" data-subscribe-form="zwf-raffle-draw">
+      <form id="raffle-form">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="raffle-name">Your name</label>
         <input id="raffle-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" required />
@@ -51,9 +51,9 @@ import Layout from "../layouts/Layout.astro";
     </div>
 
     <div id="raffle-success-state" hidden>
-      <p class="section__eyebrow">Zero Waste Festival</p>
+      <p class="section__eyebrow" id="raffle-success-eyebrow">Event Raffle</p>
       <h2 class="raffle-dialog__title">You're in!</h2>
-      <p class="raffle-dialog__body">We'll be drawing live on our socials on Wednesday 16/09 at 6pm and we'll be in touch if you win. Enjoy the rest of the playground and the festival!</p>
+      <p class="raffle-dialog__body" id="raffle-success-body">We'll be in touch if you win. Enjoy the rest of the playground!</p>
       <button type="button" class="btn btn-outline" id="raffle-done-btn">Back to Playground</button>
     </div>
   </div>
@@ -192,8 +192,53 @@ import Layout from "../layouts/Layout.astro";
 </style>
 
 <script>
+  type PublicEvent = {
+    slug: string;
+    title: string;
+    color: string | null;
+    raffleEnabled: boolean;
+    raffleOpen: boolean;
+    raffleButtonLabel: string | null;
+    raffleDrawCopy: string | null;
+  };
+
+  async function loadRaffleEvent(openBtn: HTMLButtonElement, form: HTMLFormElement) {
+    try {
+      const res = await fetch('/api/events');
+      if (!res.ok) return;
+      const data = (await res.json()) as { upcoming: PublicEvent | null };
+      const ev = data.upcoming;
+      if (!ev || !ev.raffleEnabled || !ev.raffleOpen) {
+        // Auto-remove: stays hidden if no event, raffle disabled, or closing date passed
+        openBtn.hidden = true;
+        return;
+      }
+
+      openBtn.textContent = ev.raffleButtonLabel || 'Enter Raffle';
+      if (ev.color) {
+        openBtn.style.backgroundColor = ev.color;
+        openBtn.style.borderColor = ev.color;
+      }
+      openBtn.hidden = false;
+      form.dataset.subscribeForm = ev.slug;
+
+      const titleEl = document.getElementById('raffle-title');
+      if (titleEl) titleEl.textContent = ev.raffleButtonLabel || 'Enter the Raffle Draw';
+
+      const eyebrowEl = document.getElementById('raffle-eyebrow');
+      if (eyebrowEl) eyebrowEl.textContent = ev.title;
+      const successEyebrowEl = document.getElementById('raffle-success-eyebrow');
+      if (successEyebrowEl) successEyebrowEl.textContent = ev.title;
+
+      const successBody = document.getElementById('raffle-success-body');
+      if (successBody && ev.raffleDrawCopy) successBody.textContent = ev.raffleDrawCopy;
+    } catch {
+      // Fail-safe: leave the FAB hidden
+    }
+  }
+
   function initRaffle() {
-    const openBtn = document.getElementById('raffle-open-btn');
+    const openBtn = document.getElementById('raffle-open-btn') as HTMLButtonElement | null;
     const closeBtn = document.getElementById('raffle-close-btn');
     const doneBtn = document.getElementById('raffle-done-btn');
     const overlay = document.getElementById('raffle-overlay');
@@ -202,6 +247,8 @@ import Layout from "../layouts/Layout.astro";
     const successState = document.getElementById('raffle-success-state');
     const form = document.getElementById('raffle-form') as HTMLFormElement | null;
     if (!openBtn || !closeBtn || !overlay || !dialog || !form) return;
+
+    loadRaffleEvent(openBtn, form);
 
     const open = () => {
       overlay.hidden = false;
@@ -220,7 +267,6 @@ import Layout from "../layouts/Layout.astro";
       setTimeout(() => {
         overlay.hidden = true;
         dialog.hidden = true;
-        // Reset to the form view for next time, after the fade-out finishes.
         if (formState && successState) {
           formState.hidden = false;
           successState.hidden = true;
@@ -253,11 +299,13 @@ import Layout from "../layouts/Layout.astro";
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Entering…'; }
       if (feedback) { feedback.textContent = ''; feedback.className = 'form-feedback'; }
 
+      const sourceTag = form.dataset.subscribeForm || 'event-raffle';
+
       try {
         const res = await fetch('/api/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, source: 'zwf-raffle-draw', _gotcha }),
+          body: JSON.stringify({ name, email, source: sourceTag, _gotcha }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));

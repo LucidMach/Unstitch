@@ -26,6 +26,8 @@ import manualOrder from '../../src/server/admin/manual-order.js';
 import orders from '../../src/server/admin/orders.js';
 import product from '../../src/server/admin/product.js';
 import sendEmail from '../../src/server/admin/send-email.js';
+import events from '../../src/server/admin/events.js';
+import batchDrops from '../../src/server/admin/batch-drops.js';
 
 const ROUTES = {
   customers,
@@ -36,6 +38,8 @@ const ROUTES = {
   orders,
   product,
   'send-email': sendEmail,
+  events,
+  'batch-drops': batchDrops,
 };
 
 export default async function handler(req, res) {

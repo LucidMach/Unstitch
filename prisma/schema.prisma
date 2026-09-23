@@ -369,6 +369,41 @@ model Drop {
 }
 
 // ---------------------------------------------------------------------------
+// Events — in-person workshops/festivals shown on the homepage, /learn's
+// hero carousel, and (for the raffle fields) the /playground raffle FAB.
+// Deliberately NOT modelled like Drop.status: "upcoming" vs "past" and whether
+// a raffle is still open are derived at read time by comparing
+// startsAt/endsAt/raffleClosesAt against now() (see src/server/events.js).
+// Includes color customization for event branding.
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String    @unique
+  title       String
+  location    String?
+  description String?
+  color       String?   @db.VarChar(32) // Hex color code e.g. #6D771A
+
+  startsAt DateTime  @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
+
+  ctaLabel String? @map("cta_label")
+  ctaUrl   String? @map("cta_url")
+
+  // Raffle settings
+  raffleEnabled     Boolean   @default(false) @map("raffle_enabled")
+  raffleButtonLabel String?   @map("raffle_button_label")
+  raffleClosesAt    DateTime? @map("raffle_closes_at")
+  raffleDrawCopy    String?   @map("raffle_draw_copy")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("events")
+}
+
+// ---------------------------------------------------------------------------
 // Units — the digital passport. One row per physical, numbered kit.
 // ---------------------------------------------------------------------------
 

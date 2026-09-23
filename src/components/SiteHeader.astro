@@ -9,26 +9,11 @@ const { currentPath = "" } = Astro.props;
 <header class="site-header">
   <div class="wrap site-header__row">
     <div class="site-header__left">
-      <a href="/playground" class="header-play-link" aria-label="Play">
-        <!-- Icon-button form shown while the quick links (About/Shop)
-             below are hidden (top of page); swaps to the plain text
-             link once .is-scrolled reveals them — see brand.css. -->
-        <svg class="header-play-link__icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <g stroke="#1A1A1A" stroke-width="4.5" stroke-linejoin="round">
-            <path d="M104,96 C104,80 96,66 78,62 C70,60 66,68 72,76 C80,86 92,92 104,96 Z" fill="#C9A3CE"/>
-            <path d="M104,96 C120,96 134,88 138,70 C140,62 132,58 124,64 C114,72 108,84 104,96 Z" fill="none"/>
-            <path d="M104,96 C104,112 112,126 130,130 C138,132 142,124 136,116 C128,106 116,100 104,96 Z" fill="#C9A3CE"/>
-            <path d="M104,96 C88,96 74,104 70,122 C68,130 76,134 84,128 C94,120 100,108 104,96 Z" fill="none"/>
-          </g>
-          <circle cx="104" cy="96" r="7" fill="#1A1A1A"/>
-          <line x1="104" y1="103" x2="104" y2="150" stroke="#1A1A1A" stroke-width="4.5" stroke-linecap="round"/>
-          <g stroke="#1A1A1A" stroke-width="3.5" fill="none" stroke-linejoin="round">
-            <path d="M42,150 C38,136 46,126 56,128 C58,120 68,118 72,126 C82,124 88,134 82,142 C86,150 78,158 68,155 C64,161 52,160 50,152 C46,154 42,154 42,150 Z" fill="#FFFFFF"/>
-            <circle cx="72" cy="136" r="2.5" fill="#1A1A1A" stroke="none"/>
-            <path d="M84,140 L92,138" stroke-linecap="round"/>
-          </g>
+      <a href="/playground" class="header-play-link" aria-label="Play 3D Textile Studio">
+        <svg class="header-play-link__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l11-6.86a1 1 0 0 0 0-1.68l-11-6.86A1 1 0 0 0 8 5.14z"/>
         </svg>
-        <span class="header-play-link__text">Play</span>
+        <span class="header-play-link__text">PLAY</span>
       </a>
       <ul class="site-header__links">
         <li><a href="/about" aria-current={currentPath === "/about" ? "page" : undefined}>About</a></li>

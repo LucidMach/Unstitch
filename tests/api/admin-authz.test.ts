@@ -11,6 +11,8 @@ import manualOrderHandler from '../../src/server/admin/manual-order.js';
 import ordersHandler from '../../src/server/admin/orders.js';
 import productHandler from '../../src/server/admin/product.js';
 import sendEmailHandler from '../../src/server/admin/send-email.js';
+import eventsHandler from '../../src/server/admin/events.js';
+import batchDropsHandler from '../../src/server/admin/batch-drops.js';
 
 function createMockRes() {
   const res: any = {
@@ -49,7 +51,7 @@ const WRITE_MODELS = [
   'subscriber', 'contactSubmission', 'materialArchiveCard', 'givingProgram', 'materialSource',
   'productCostRecipe', 'product', 'drop', 'unit', 'customer', 'address', 'deliveryZone', 'cart',
   'cartItem', 'reservation', 'wishlist', 'order', 'orderItem', 'payment', 'refund',
-  'givingLedgerEntry', 'review', 'adminUser',
+  'givingLedgerEntry', 'review', 'adminUser', 'event',
 ];
 const WRITE_METHODS = ['create', 'update', 'upsert', 'delete', 'createMany', 'updateMany', 'deleteMany'];
 
@@ -77,6 +79,8 @@ const ENDPOINTS: Array<{ name: string; handler: any; method: string; body?: any 
   { name: 'admin/orders', handler: ordersHandler, method: 'GET' },
   { name: 'admin/product', handler: productHandler, method: 'GET' },
   { name: 'admin/send-email', handler: sendEmailHandler, method: 'POST', body: {} },
+  { name: 'admin/events', handler: eventsHandler, method: 'GET' },
+  { name: 'admin/batch-drops', handler: batchDropsHandler, method: 'GET' },
 ];
 
 describe('Admin endpoint authorization regression guard (no session cookie)', () => {

@@ -151,13 +151,13 @@ import SlowBloomImage from "../assets/SlowBloom.png";
     <!-- ============ WORKSHOP CALLOUT ============
          Full-bleed tinted band (Zero Waste Victoria's brand colour at
          ~35% opacity), content still constrained to the normal width. -->
-    <section class="workshop">
+    <section class="workshop" id="up-next-section">
       <div class="wrap workshop__inner">
         <div class="workshop__copy">
-          <p class="section__eyebrow">Up Next — Public Experience Workshop</p>
-          <h2 class="workshop__title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h2>
-          <p class="workshop__body">Drop-in tile building all day 12pm–6pm, no experience needed. Visit to try out our newly launched virtual playground and go in the raffle draw to win 1 Unstitch's latest drop.</p>
-          <a href="https://zerowastevictoria.org.au/zero-waste-festival/activities/" target="_blank" rel="noopener" class="btn btn-outline workshop__cta">Learn More</a>
+          <p class="section__eyebrow" id="up-next-eyebrow">Up Next — Public Experience Workshop</p>
+          <h2 class="workshop__title" id="up-next-title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h2>
+          <p class="workshop__body" id="up-next-body">Drop-in tile building all day 12pm–6pm, no experience needed. Visit to try out our newly launched virtual playground and go in the raffle draw to win 1 Unstitch's latest drop.</p>
+          <a href="https://zerowastevictoria.org.au/zero-waste-festival/activities/" target="_blank" rel="noopener" class="btn btn-outline workshop__cta" id="up-next-cta">Learn More</a>
         </div>
       </div>
     </section>
@@ -242,6 +242,10 @@ import SlowBloomImage from "../assets/SlowBloom.png";
     overflow: hidden;
   }
 
+  .workshop {
+    background-color: var(--event-bg, rgba(109, 119, 26, 0.15));
+    transition: background-color 0.3s ease;
+  }
   .workshop__inner {
     padding-top: 56px;
     padding-bottom: 56px;
@@ -251,7 +255,13 @@ import SlowBloomImage from "../assets/SlowBloom.png";
     margin: 6px 0 18px;
   }
   .workshop__body { max-width: 52ch; color: #333; margin-bottom: 24px; }
-  .workshop__cta { display: inline-flex; background: rgba(109, 119, 26); color: white; }
+  .workshop__cta {
+    display: inline-flex;
+    background: var(--event-cta-bg, rgba(109, 119, 26, 1));
+    color: white;
+    border-color: var(--event-cta-bg, rgba(109, 119, 26, 1));
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
 
   .home-countdown-section {
     padding-top: 56px;
@@ -374,6 +384,9 @@ import SlowBloomImage from "../assets/SlowBloom.png";
 <script>
   function initCountdown() {
     document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => {
+      const existingTimer = (el as any)._cdTimer;
+      if (existingTimer) clearInterval(existingTimer);
+
       const targetStr = el.dataset.target || '';
       const target = new Date(targetStr).getTime();
       const daysEl = el.querySelector<HTMLElement>('[data-cd-days]');
@@ -382,12 +395,6 @@ import SlowBloomImage from "../assets/SlowBloom.png";
       const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
       const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
 
-      // Declared before tick() because tick() runs once immediately,
-      // before setInterval returns. Using `const timer` below and
-      // clearing it from inside that first synchronous call would throw
-      // (the variable isn't initialised yet), which would stop the
-      // reveal from ever running for anyone loading the page after the
-      // drop had already gone live.
       let timer: ReturnType<typeof setInterval> | undefined;
 
       const tick = () => {
@@ -424,8 +431,74 @@ import SlowBloomImage from "../assets/SlowBloom.png";
       };
 
       timer = setInterval(tick, 1000);
+      (el as any)._cdTimer = timer;
       tick();
     });
+  }
+
+  async function initEvents() {
+    try {
+      const res = await fetch('/api/events');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Dynamic Batch Drop handling
+      if (data.nextBatchDrop && data.nextBatchDrop.releaseAt) {
+        const countdownEl = document.querySelector<HTMLElement>('#next-drop-countdown [data-countdown]');
+        const countdownSection = document.getElementById('next-drop-countdown');
+        const liveSection = document.getElementById('latest-drop-live');
+        const titleEl = countdownSection?.querySelector('.section__title');
+
+        const dropTime = new Date(data.nextBatchDrop.releaseAt).getTime();
+        if (dropTime > Date.now()) {
+          if (countdownEl) countdownEl.dataset.target = data.nextBatchDrop.releaseAt;
+          if (titleEl && data.nextBatchDrop.productName) {
+            titleEl.textContent = `${data.nextBatchDrop.productName} — Drop ${data.nextBatchDrop.dropCode || ''}`;
+          }
+          if (countdownSection) countdownSection.hidden = false;
+          if (liveSection) liveSection.hidden = true;
+          initCountdown();
+        } else {
+          if (countdownSection) countdownSection.hidden = true;
+          if (liveSection) liveSection.hidden = false;
+        }
+      }
+
+      // Dynamic Upcoming Workshop / Event handling
+      if (data.upcoming) {
+        const event = data.upcoming;
+        const section = document.getElementById('up-next-section');
+        const eyebrow = document.getElementById('up-next-eyebrow');
+        const title = document.getElementById('up-next-title');
+        const body = document.getElementById('up-next-body');
+        const cta = document.getElementById('up-next-cta') as HTMLAnchorElement | null;
+
+        if (section) {
+          section.hidden = false;
+          if (event.color) {
+            section.style.setProperty('--event-bg', `${event.color}22`);
+            section.style.setProperty('--event-cta-bg', event.color);
+          }
+          if (eyebrow) {
+            eyebrow.textContent = `Up Next — ${event.title}`;
+          }
+          if (title) {
+            title.textContent = event.location
+              ? `${event.title} • ${event.location}`
+              : event.title;
+          }
+          if (body && event.description) {
+            body.textContent = event.description;
+          }
+          if (cta) {
+            if (event.ctaUrl) cta.href = event.ctaUrl;
+            if (event.ctaLabel) cta.textContent = event.ctaLabel;
+          }
+        }
+      }
+    } catch {
+      // Graceful fallback to static defaults
+    }
   }
 
   function initForms() {
@@ -478,8 +551,10 @@ import SlowBloomImage from "../assets/SlowBloom.png";
 
   initCountdown();
   initForms();
+  initEvents();
   document.addEventListener('astro:page-load', () => {
     initCountdown();
     initForms();
+    initEvents();
   });
 </script>

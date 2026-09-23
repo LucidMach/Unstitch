@@ -1,15 +1,10 @@
 // api/admin/customers.js
-// GET  /api/admin/customers            -> every customer with a derived
-//   order count and lifetime spend, so the admin panel can answer "who are
-//   our customers" and serve as a recipient picker for the bulk-email
-//   feature (see admin/index.astro's Customers tab).
+// GET  /api/admin/customers            -> unified list of all contacts (customers,
+//   subscribers, raffle entries, contact submissions, and playground exports)
+//   with derived order count, lifetime spend, and source roles.
 // GET  /api/admin/customers?id=<uuid>  -> one customer's full record
-//   (including phone, which the list view leaves out) for the edit panel.
-// POST /api/admin/customers            -> { customerId, email?, name?,
-//   phone? } updates the customer's own details. Deliberately narrow: this
-//   only ever touches the Customer row itself (fixing a typo'd email, adding
-//   a phone number, correcting a name) — it does not touch past orders or
-//   their delivery addresses, which keep whatever was true at the time.
+// POST /api/admin/customers            -> { customerId, email?, name?, phone? }
+//   updates the customer's own details.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
@@ -68,6 +63,7 @@ export default async function handler(req, res) {
 
   const { searchParams } = new URL(req.url, 'http://placeholder.local');
   const id = searchParams.get('id');
+  const typeFilter = (searchParams.get('type') || 'all').toLowerCase();
 
   try {
     if (id) {
@@ -76,22 +72,46 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { customer });
     }
 
-    const customers = await prisma.customer.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-      },
-    });
+    // Parallel fetch from Neon DB: Customers, Subscribers, and ContactSubmissions
+    const [customers, subscribers, contacts] = await Promise.all([
+      prisma.customer.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          phone: true,
+          createdAt: true,
+        },
+      }),
+      prisma.subscriber.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          source: true,
+          createdAt: true,
+        },
+      }),
+      prisma.contactSubmission.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          phone: true,
+          subject: true,
+          message: true,
+          createdAt: true,
+        },
+      }),
+    ]);
 
-    // Aggregate order count + lifetime spend per customer in the DB rather
-    // than loading every order row and reducing in JS (previously: a
-    // per-customer `orders: { select: { totalCents: true } }` relation load,
-    // O(customers x orders) rows over the wire for a number the DB can
-    // compute directly).
+    // Aggregate order count + lifetime spend per customer in DB
     const customerIds = customers.map((c) => c.id);
     const aggregates = customerIds.length
       ? await prisma.order.groupBy({
@@ -105,19 +125,113 @@ export default async function handler(req, res) {
       aggregates.map((a) => [a.customerId, a])
     );
 
-    const result = customers.map((c) => {
+    // Map by normalized email for deduplication and composite roles
+    const unifiedMap = new Map();
+
+    // 1. Process buyers (Customers)
+    for (const c of customers) {
+      const email = c.email.toLowerCase().trim();
       const agg = aggregateByCustomerId.get(c.id);
-      return {
+      unifiedMap.set(email, {
         id: c.id,
-        email: c.email,
-        name: c.name,
-        createdAt: c.createdAt,
+        email,
+        name: c.name || null,
+        phone: c.phone || null,
+        roles: ['customer'],
         orderCount: agg?._count ?? 0,
         totalSpentCents: agg?._sum.totalCents ?? 0,
-      };
-    });
+        sources: ['store-order'],
+        subject: null,
+        createdAt: c.createdAt,
+      });
+    }
 
-    return sendJson(res, 200, { customers: result });
+    // 2. Process Subscribers (General, Waitlist, Raffle, Playground Exports)
+    for (const s of subscribers) {
+      const email = s.email.toLowerCase().trim();
+      const src = (s.source || '').toLowerCase();
+      let role = 'subscriber';
+      if (src.includes('raffle') || src.includes('festival') || src.includes('zwf')) {
+        role = 'raffle';
+      } else if (src.includes('playground') || src.includes('export') || src.includes('share')) {
+        role = 'playground_export';
+      }
+
+      const existing = unifiedMap.get(email);
+      if (existing) {
+        if (!existing.roles.includes(role)) existing.roles.push(role);
+        if (s.source && !existing.sources.includes(s.source)) existing.sources.push(s.source);
+        if (!existing.name && s.name) existing.name = s.name;
+      } else {
+        unifiedMap.set(email, {
+          id: `sub-${s.id}`,
+          email,
+          name: s.name || null,
+          phone: null,
+          roles: [role],
+          orderCount: 0,
+          totalSpentCents: 0,
+          sources: s.source ? [s.source] : ['newsletter'],
+          subject: null,
+          createdAt: s.createdAt,
+        });
+      }
+    }
+
+    // 3. Process Contact Submissions
+    for (const ct of contacts) {
+      const email = ct.email.toLowerCase().trim();
+      const existing = unifiedMap.get(email);
+      if (existing) {
+        if (!existing.roles.includes('contact')) existing.roles.push('contact');
+        if (!existing.name && ct.name) existing.name = ct.name;
+        if (!existing.phone && ct.phone) existing.phone = ct.phone;
+        if (!existing.subject) existing.subject = ct.subject;
+      } else {
+        unifiedMap.set(email, {
+          id: `ct-${ct.id}`,
+          email,
+          name: ct.name || null,
+          phone: ct.phone || null,
+          roles: ['contact'],
+          orderCount: 0,
+          totalSpentCents: 0,
+          sources: ['contact-form'],
+          subject: ct.subject || null,
+          createdAt: ct.createdAt,
+        });
+      }
+    }
+
+    const allContacts = Array.from(unifiedMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Compute segment counts
+    const counts = {
+      all: allContacts.length,
+      customers: allContacts.filter((c) => c.roles.includes('customer')).length,
+      subscribers: allContacts.filter((c) => c.roles.includes('subscriber')).length,
+      raffles: allContacts.filter((c) => c.roles.includes('raffle')).length,
+      contacts: allContacts.filter((c) => c.roles.includes('contact')).length,
+      exports: allContacts.filter((c) => c.roles.includes('playground_export')).length,
+    };
+
+    // Filter by type if requested
+    let result = allContacts;
+    if (typeFilter === 'customers') {
+      result = allContacts.filter((c) => c.roles.includes('customer'));
+    } else if (typeFilter === 'subscribers') {
+      result = allContacts.filter((c) => c.roles.includes('subscriber'));
+    } else if (typeFilter === 'raffles' || typeFilter === 'raffle') {
+      result = allContacts.filter((c) => c.roles.includes('raffle'));
+    } else if (typeFilter === 'contacts' || typeFilter === 'contact') {
+      result = allContacts.filter((c) => c.roles.includes('contact'));
+    } else if (typeFilter === 'exports' || typeFilter === 'playground') {
+      result = allContacts.filter((c) => c.roles.includes('playground_export'));
+    }
+
+    return sendJson(res, 200, { customers: result, counts });
   } catch (err) {
     console.error('[admin/customers] Lookup failed:', err);
     return sendJson(res, 500, { error: 'Unable to load customers.' });

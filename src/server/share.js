@@ -4,6 +4,7 @@
 import { ShareSchema } from '../lib/schemas/share.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
 import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
+import prisma from '../lib/prisma.js';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
 
@@ -174,6 +175,26 @@ export default async function handler(req, res) {
   const foldCount = Array.isArray(designData.tiles)
     ? designData.tiles.filter((t) => Math.abs(t.foldAngle || 0) > 0.01).length
     : 0;
+
+  // Persist creator into Neon PostgreSQL so they appear in admin directory
+  if (prisma) {
+    try {
+      await prisma.subscriber.upsert({
+        where: { email },
+        update: {
+          signupCount: { increment: 1 },
+          name: projectName || undefined,
+        },
+        create: {
+          email,
+          name: projectName || 'Playground Creator',
+          source: 'playground-export',
+        },
+      });
+    } catch (dbErr) {
+      console.warn('[share] Failed to persist playground export subscriber:', dbErr);
+    }
+  }
 
   // 4. Send Email via Resend
   if (process.env.RESEND_API_KEY) {

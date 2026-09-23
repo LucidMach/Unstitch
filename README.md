@@ -75,7 +75,7 @@ The 3D Playground (`/playground`) uses parametric matrix transformations to simu
 This repository is published under a **Split / Source-Available License** to allow community inspection while protecting proprietary commercial assets:
 
 1. **General Website Code & UI Components**: Licensed under the **[MIT License](file:///Users/lucidmach/Unstitch/LICENSE)**.
-2. **3D Modeling Playground & Geometric Folding Engine** (`src/components/playCanvas.tsx`, `src/components/scene/`, `src/hooks/use-play-canvas.ts`, `src/types/tile.ts`, `parse_glb*.js`): **Proprietary & Source-Available for Non-Commercial / Evaluation Use Only**. Commercial deployment, hosting, or embedding in commercial products without prior written authorization is strictly prohibited.
+2. **3D Modeling Playground & Geometric Folding Engine** (`src/components/playCanvas.tsx`, `src/components/scene/`, `src/hooks/use-play-canvas.ts`, `src/types/tile.ts`): **Proprietary & Source-Available for Non-Commercial / Evaluation Use Only**. Commercial deployment, hosting, or embedding in commercial products without prior written authorization is strictly prohibited.
 3. **Brand Assets, 3D Models & Physical Product Designs** (`public/*.glb`, `.png` renders, logos, trademarks, and physical interlocking die-cut patterns): **All Rights Reserved**.
 
 See the full legal terms in the **[LICENSE](file:///Users/lucidmach/Unstitch/LICENSE)** file.
