@@ -9,9 +9,9 @@
 // server-side in create-checkout-session.js (this endpoint is never
 // trusted for that) — this only controls what the page *shows*.
 
-import { sendJson } from '../src/lib/apiHelper.js';
-import { checkRateLimit } from '../src/lib/rateLimit.js';
-import prisma from '../src/lib/prisma.js';
+import { sendJson } from '../lib/apiHelper.js';
+import { checkRateLimit } from '../lib/rateLimit.js';
+import prisma from '../lib/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

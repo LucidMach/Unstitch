@@ -40,14 +40,14 @@
 //                                          admin panel, not for real orders.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import prisma from '../../src/lib/prisma.js';
-import { sign } from '../../src/lib/signedToken.js';
-import { getSiteOrigin } from '../../src/lib/siteOrigin.js';
-import { orderShippedEmail } from '../../src/lib/emailTemplate.js';
-import { addBusinessDays, MIN_PRODUCTION_DAYS } from '../../src/lib/shipping.js';
-import { revertUnitsToStock } from '../../src/lib/inventory.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import prisma from '../../lib/prisma.js';
+import { sign } from '../../lib/signedToken.js';
+import { getSiteOrigin } from '../../lib/siteOrigin.js';
+import { orderShippedEmail } from '../../lib/emailTemplate.js';
+import { addBusinessDays, MIN_PRODUCTION_DAYS } from '../../lib/shipping.js';
+import { revertUnitsToStock } from '../../lib/inventory.js';
 
 // Matches api/stripe-webhook.js / api/admin/send-email.js, so the "shipped"
 // email's tracking link behaves the same as the original confirmation's.

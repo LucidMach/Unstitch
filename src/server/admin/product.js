@@ -15,10 +15,10 @@
 // at a time, so there's nothing to select between yet.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import prisma from '../../src/lib/prisma.js';
-import { computeCostBreakdown, ALLOWED_TILE_SIZES_CM } from '../../src/lib/costCalculator.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import prisma from '../../lib/prisma.js';
+import { computeCostBreakdown, ALLOWED_TILE_SIZES_CM } from '../../lib/costCalculator.js';
 
 const SLUG = 'slow-bloom';
 

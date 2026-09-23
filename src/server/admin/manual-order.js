@@ -50,16 +50,16 @@
 // orderConfirmationEmail `message` param).
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import prisma from '../../src/lib/prisma.js';
-import { reserveUnitsForDrop, releaseUnits, markUnitsSold, InsufficientStockError } from '../../src/lib/inventory.js';
-import { computeExpectedShipDate, addBusinessDays, MIN_PRODUCTION_DAYS, deliveryMethodLabel } from '../../src/lib/shipping.js';
-import { generateOrderNumber } from '../../src/lib/orderNumber.js';
-import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../src/lib/deliveryZones.js';
-import { sign } from '../../src/lib/signedToken.js';
-import { getSiteOrigin } from '../../src/lib/siteOrigin.js';
-import { orderConfirmationEmail } from '../../src/lib/emailTemplate.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import prisma from '../../lib/prisma.js';
+import { reserveUnitsForDrop, releaseUnits, markUnitsSold, InsufficientStockError } from '../../lib/inventory.js';
+import { computeExpectedShipDate, addBusinessDays, MIN_PRODUCTION_DAYS, deliveryMethodLabel } from '../../lib/shipping.js';
+import { generateOrderNumber } from '../../lib/orderNumber.js';
+import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../lib/deliveryZones.js';
+import { sign } from '../../lib/signedToken.js';
+import { getSiteOrigin } from '../../lib/siteOrigin.js';
+import { orderConfirmationEmail } from '../../lib/emailTemplate.js';
 
 const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 

@@ -12,9 +12,9 @@
 //   their delivery addresses, which keep whatever was true at the time.
 
 import { z } from 'zod';
-import { sendJson, parseRequestBody, formatZodError } from '../../src/lib/apiHelper.js';
-import { requireAdmin } from '../../src/lib/adminAuth.js';
-import prisma from '../../src/lib/prisma.js';
+import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
+import { requireAdmin } from '../../lib/adminAuth.js';
+import prisma from '../../lib/prisma.js';
 
 const UpdateCustomerSchema = z.object({
   customerId: z.string().uuid(),
