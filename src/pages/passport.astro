@@ -342,8 +342,22 @@ import Layout from "../layouts/Layout.astro";
 
   let currentSerial = "";
 
+  // The QR on a physical kit points at the clean path /passport/UX-D001-007,
+  // not /passport?serial=UX-D001-007 — vercel.json (prod) and the dev
+  // middleware (astro.config.mjs) both rewrite that path server-side, but
+  // a rewrite only changes which file gets served, never what the browser
+  // shows as window.location. So client JS here always saw an empty
+  // window.location.search for a QR scan and fell back to the manual
+  // lookup box, regardless of the rewrite "working." Reading the serial
+  // out of the path directly (in addition to ?serial=, which still covers
+  // the manual-typed-code + Try again link cases) fixes that with no
+  // server or QR changes needed — the QR data was always correct.
   const params = new URLSearchParams(window.location.search);
-  const initialSerial = params.get("serial");
+  let initialSerial = params.get("serial");
+  if (!initialSerial) {
+    const pathMatch = window.location.pathname.match(/^\/passport\/([^/?]+)\/?$/);
+    if (pathMatch) initialSerial = decodeURIComponent(pathMatch[1]);
+  }
   if (initialSerial) {
     lookupSerial(initialSerial.trim());
   }
