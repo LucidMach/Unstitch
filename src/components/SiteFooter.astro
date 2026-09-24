@@ -3,23 +3,38 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <ul class="site-footer__nav">
-      <li><a href="/playground">Play</a></li>
-      <li><a href="/about">About</a></li>
-      <!-- <li><a href="/learn">Learn</a></li> -->
-      <!-- <li><a href="/custom">Custom</a></li> -->
-      <li class="site-footer__navitem--group">
-        <a href="/shop">Shop</a>
-        <ul class="site-footer__sublist">
+    <div class="site-footer__nav">
+      <!-- Split into three even columns instead of one flat row where
+           the Shop item's five nested sub-links made it far taller than
+           its single-line siblings. Learn/Custom stay commented out,
+           unchanged from before. -->
+      <div class="site-footer__col">
+        <p class="site-footer__col-title">Explore</p>
+        <ul>
+          <li><a href="/playground">Play</a></li>
+          <li><a href="/about">About</a></li>
+          <!-- <li><a href="/learn">Learn</a></li> -->
+          <!-- <li><a href="/custom">Custom</a></li> -->
+          <li><a href="/archive">Material Archive</a></li>
+          <li><a href="/contact">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="site-footer__col">
+        <p class="site-footer__col-title"><a href="/shop">Shop</a></p>
+        <ul>
           <li><a href="/order/lookup">Track Order</a></li>
-          <li><a href="/legal#privacy">Privacy Policy</a></li>
-          <li><a href="/legal#terms">Terms & Conditions</a></li>
+          <li><a href="/passport">Product Passport</a></li>
           <li><a href="/legal#shipping">Shipping & Returns</a></li>
         </ul>
-      </li>
-      <!-- <li><a href="/archive">Material Archive</a></li> -->
-      <li><a href="/contact">Contact Us</a></li>
-    </ul>
+      </div>
+      <div class="site-footer__col">
+        <p class="site-footer__col-title">Bored</p>
+        <ul>
+          <li><a href="/legal#privacy">Privacy Policy</a></li>
+          <li><a href="/legal#terms">Terms & Conditions</a></li>
+        </ul>
+      </div>
+    </div>
 
     <p class="site-footer__ack">
       We acknowledge the Wurundjeri people of the Kulin Nation, the traditional custodians of this land on which we work. We pay our respects to their Elders, past and present, and recognise their creativity and connection to this unceded land.

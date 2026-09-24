@@ -45,6 +45,16 @@
 //         automatically. Only touches units reserved longer ago than a
 //         real checkout hold could still legitimately be open for, so it
 //         can never snatch back a unit a customer is mid-payment on.
+//   action: "edit-unit" -> manually correct a single unit's edition
+//         number (e.g. fillEditionGaps skipped ahead because old voided
+//         test units still held the "expected" number). Recomputes serial
+//         + qrSlug to match, same "UX-{dropCode}-{3-digit}" format restock
+//         uses, so the unit never ends up with a serial that disagrees
+//         with its own edition number. Refuses a number already used by
+//         another unit on the same drop. Doesn't touch status/totalUnits.
+//         Caution: if this unit's serial was already printed on a real
+//         QR tag/postcard, changing it breaks that physical tag's link —
+//         only meant for units that haven't gone out yet.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
@@ -59,7 +69,7 @@ const STALE_RESERVATION_MS = 30 * 60 * 1000;
 
 const InventoryActionSchema = z.object({
   dropId: z.string().uuid(),
-  action: z.enum(['restock', 'void', 'release-stale', 'undo-void', 'delete-void']).default('restock'),
+  action: z.enum(['restock', 'void', 'release-stale', 'undo-void', 'delete-void', 'edit-unit']).default('restock'),
   // Required for restock/void/undo-void; ignored for release-stale and
   // delete-void, which always act on every eligible unit on the drop —
   // there's no "which ones" to choose between for either.
@@ -68,6 +78,9 @@ const InventoryActionSchema = z.object({
   // sellable again. Defaults to true; set false to add units without
   // reactivating (e.g. staging next week's units early).
   reactivate: z.boolean().optional().default(true),
+  // edit-unit only: which unit, and the edition number to give it.
+  unitId: z.string().uuid().optional(),
+  editionNumber: z.number().int().min(1).max(999).optional(),
 });
 
 /**
@@ -147,9 +160,12 @@ export default async function handler(req, res) {
     const formatted = formatZodError(parseResult.error);
     return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
   }
-  const { dropId, action, quantity, reactivate } = parseResult.data;
+  const { dropId, action, quantity, reactivate, unitId, editionNumber } = parseResult.data;
   if ((action === 'restock' || action === 'void' || action === 'undo-void') && quantity === undefined) {
     return sendJson(res, 400, { error: 'quantity is required for this action.' });
+  }
+  if (action === 'edit-unit' && (!unitId || editionNumber === undefined)) {
+    return sendJson(res, 400, { error: 'unitId and editionNumber are required for this action.' });
   }
 
   try {
@@ -276,6 +292,34 @@ export default async function handler(req, res) {
         drop,
         unitsDeleted: voidUnits.length,
         deletedSerials: voidUnits.map((u) => u.serial),
+      });
+    }
+
+    if (action === 'edit-unit') {
+      const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+      if (!unit || unit.dropId !== dropId) {
+        return sendJson(res, 404, { error: 'Unit not found on this drop.' });
+      }
+
+      const conflict = await prisma.unit.findFirst({
+        where: { dropId, editionNumber, id: { not: unitId } },
+        select: { serial: true },
+      });
+      if (conflict) {
+        return sendJson(res, 400, {
+          error: `Edition ${editionNumber} is already used by ${conflict.serial}.`,
+        });
+      }
+
+      const serial = `UX-${drop.dropCode}-${String(editionNumber).padStart(3, '0')}`;
+      const updated = await prisma.unit.update({
+        where: { id: unitId },
+        data: { editionNumber, serial, qrSlug: serial },
+      });
+
+      return sendJson(res, 200, {
+        unit: updated,
+        previousSerial: unit.serial,
       });
     }
 

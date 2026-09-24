@@ -193,12 +193,19 @@ import Layout from "../../layouts/Layout.astro";
     <!-- INVENTORY -->
     <section data-panel="inventory" class="admin__panel" hidden>
       <div class="admin__panel-header">
-        <h2>Drop Inventory &amp; Serials</h2>
+        <div>
+          <h2>Drop Inventory &amp; Digital Passports</h2>
+          <p class="admin-muted" style="margin-top: 4px;">Track numbered edition serials, stock allocations across bags &amp; shelves, and digital authenticity certificates.</p>
+        </div>
         <div class="admin__panel-header-actions">
-          <button id="inventory-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+          <button id="inventory-refresh" class="btn-ghost btn-ghost--small" title="Sync live inventory from database">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 4px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Refresh Stock
+          </button>
         </div>
       </div>
-      <p class="admin-muted">Manage numbered kit edition serials, stock allocations, voided units, and digital passport QR downloads.</p>
+
+      <div class="stitch" style="margin: 14px 0 20px; opacity: 0.75;"></div>
 
       <p id="inventory-loading">Loading drops…</p>
       <div id="inventory-content" hidden></div>
@@ -466,7 +473,8 @@ import Layout from "../../layouts/Layout.astro";
   </main>
 
 <style is:global>
-  body {
+  /* Scope admin background so public pages remain white */
+  body:has(.admin) {
     background-color: #faf9f6;
   }
 
@@ -649,6 +657,21 @@ import Layout from "../../layouts/Layout.astro";
     height: 16px;
     cursor: pointer;
     vertical-align: middle;
+  }
+  .admin-unit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .admin-unit-edit-input {
+    width: 64px;
+    padding: 2px 6px;
+    font-size: 0.82rem;
+    border: 1.5px solid var(--ink, #111111);
+    border-radius: 4px;
   }
 
   .admin-table__empty {
@@ -1071,30 +1094,175 @@ import Layout from "../../layouts/Layout.astro";
   }
 
   /* --- Inventory: Drop Cards & Metrics --- */
+  .admin-inventory-hero {
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .admin-inventory-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #e2ded7;
+  }
+
+  .admin-inventory-hero-title {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink, #111111);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-inventory-sellthrough-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    background: #eedfe9;
+    color: var(--accent, #A36E93);
+    border: 1px solid rgba(163, 110, 147, 0.3);
+    border-radius: 999px;
+  }
+
+  .admin-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+  }
+
+  .admin-stat-grid--drop {
+    margin-top: 14px;
+    margin-bottom: 0;
+  }
+
+  .admin-stat-card {
+    background: #ffffff;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .admin-stat-card-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .admin-stat-label {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #666666;
+  }
+
+  .admin-stat-value {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--ink, #111111);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .admin-stat-value--instock { color: #166534; }
+  .admin-stat-value--reserved { color: #92400e; }
+  .admin-stat-value--sold { color: var(--accent, #A36E93); }
+  .admin-stat-value--void { color: #991b1b; text-decoration: line-through; }
+
+  .admin-stat-sub {
+    font-size: 0.72rem;
+    color: #777777;
+    margin-top: 2px;
+  }
+
+  /* --- Per-Drop Dossier Card --- */
   .admin-drop-card {
     display: flex;
-    gap: 24px;
+    gap: 22px;
     align-items: flex-start;
   }
-  @media (max-width: 720px) {
+  @media (max-width: 760px) {
     .admin-drop-card {
       flex-direction: column;
     }
   }
 
   .admin-drop-photo-wrap {
-    flex: 0 0 110px;
+    flex: 0 0 116px;
+    width: 116px;
+    height: 116px;
     position: relative;
+    border-radius: var(--radius, 6px);
+    overflow: hidden;
+    background: #faf8f5;
+    border: 1.5px solid #dcd9d4;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.03);
   }
 
   .admin-drop-photo {
-    width: 110px;
-    height: 110px;
-    border-radius: var(--radius, 6px);
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    background: #faf8f5;
-    border: 1.5px solid #e8e5df;
     display: block;
+  }
+
+  .admin-drop-photo-wrap.has-fallback .admin-drop-photo {
+    display: none;
+  }
+
+  .admin-drop-photo-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: #f7f5f0;
+    border: 1px dashed #d5d0c7;
+    border-radius: 4px;
+    margin: 4px;
+    text-align: center;
+  }
+
+  .admin-drop-fallback-monogram {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: var(--ink, #111111);
+    letter-spacing: 0.04em;
+  }
+
+  .admin-drop-fallback-brand {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent, #A36E93);
+    text-transform: uppercase;
   }
 
   .admin-drop-body {
@@ -1104,35 +1272,27 @@ import Layout from "../../layouts/Layout.astro";
 
   .admin-drop-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
-  .admin-drop-header-info {
+  .admin-drop-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-drop-badge-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
-  .admin-drop-product-link {
-    font-family: var(--font-display, 'Space Grotesk', sans-serif);
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-    color: var(--ink, #111111);
-    text-decoration: none;
-    transition: color 0.15s ease;
-  }
-  .admin-drop-product-link:hover {
-    color: var(--accent, #A36E93);
-    text-decoration: underline;
-  }
-
-  .admin-drop-badge {
+  .admin-drop-code-badge {
     display: inline-flex;
     align-items: center;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
@@ -1143,60 +1303,150 @@ import Layout from "../../layouts/Layout.astro";
     padding: 3px 8px;
     border-radius: 4px;
     letter-spacing: 0.04em;
-    vertical-align: middle;
   }
 
-  .admin-drop-meta-tags {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    font-size: 0.78rem;
-    color: #666666;
-    margin-bottom: 12px;
-  }
-
-  .admin-drop-meta-item {
+  .admin-drop-sku-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    font-size: 0.74rem;
+    color: #666666;
+    background: #faf8f5;
+    border: 1px solid #e4e1db;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .admin-drop-sku-badge code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-weight: 600;
+    color: var(--ink, #111111);
+  }
+
+  .admin-drop-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-drop-title {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.32rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ink, #111111);
+    margin: 0;
+  }
+
+  .admin-drop-store-link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent, #A36E93);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .admin-drop-store-link:hover {
+    color: var(--ink, #111111);
+    text-decoration: underline;
+    transform: translateX(1px);
+  }
+
+  .admin-drop-header-quick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-drop-run-tag {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 6px 12px;
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: 6px;
+  }
+
+  .admin-drop-run-label {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #888888;
+  }
+
+  .admin-drop-run-val {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: var(--ink, #111111);
   }
 
   /* --- Inventory Allocation Progress Bar --- */
-  .admin-drop-progress {
-    margin: 12px 0 16px;
+  .admin-drop-allocation {
+    margin: 14px 0 16px;
     background: #faf8f5;
     border: 1.5px solid #eae7e1;
     border-radius: var(--radius, 6px);
-    padding: 12px 14px;
+    padding: 14px 16px;
   }
 
-  .admin-drop-progress-header {
+  .admin-drop-allocation-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-size: 0.8rem;
   }
 
-  .admin-drop-progress-title {
+  .admin-drop-allocation-title {
     font-family: var(--font-display, 'Space Grotesk', sans-serif);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #555555;
-    font-size: 0.72rem;
+    color: #444444;
+    font-size: 0.74rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .admin-drop-allocation-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: #666666;
+  }
+
+  .admin-drop-velocity-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: #eedfe9;
+    color: var(--accent, #A36E93);
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.74rem;
   }
 
   .admin-drop-bar {
-    height: 10px;
+    height: 12px;
     border-radius: 999px;
     background: #e6e3dc;
+    border: 1px solid #ded9d0;
     display: flex;
     overflow: hidden;
     gap: 2px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
   }
 
   .admin-drop-bar-seg {
@@ -1205,7 +1455,7 @@ import Layout from "../../layouts/Layout.astro";
   }
 
   .admin-drop-bar-seg--sold {
-    background: #6d28d9;
+    background: var(--accent, #A36E93);
   }
 
   .admin-drop-bar-seg--reserved {
@@ -1217,164 +1467,67 @@ import Layout from "../../layouts/Layout.astro";
   }
 
   .admin-drop-bar-seg--void {
-    background: #d1d5db;
-  }
-
-  .admin-drop-progress-legend {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-    font-size: 0.76rem;
-    color: #666666;
-  }
-
-  .admin-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    background: #9ca3af;
   }
 
   .admin-legend-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
+    flex-shrink: 0;
   }
 
-  .admin-legend-dot--sold { background: #6d28d9; }
+  .admin-legend-dot--sold { background: var(--accent, #A36E93); }
   .admin-legend-dot--reserved { background: #d97706; }
   .admin-legend-dot--instock { background: #059669; }
   .admin-legend-dot--void { background: #9ca3af; }
 
-  /* --- Inventory Stat Grid --- */
-  .admin-stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 10px;
-    margin: 12px 0 14px;
+  /* --- Units Drawer & Accordion Bar --- */
+  .admin-drawer-toggle-bar {
+    margin: 12px 0;
   }
 
-  .admin-stat-card {
-    background: #faf8f5;
-    border: 1.5px solid #eae7e1;
-    border-radius: var(--radius, 6px);
-    padding: 10px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .admin-stat-label {
-    font-family: var(--font-display, 'Space Grotesk', sans-serif);
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #777777;
-  }
-
-  .admin-stat-value {
-    font-family: var(--font-display, 'Space Grotesk', sans-serif);
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: var(--ink, #111111);
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .admin-stat-value--instock { color: #166534; }
-  .admin-stat-value--reserved { color: #92400e; }
-  .admin-stat-value--sold { color: #5b21b6; }
-  .admin-stat-value--void { color: #991b1b; text-decoration: line-through; }
-
-  /* --- Studio Tools Deck (Add Stock & Adjustments) --- */
-  .admin-drop-tools {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-top: 18px;
-  }
-  @media (min-width: 820px) {
-    .admin-drop-tools {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .admin-tool-box {
-    background: #faf8f5;
-    border: 1.5px solid #eae7e1;
-    border-radius: var(--radius, 6px);
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .admin-tool-box--primary {
-    background: #ffffff;
-    border-color: #dcd9d4;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-  }
-
-  .admin-tool-box-header {
+  .admin-drawer-toggle-btn {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .admin-tool-box-header h4 {
+    gap: 10px;
+    background: #ffffff;
+    border: 1.5px solid #dcd9d4;
+    border-radius: var(--radius, 6px);
+    padding: 10px 16px;
     font-family: var(--font-display, 'Space Grotesk', sans-serif);
-    font-size: 0.86rem;
+    font-size: 0.88rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 0;
     color: var(--ink, #111111);
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
 
-  .admin-tool-box-desc {
-    font-size: 0.78rem;
+  .admin-drawer-toggle-btn:hover {
+    background: #faf8f5;
+    border-color: var(--ink, #111111);
+  }
+
+  .admin-drawer-toggle-icon {
+    color: var(--accent, #A36E93);
+    font-size: 0.95rem;
+  }
+
+  .admin-drawer-toggle-arrow {
+    font-size: 0.85rem;
     color: #666666;
-    margin: 0 0 12px;
-    line-height: 1.35;
   }
 
-  .admin-tool-box-action {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .admin-tool-actions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .admin-tool-action-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .admin-tool-action-row--subtle {
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px dashed #e5e2db;
-  }
-
-  /* --- Units & Passports Drawer --- */
   .admin-units-drawer {
-    margin-top: 14px;
+    margin-top: 10px;
+    margin-bottom: 16px;
     border: 1.5px solid #eae7e1;
     border-radius: var(--radius, 6px);
     background: #ffffff;
-    padding: 14px 16px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
   }
 
   .admin-units-toolbar {
@@ -1383,7 +1536,9 @@ import Layout from "../../layouts/Layout.astro";
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #e8e5df;
   }
 
   .admin-units-filter-group {
@@ -1393,11 +1548,72 @@ import Layout from "../../layouts/Layout.astro";
     flex-wrap: wrap;
   }
 
+  .admin-units-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .admin-edition-cell-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   .admin-edition-pill {
     font-family: var(--font-display, 'Space Grotesk', sans-serif);
     font-weight: 700;
-    font-size: 0.88rem;
+    font-size: 0.92rem;
     color: var(--ink, #111111);
+    background: #f6f4f0;
+    border: 1px solid #e4e0d8;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .admin-unit-edit-icon {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    color: #888888;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .admin-unit-edit-icon:hover {
+    color: var(--ink, #111111);
+    background: #f0ede6;
+  }
+
+  .admin-serial-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .admin-copy-icon-btn {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    color: #888888;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+
+  .admin-copy-icon-btn:hover {
+    color: var(--ink, #111111);
+    background: #f0ede6;
+  }
+
+  .admin-copy-icon-btn.is-copied {
+    color: #166534;
   }
 
   .admin-pill--small {
@@ -1408,13 +1624,14 @@ import Layout from "../../layouts/Layout.astro";
   .admin-search-input--small {
     padding: 6px 12px;
     font-size: 0.82rem;
-    max-width: 240px;
+    max-width: 200px;
   }
 
   /* --- Status Chips & Badges --- */
   .admin-status-chip {
     display: inline-flex;
     align-items: center;
+    gap: 5px;
     padding: 3px 9px;
     border-radius: 999px;
     font-family: var(--font-display, 'Space Grotesk', sans-serif);
@@ -1425,6 +1642,13 @@ import Layout from "../../layouts/Layout.astro";
     background: #f0eee9;
     color: #555555;
     border: 1px solid #dcd9d4;
+  }
+
+  .admin-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
   }
 
   .admin-status-chip[data-status="IN_STOCK"] {
@@ -1442,9 +1666,9 @@ import Layout from "../../layouts/Layout.astro";
   .admin-status-chip[data-status="SOLD"],
   .admin-status-chip[data-status="SHIPPED"],
   .admin-status-chip[data-status="DELIVERED"] {
-    background: #f5f3ff;
-    color: #5b21b6;
-    border-color: #ddd6fe;
+    background: #f7eff5;
+    color: var(--accent, #A36E93);
+    border-color: #e5cbdd;
   }
 
   .admin-status-chip[data-status="VOID"] {
@@ -1452,6 +1676,177 @@ import Layout from "../../layouts/Layout.astro";
     color: #991b1b;
     border-color: #fecaca;
     text-decoration: line-through;
+  }
+
+  /* --- Studio Tools Deck (Add Stock & Adjustments) --- */
+  .admin-drop-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 18px;
+  }
+  @media (min-width: 840px) {
+    .admin-drop-tools {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .admin-tool-box {
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .admin-tool-box--primary {
+    background: #ffffff;
+    border-color: #dcd9d4;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .admin-tool-box--primary::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent, #A36E93);
+  }
+
+  .admin-tool-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-tool-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .admin-tool-icon {
+    font-size: 0.85rem;
+    color: var(--accent, #A36E93);
+  }
+
+  .admin-tool-box-header h4 {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: var(--ink, #111111);
+  }
+
+  .admin-tool-badge {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: #f0eee8;
+    color: #555555;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid #ded9d0;
+  }
+
+  .admin-tool-box-desc {
+    font-size: 0.78rem;
+    color: #666666;
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .admin-preset-pills {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-preset-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #777777;
+    margin-right: 2px;
+  }
+
+  .admin-preset-pill {
+    background: #ffffff;
+    border: 1px solid #dcd9d4;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 0.74rem;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-weight: 700;
+    color: var(--ink, #111111);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .admin-preset-pill:hover {
+    background: #f4f2ee;
+    border-color: var(--ink, #111111);
+  }
+
+  .admin-tool-box-action {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-tool-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-tool-action-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-tool-action-row--subtle {
+    padding-top: 8px;
+    border-top: 1px dashed #e5e2db;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .admin-alert-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    flex-wrap: wrap;
+  }
+
+  .admin-alert-banner--warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+  }
+
+  .admin-alert-banner-text {
+    font-size: 0.78rem;
+    line-height: 1.3;
   }
 
   /* Typography & Table Micro-elements */
@@ -2905,6 +3300,8 @@ import Layout from "../../layouts/Layout.astro";
     units: UnitSummary[];
   };
 
+  const dropDataMap = new Map<string, DropSummary>();
+
   const UNIT_STATUS_LABELS: Record<string, string> = {
     IN_STOCK: "In stock",
     RESERVED: "Reserved",
@@ -2988,7 +3385,185 @@ import Layout from "../../layouts/Layout.astro";
     }
   }
 
-  const dropDataMap = new Map<string, DropSummary>();
+  async function printQrSheet(dropId: string) {
+    const drop = dropDataMap.get(dropId);
+    if (!drop || drop.units.length === 0) {
+      window.alert("No units to print for this drop.");
+      return;
+    }
+    const printWin = window.open("", "_blank");
+    if (!printWin) {
+      window.alert("Please allow popups to open the printable QR sheet.");
+      return;
+    }
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${esc(drop.dropCode)} · Passport QR Hangtags</title>
+          <style>
+            @page { size: auto; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; color: #111; background: #fff; }
+            .sheet-bar { background: #faf8f5; border: 1.5px solid #111; padding: 12px 18px; margin-bottom: 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+            .sheet-bar-title { font-weight: 700; font-size: 15px; }
+            .sheet-bar button { background: #111; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; font-weight: 700; font-size: 13px; cursor: pointer; }
+            .sheet-header { border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .sheet-header h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; font-family: monospace; }
+            .sheet-header p { margin: 2px 0 0; font-size: 13px; color: #555; }
+            .qr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+            .qr-card { border: 1.5px dashed #ccc; padding: 10px 8px; border-radius: 6px; text-align: center; page-break-inside: avoid; }
+            .qr-card canvas { width: 100% !important; max-width: 140px !important; height: auto !important; display: block; margin: 0 auto 6px; }
+            .qr-card .edition { font-size: 12px; font-weight: 800; font-family: monospace; letter-spacing: 0.04em; }
+            .qr-card .serial { font-size: 10px; font-family: monospace; color: #444; word-break: break-all; margin-top: 3px; }
+            .qr-card .brand { font-size: 8px; letter-spacing: 0.12em; color: #888; margin-top: 4px; text-transform: uppercase; }
+            @media print {
+              .sheet-bar { display: none !important; }
+              .qr-card { border-color: #ddd; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="sheet-bar">
+            <div class="sheet-bar-title">Unstitch Atelier Hangtag Sheet: ${esc(drop.dropCode)} (${drop.units.length} units)</div>
+            <button onclick="window.print()">Print Tags 🖨️</button>
+          </div>
+          <div class="sheet-header">
+            <div>
+              <h1>UNSTITCH · ${esc(drop.dropCode)}</h1>
+              <p>${esc(drop.product.name)} (SKU: ${esc(drop.product.sku || drop.dropCode)})</p>
+            </div>
+            <p>Total Run: ${drop.units.length} numbered units</p>
+          </div>
+          <div class="qr-grid" id="grid">
+            <p id="loading-txt">Rendering ${drop.units.length} passport QR codes…</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+
+    try {
+      const mod = await loadQrCodeModule();
+      const toCanvas = mod.toCanvas || mod.default?.toCanvas;
+      const grid = printWin.document.getElementById("grid");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      for (const u of drop.units) {
+        const card = printWin.document.createElement("div");
+        card.className = "qr-card";
+        const canvas = printWin.document.createElement("canvas");
+        const url = `${window.location.origin}/passport/${encodeURIComponent(u.serial)}`;
+        await toCanvas(canvas, url, { width: 300, margin: 1 });
+        card.appendChild(canvas);
+
+        const editionEl = printWin.document.createElement("div");
+        editionEl.className = "edition";
+        editionEl.textContent = `EDITION #${u.editionNumber}`;
+        card.appendChild(editionEl);
+
+        const serialEl = printWin.document.createElement("div");
+        serialEl.className = "serial";
+        serialEl.textContent = u.serial;
+        card.appendChild(serialEl);
+
+        const brandEl = printWin.document.createElement("div");
+        brandEl.className = "brand";
+        brandEl.textContent = "Digital Certificate";
+        card.appendChild(brandEl);
+
+        grid.appendChild(card);
+      }
+    } catch {
+      const grid = printWin.document.getElementById("grid");
+      if (grid) grid.innerHTML = "<p>Couldn't generate QR tags.</p>";
+    }
+  }
+
+  function bindDropUnitButtons(scope: HTMLElement, fallbackDropId?: string) {
+    scope.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
+      btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
+    });
+
+    scope.querySelectorAll<HTMLButtonElement>("[data-copy-serial]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const serial = btn.dataset.copySerial || "";
+        try {
+          await navigator.clipboard.writeText(serial);
+          btn.classList.add("is-copied");
+          btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+          setTimeout(() => {
+            btn.classList.remove("is-copied");
+            btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+          }, 1500);
+        } catch {
+          window.prompt("Copy serial:", serial);
+        }
+      });
+    });
+
+    scope.querySelectorAll<HTMLButtonElement>("[data-edit-unit-btn]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const unitId = btn.dataset.editUnitBtn as string;
+        const editDropId = (btn.dataset.dropId || fallbackDropId) as string;
+        const row = btn.closest("tr") as HTMLElement;
+        const editionCell = row.querySelector("[data-edition-cell]") as HTMLElement;
+        const actionsCell = row.querySelector(".admin-unit-actions") as HTMLElement;
+        const currentEdition = editionCell.textContent?.trim().replace(/^#/, "") || "1";
+
+        editionCell.innerHTML = `<input type="number" min="1" max="999" step="1" value="${esc(currentEdition)}" class="admin-unit-edit-input" data-edit-input />`;
+        actionsCell.innerHTML = `
+          <button type="button" class="btn-primary btn-primary--small" data-edit-save>Save</button>
+          <button type="button" class="btn-ghost btn-ghost--small" data-edit-cancel>Cancel</button>
+          <span class="admin__hint" data-edit-status hidden></span>
+        `;
+
+        const input = editionCell.querySelector<HTMLInputElement>("[data-edit-input]") as HTMLInputElement;
+        input.focus();
+        input.select();
+
+        actionsCell.querySelector("[data-edit-cancel]")?.addEventListener("click", () => renderDropUnitsTable(editDropId));
+
+        actionsCell.querySelector("[data-edit-save]")?.addEventListener("click", async () => {
+          const statusEl = actionsCell.querySelector("[data-edit-status]") as HTMLElement;
+          const newEdition = parseInt(input.value, 10);
+          if (!Number.isFinite(newEdition) || newEdition < 1) {
+            return showHint(statusEl, "Enter a valid edition number.", false);
+          }
+          if (String(newEdition) === currentEdition) {
+            return renderDropUnitsTable(editDropId);
+          }
+          if (
+            !window.confirm(
+              `Change this unit's edition to ${newEdition}? Its serial and QR slug update to match — only do this if the old serial was never printed on a physical tag.`,
+            )
+          ) {
+            return;
+          }
+          const saveBtn = actionsCell.querySelector("[data-edit-save]") as HTMLButtonElement;
+          saveBtn.disabled = true;
+          try {
+            const res = await api("/api/admin/inventory", {
+              method: "POST",
+              body: JSON.stringify({ dropId: editDropId, action: "edit-unit", unitId, editionNumber: newEdition }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              loadInventory(true);
+            } else {
+              showHint(statusEl, data.error || "Couldn't update that unit.", false);
+              saveBtn.disabled = false;
+            }
+          } catch {
+            showHint(statusEl, "Network error.", false);
+            saveBtn.disabled = false;
+          }
+        });
+      });
+    });
+  }
 
   function renderDropUnitsTable(dropId: string) {
     const drop = dropDataMap.get(dropId);
@@ -3024,21 +3599,41 @@ import Layout from "../../layouts/Layout.astro";
       .map(
         (u) => `
           <tr>
-            <td><span class="admin-edition-pill">#${u.editionNumber}</span></td>
-            <td><code class="admin-code">${esc(u.serial)}</code></td>
-            <td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td>
-            <td style="text-align: right; white-space: nowrap;">
-              <a href="/passport?serial=${encodeURIComponent(u.serial)}" target="_blank" class="btn-ghost btn-ghost--small" title="Inspect Digital Passport" style="margin-right: 6px;">Passport ↗</a>
-              <button type="button" class="btn-ghost btn-ghost--small" data-qr-btn="${esc(u.serial)}" title="Download Passport QR tag">Download QR ↓</button>
+            <td>
+              <div class="admin-edition-cell-wrap">
+                <span class="admin-edition-pill" data-edition-cell>#${u.editionNumber}</span>
+                <button type="button" class="admin-unit-edit-icon" data-edit-unit-btn="${u.id}" data-drop-id="${dropId}" title="Edit edition number">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </button>
+              </div>
+            </td>
+            <td>
+              <div class="admin-serial-cell">
+                <code class="admin-code">${esc(u.serial)}</code>
+                <button type="button" class="admin-copy-icon-btn" data-copy-serial="${esc(u.serial)}" title="Copy serial to clipboard">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </td>
+            <td>
+              <span class="admin-status-chip" data-status="${u.status}">
+                <span class="admin-status-dot"></span>
+                ${UNIT_STATUS_LABELS[u.status] || u.status}
+              </span>
+            </td>
+            <td class="admin-unit-actions" style="text-align: right; white-space: nowrap;">
+              <a href="/passport?serial=${encodeURIComponent(u.serial)}" target="_blank" class="btn-ghost btn-ghost--small" title="Inspect Digital Certificate of Authenticity" style="margin-right: 4px;">Passport ↗</a>
+              <button type="button" class="btn-ghost btn-ghost--small" data-qr-btn="${esc(u.serial)}" title="Download Passport QR tag PNG with stamped serial">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download QR
+              </button>
             </td>
           </tr>
         `,
       )
       .join("");
 
-    tbody.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
-      btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
-    });
+    bindDropUnitButtons(tbody, dropId);
   }
 
   let inventoryLoaded = false;
@@ -3076,27 +3671,55 @@ import Layout from "../../layouts/Layout.astro";
         totalAllSold += (d.statusCounts.SOLD || 0) + (d.statusCounts.SHIPPED || 0) + (d.statusCounts.DELIVERED || 0);
       });
 
+      const overallSellThroughPct = totalAllUnits > 0 ? Math.round((totalAllSold / totalAllUnits) * 100) : 0;
+
       const globalHeroHtml = `
-        <div class="admin-stat-grid" style="margin-top: 0; margin-bottom: 24px;">
-          <div class="admin-stat-card">
-            <span class="admin-stat-label">Active Drops</span>
-            <span class="admin-stat-value">${drops.length}</span>
+        <div class="admin-inventory-hero">
+          <div class="admin-inventory-hero-header">
+            <div class="admin-inventory-hero-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Atelier Production &amp; Stock Summary
+            </div>
+            <div class="admin-inventory-sellthrough-badge">
+              <span>✦</span>
+              <span><strong>${overallSellThroughPct}%</strong> Cumulative Sell-Through</span>
+            </div>
           </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-label">Total Units Made</span>
-            <span class="admin-stat-value">${totalAllUnits}</span>
-          </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-label">In Stock Ready to Ship</span>
-            <span class="admin-stat-value admin-stat-value--instock">${totalAllInStock}</span>
-          </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-label">Active Bag Reservations</span>
-            <span class="admin-stat-value admin-stat-value--reserved">${totalAllReserved}</span>
-          </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-label">Total Units Sold</span>
-            <span class="admin-stat-value admin-stat-value--sold">${totalAllSold}</span>
+          <div class="admin-stat-grid">
+            <div class="admin-stat-card">
+              <span class="admin-stat-label">Active Drops</span>
+              <span class="admin-stat-value">${drops.length}</span>
+              <span class="admin-stat-sub">Live or upcoming runs</span>
+            </div>
+            <div class="admin-stat-card">
+              <span class="admin-stat-label">Total Units Minted</span>
+              <span class="admin-stat-value">${totalAllUnits}</span>
+              <span class="admin-stat-sub">Consecutive editions</span>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-card-top">
+                <span class="admin-legend-dot admin-legend-dot--instock"></span>
+                <span class="admin-stat-label">Ready in Studio</span>
+              </div>
+              <span class="admin-stat-value admin-stat-value--instock">${totalAllInStock}</span>
+              <span class="admin-stat-sub">Available to purchase</span>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-card-top">
+                <span class="admin-legend-dot admin-legend-dot--reserved"></span>
+                <span class="admin-stat-label">In Bag (Holds)</span>
+              </div>
+              <span class="admin-stat-value admin-stat-value--reserved">${totalAllReserved}</span>
+              <span class="admin-stat-sub">Held in checkouts</span>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-card-top">
+                <span class="admin-legend-dot admin-legend-dot--sold"></span>
+                <span class="admin-stat-label">Sold &amp; Dispatched</span>
+              </div>
+              <span class="admin-stat-value admin-stat-value--sold">${totalAllSold}</span>
+              <span class="admin-stat-sub">In customer hands</span>
+            </div>
           </div>
         </div>
       `;
@@ -3114,200 +3737,250 @@ import Layout from "../../layouts/Layout.astro";
           const pctReserved = Math.min(100 - pctSold, Math.round((reservedCount / totalBase) * 100));
           const pctInStock = Math.min(100 - pctSold - pctReserved, Math.round((inStockCount / totalBase) * 100));
           const pctVoid = Math.max(0, 100 - pctSold - pctReserved - pctInStock);
-          const pctAllocated = pctSold + pctReserved;
 
           const dropStatus = drop.status || "UPCOMING";
           const dropStatusChip = dropStatus === "LIVE"
-            ? `<span class="admin-status-chip" data-status="IN_STOCK">LIVE</span>`
+            ? `<span class="admin-status-chip" data-status="IN_STOCK"><span class="admin-status-dot admin-status-dot--live"></span>LIVE DROP</span>`
             : dropStatus === "UPCOMING"
-              ? `<span class="admin-status-chip" data-status="RESERVED">UPCOMING</span>`
+              ? `<span class="admin-status-chip" data-status="RESERVED"><span class="admin-status-dot"></span>UPCOMING</span>`
               : dropStatus === "SOLD_OUT"
-                ? `<span class="admin-status-chip" data-status="SOLD">SOLD OUT</span>`
-                : `<span class="admin-status-chip" data-status="VOID">${esc(dropStatus)}</span>`;
+                ? `<span class="admin-status-chip" data-status="SOLD"><span class="admin-status-dot"></span>SOLD OUT</span>`
+                : `<span class="admin-status-chip" data-status="VOID"><span class="admin-status-dot"></span>${esc(dropStatus)}</span>`;
 
           return `
         <div class="admin-card" data-drop-card="${drop.id}">
           <div class="admin-drop-card">
-            <div class="admin-drop-photo-wrap">
-              <img class="admin-drop-photo" src="${esc(drop.product.imageUrl || "")}" alt="${esc(drop.product.name)}" onerror="this.style.visibility='hidden'" />
+            <div class="admin-drop-photo-wrap ${drop.product.imageUrl ? "" : "has-fallback"}">
+              ${drop.product.imageUrl ? `<img class="admin-drop-photo" src="${esc(drop.product.imageUrl)}" alt="${esc(drop.product.name)}" onerror="this.parentElement.classList.add('has-fallback')" />` : ""}
+              <div class="admin-drop-photo-fallback">
+                <span class="admin-drop-fallback-monogram">${esc(drop.dropCode)}</span>
+                <span class="admin-drop-fallback-brand">UNSTITCH</span>
+              </div>
             </div>
+
             <div class="admin-drop-body">
               <div class="admin-drop-header">
-                <div class="admin-drop-header-info">
-                  <span class="admin-drop-badge">${esc(drop.dropCode)}</span>
-                  <a href="/shop/${encodeURIComponent(drop.product.slug)}" target="_blank" class="admin-drop-product-link" title="Open storefront product page">
-                    ${esc(drop.product.name)} ↗
-                  </a>
+                <div class="admin-drop-header-left">
+                  <div class="admin-drop-badge-row">
+                    <span class="admin-drop-code-badge">${esc(drop.dropCode)}</span>
+                    <span class="admin-drop-sku-badge"><span>SKU:</span> <code>${esc(drop.product.sku || drop.dropCode)}</code></span>
+                    ${dropStatusChip}
+                  </div>
+                  <div class="admin-drop-title-row">
+                    <h3 class="admin-drop-title">${esc(drop.product.name)}</h3>
+                    <a href="/shop/${encodeURIComponent(drop.product.slug)}" target="_blank" class="admin-drop-store-link" title="Open storefront product page">
+                      View Store ↗
+                    </a>
+                  </div>
                 </div>
-                <div class="admin-drop-header-status">
-                  ${dropStatusChip}
+
+                <div class="admin-drop-header-quick">
+                  <div class="admin-drop-run-tag">
+                    <span class="admin-drop-run-label">EDITION RUN</span>
+                    <span class="admin-drop-run-val">${drop.totalUnits} Units</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="admin-drop-meta-tags">
-                <span class="admin-drop-meta-item"><strong>SKU:</strong> <code class="admin-code">${esc(drop.product.sku || drop.dropCode)}</code></span>
-                <span class="admin-drop-meta-item">·</span>
-                <span class="admin-drop-meta-item"><strong>Total Run:</strong> ${drop.totalUnits} units</span>
-                ${drop.releaseAt ? `
-                  <span class="admin-drop-meta-item">·</span>
-                  <span class="admin-drop-meta-item"><strong>Released:</strong> ${new Date(drop.releaseAt).toLocaleDateString()}</span>
-                ` : ""}
-              </div>
+              <div class="admin-drop-allocation">
+                <div class="admin-drop-allocation-header">
+                  <div class="admin-drop-allocation-title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                    Stock Allocation &amp; Run Velocity
+                  </div>
+                  <div class="admin-drop-allocation-stats">
+                    <span class="admin-drop-velocity-pill"><strong>${pctSold}%</strong> Claimed</span>
+                    <span>${soldCount} sold · ${reservedCount} in bag · ${inStockCount} available</span>
+                  </div>
+                </div>
 
-              <div class="admin-stat-grid">
-                <div class="admin-stat-card">
-                  <span class="admin-stat-label">In Stock</span>
-                  <span class="admin-stat-value admin-stat-value--instock">${inStockCount}</span>
-                </div>
-                <div class="admin-stat-card">
-                  <span class="admin-stat-label">Reserved (Cart)</span>
-                  <span class="admin-stat-value admin-stat-value--reserved">${reservedCount}</span>
-                </div>
-                <div class="admin-stat-card">
-                  <span class="admin-stat-label">Units Sold</span>
-                  <span class="admin-stat-value admin-stat-value--sold">${soldCount}</span>
-                </div>
-                ${
-                  voidCount > 0
-                    ? `<div class="admin-stat-card">
-                         <span class="admin-stat-label">Voided</span>
-                         <span class="admin-stat-value admin-stat-value--void">${voidCount}</span>
-                       </div>`
-                    : ""
-                }
-                <div class="admin-stat-card">
-                  <span class="admin-stat-label">Total Edition</span>
-                  <span class="admin-stat-value">${drop.totalUnits}</span>
-                </div>
-              </div>
-
-              <div class="admin-drop-progress">
-                <div class="admin-drop-progress-header">
-                  <span class="admin-drop-progress-title">Allocation &amp; Velocity</span>
-                  <span class="admin-drop-progress-stat">
-                    <strong>${pctAllocated}% Allocated</strong> (${soldCount} sold, ${reservedCount} in cart, ${inStockCount} available)
-                  </span>
-                </div>
-                <div class="admin-drop-bar" aria-label="Drop allocation breakdown">
+                <div class="admin-drop-bar" role="progressbar" aria-valuenow="${pctSold}" aria-valuemin="0" aria-valuemax="100">
                   ${pctSold > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--sold" style="width: ${pctSold}%" title="${soldCount} Sold (${pctSold}%)"></div>` : ""}
                   ${pctReserved > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--reserved" style="width: ${pctReserved}%" title="${reservedCount} Reserved (${pctReserved}%)"></div>` : ""}
                   ${pctInStock > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--instock" style="width: ${pctInStock}%" title="${inStockCount} In Stock (${pctInStock}%)"></div>` : ""}
                   ${voidCount > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--void" style="width: ${pctVoid}%" title="${voidCount} Voided (${pctVoid}%)"></div>` : ""}
                 </div>
-                <div class="admin-drop-progress-legend">
-                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--sold"></span> Sold (${soldCount})</span>
-                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--reserved"></span> Reserved (${reservedCount})</span>
-                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--instock"></span> Available (${inStockCount})</span>
-                  ${voidCount > 0 ? `<span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--void"></span> Voided (${voidCount})</span>` : ""}
+
+                <div class="admin-stat-grid admin-stat-grid--drop">
+                  <div class="admin-stat-card">
+                    <div class="admin-stat-card-top">
+                      <span class="admin-legend-dot admin-legend-dot--instock"></span>
+                      <span class="admin-stat-label">In Stock</span>
+                    </div>
+                    <span class="admin-stat-value admin-stat-value--instock">${inStockCount}</span>
+                    <span class="admin-stat-sub">${pctInStock}% ready</span>
+                  </div>
+                  <div class="admin-stat-card">
+                    <div class="admin-stat-card-top">
+                      <span class="admin-legend-dot admin-legend-dot--reserved"></span>
+                      <span class="admin-stat-label">In Bag (Hold)</span>
+                    </div>
+                    <span class="admin-stat-value admin-stat-value--reserved">${reservedCount}</span>
+                    <span class="admin-stat-sub">${pctReserved}% in checkout</span>
+                  </div>
+                  <div class="admin-stat-card">
+                    <div class="admin-stat-card-top">
+                      <span class="admin-legend-dot admin-legend-dot--sold"></span>
+                      <span class="admin-stat-label">Sold &amp; Shipped</span>
+                    </div>
+                    <span class="admin-stat-value admin-stat-value--sold">${soldCount}</span>
+                    <span class="admin-stat-sub">${pctSold}% sold out</span>
+                  </div>
+                  ${
+                    voidCount > 0
+                      ? `<div class="admin-stat-card">
+                           <div class="admin-stat-card-top">
+                             <span class="admin-legend-dot admin-legend-dot--void"></span>
+                             <span class="admin-stat-label">Voided</span>
+                           </div>
+                           <span class="admin-stat-value admin-stat-value--void">${voidCount}</span>
+                           <span class="admin-stat-sub">Withdrawn</span>
+                         </div>`
+                      : ""
+                  }
+                  <div class="admin-stat-card">
+                    <div class="admin-stat-card-top">
+                      <span class="admin-legend-dot admin-legend-dot--void" style="opacity: 0;"></span>
+                      <span class="admin-stat-label">Total Run</span>
+                    </div>
+                    <span class="admin-stat-value">${drop.totalUnits}</span>
+                    <span class="admin-stat-sub">Consecutive units</span>
+                  </div>
                 </div>
               </div>
 
-              <button type="button" class="btn-ghost btn-ghost--small" data-units-toggle="${drop.id}" style="margin-top: 6px; margin-bottom: 12px;">
-                Show all ${drop.units.length} unit(s) &amp; passport serials ▾
-              </button>
+              <!-- Units & Passports Drawer Toggle -->
+              <div class="admin-drawer-toggle-bar">
+                <button type="button" class="admin-drawer-toggle-btn" data-units-toggle="${drop.id}">
+                  <span style="display:flex; align-items:center; gap:8px;">
+                    <span class="admin-drawer-toggle-icon">✦</span>
+                    <span>View all ${drop.units.length} numbered editions &amp; passport serials</span>
+                  </span>
+                  <span class="admin-drawer-toggle-arrow">▾</span>
+                </button>
+              </div>
 
               <div class="admin-units-drawer" data-units-drawer="${drop.id}" hidden>
                 <div class="admin-units-toolbar">
                   <div class="admin-units-filter-group" data-unit-filters="${drop.id}">
                     <button type="button" class="admin-pill admin-pill--small is-active" data-unit-pill="${drop.id}" data-filter="all">All (${drop.units.length})</button>
                     <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="IN_STOCK">In Stock (${inStockCount})</button>
-                    <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="RESERVED">Reserved (${reservedCount})</button>
+                    <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="RESERVED">In Bag (${reservedCount})</button>
                     <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="SOLD">Sold (${soldCount})</button>
                     ${voidCount > 0 ? `<button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="VOID">Voided (${voidCount})</button>` : ""}
                   </div>
-                  <input type="search" placeholder="Search serial or #…" class="admin-search-input admin-search-input--small" data-unit-search="${drop.id}" />
+                  <div class="admin-units-toolbar-actions">
+                    <input type="search" placeholder="Filter serial or #…" class="admin-search-input admin-search-input--small" data-unit-search="${drop.id}" />
+                    <button type="button" class="btn-ghost btn-ghost--small" data-copy-serials-btn="${drop.id}" title="Copy all unit serial numbers">Copy Serials</button>
+                    <button type="button" class="btn-ghost btn-ghost--small" data-print-sheet-btn="${drop.id}" title="Open printable passport QR tag sheet">Print QR Sheet 🖨️</button>
+                  </div>
                 </div>
 
                 <table class="admin-table" data-units-table="${drop.id}">
                   <thead>
                     <tr>
-                      <th style="width: 100px;">Edition</th>
+                      <th style="width: 120px;">Edition</th>
                       <th>Serial Key</th>
                       <th>Status</th>
                       <th style="text-align: right;">Digital Passport &amp; Tag</th>
                     </tr>
                   </thead>
                   <tbody data-units-tbody="${drop.id}">
-                    ${
-                      drop.units
-                        .map(
-                          (u) => `
-                      <tr>
-                        <td><span class="admin-edition-pill">#${u.editionNumber}</span></td>
-                        <td><code class="admin-code">${esc(u.serial)}</code></td>
-                        <td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td>
-                        <td style="text-align: right; white-space: nowrap;">
-                          <a href="/passport?serial=${encodeURIComponent(u.serial)}" target="_blank" class="btn-ghost btn-ghost--small" title="Inspect Digital Passport" style="margin-right: 6px;">Passport ↗</a>
-                          <button type="button" class="btn-ghost btn-ghost--small" data-qr-btn="${esc(u.serial)}" title="Download Passport QR tag">Download QR ↓</button>
-                        </td>
-                      </tr>
-                    `,
-                        )
-                        .join("") || '<tr><td colspan="4" class="admin-table__empty">No units yet</td></tr>'
-                    }
+                    <!-- Rendered by renderDropUnitsTable -->
                   </tbody>
                 </table>
               </div>
 
+              <!-- Studio Workbench Deck -->
               <div class="admin-drop-tools">
+                <!-- Produce / Restock -->
                 <div class="admin-tool-box admin-tool-box--primary">
-                  <div>
+                  <div class="admin-tool-box-top">
                     <div class="admin-tool-box-header">
-                      <h4>Produce &amp; Add Stock</h4>
-                      <span class="admin-muted" style="font-size:0.75rem;">Next edition: #${drop.units.length + 1}</span>
+                      <div class="admin-tool-title-wrap">
+                        <span class="admin-tool-icon">✦</span>
+                        <h4>Kit Production &amp; Minting</h4>
+                      </div>
+                      <span class="admin-tool-badge">Next: #${drop.units.length + 1}</span>
                     </div>
-                    <p class="admin-tool-box-desc">Creates new numbered kit blanks for this drop, stamping consecutive edition numbers and unique digital passport hashes.</p>
+                    <p class="admin-tool-box-desc">
+                      Mints consecutive numbered kit editions for this drop, stamping cryptographic passport links ready for checkout and hangtag printing.
+                    </p>
                   </div>
-                  <div class="admin-tool-box-action">
-                    <div class="admin-field-row" style="margin: 0; flex: 1;">
-                      <label for="restock-qty-${drop.id}">Quantity</label>
-                      <input id="restock-qty-${drop.id}" type="number" min="1" max="500" step="1" value="10" />
+
+                  <div class="admin-tool-box-bottom">
+                    <div class="admin-preset-pills">
+                      <span class="admin-preset-label">Quick add:</span>
+                      <button type="button" class="admin-preset-pill" data-preset-qty="5" data-target="restock-qty-${drop.id}">+5</button>
+                      <button type="button" class="admin-preset-pill" data-preset-qty="10" data-target="restock-qty-${drop.id}">+10</button>
+                      <button type="button" class="admin-preset-pill" data-preset-qty="25" data-target="restock-qty-${drop.id}">+25</button>
+                      <button type="button" class="admin-preset-pill" data-preset-qty="50" data-target="restock-qty-${drop.id}">+50</button>
                     </div>
-                    <button class="btn-primary" data-restock-btn="${drop.id}" title="Adds new numbered units to this drop">+ Add units</button>
+                    <div class="admin-tool-box-action">
+                      <div class="admin-field-row" style="margin: 0; flex: 1;">
+                        <label for="restock-qty-${drop.id}">Quantity</label>
+                        <input id="restock-qty-${drop.id}" type="number" min="1" max="500" step="1" value="10" />
+                      </div>
+                      <button class="btn-primary" data-restock-btn="${drop.id}" title="Adds new numbered units to this drop">+ Mint Units</button>
+                    </div>
                   </div>
                 </div>
 
+                <!-- Stock Adjustments & Reservation Release -->
                 <div class="admin-tool-box">
-                  <div>
+                  <div class="admin-tool-box-top">
                     <div class="admin-tool-box-header">
-                      <h4>Stock Adjustments &amp; Safety</h4>
+                      <div class="admin-tool-title-wrap">
+                        <span class="admin-tool-icon">⚙</span>
+                        <h4>Safety Adjustments &amp; Locks</h4>
+                      </div>
                     </div>
-                    <p class="admin-tool-box-desc">Safely adjust in-stock counts or recover abandoned reservation locks without touching sold or registered units.</p>
+                    <p class="admin-tool-box-desc">
+                      Safely adjust in-stock counts or release abandoned checkout reservation locks without touching sold or registered units.
+                    </p>
                   </div>
+
                   <div class="admin-tool-actions-list">
                     <div class="admin-tool-action-row">
                       <div class="admin-field-row" style="margin: 0;">
-                        <label for="void-qty-${drop.id}">Withdraw</label>
+                        <label for="void-qty-${drop.id}">Withdraw unsold</label>
                         <input id="void-qty-${drop.id}" type="number" min="1" max="${Math.max(1, inStockCount)}" step="1" value="1" ${inStockCount === 0 ? "disabled" : ""} style="width: 68px;" />
-                        <button class="btn-ghost btn-ghost--small" data-void-btn="${drop.id}" title="Undoes an accidental restock: only removes in-stock units, never a reserved or sold one" ${inStockCount === 0 ? "disabled" : ""}>− Remove units</button>
+                        <button class="btn-ghost btn-ghost--small" data-void-btn="${drop.id}" title="Safely reduces in-stock units only" ${inStockCount === 0 ? "disabled" : ""}>− Withdraw</button>
                       </div>
                       ${
                         voidCount > 0
                           ? `<div class="admin-field-row" style="margin: 0;">
                                <label for="undo-void-qty-${drop.id}">Reactivate</label>
                                <input id="undo-void-qty-${drop.id}" type="number" min="1" max="${voidCount}" step="1" value="1" style="width: 68px;" />
-                               <button class="btn-ghost btn-ghost--small" data-undo-void-btn="${drop.id}" title="Brings the most recently voided units back to In stock">↺ Undo void</button>
+                               <button class="btn-ghost btn-ghost--small" data-undo-void-btn="${drop.id}" title="Brings voided units back to In stock">↺ Undo void</button>
                              </div>`
                           : ""
                       }
                     </div>
 
-                    <div class="admin-tool-action-row admin-tool-action-row--subtle">
-                      ${
-                        reservedCount > 0
-                          ? `<button class="btn-ghost btn-ghost--small" data-release-stale-btn="${drop.id}" title="Hands back units stuck in Reserved from an abandoned checkout whose expiry webhook never arrived (older than 30 minutes)">
-                               ↺ Release stuck reservations (${reservedCount})
-                             </button>`
-                          : ""
-                      }
-                      ${
-                        voidCount > 0
-                          ? `<button class="btn-danger btn-danger--small" data-delete-void-btn="${drop.id}" title="Permanently deletes every voided unit on this drop from the database">
+                    ${
+                      reservedCount > 0
+                        ? `<div class="admin-alert-banner admin-alert-banner--warning">
+                             <div class="admin-alert-banner-text">
+                               <strong>${reservedCount} unit(s) held</strong> in checkout session(s).
+                             </div>
+                             <button class="btn-ghost btn-ghost--small" data-release-stale-btn="${drop.id}" title="Hands back units stuck in Reserved from an abandoned checkout (>30 minutes)">
+                               ↺ Release stuck (${reservedCount})
+                             </button>
+                           </div>`
+                        : ""
+                    }
+
+                    ${
+                      voidCount > 0
+                        ? `<div class="admin-tool-action-row admin-tool-action-row--subtle">
+                             <span class="admin-muted" style="font-size: 0.78rem;">${voidCount} unit(s) marked voided.</span>
+                             <button class="btn-danger btn-danger--small" data-delete-void-btn="${drop.id}" title="Permanently deletes every voided unit on this drop from the database">
                                ⨯ Purge ${voidCount} voided unit(s)
-                             </button>`
-                          : ""
-                      }
-                    </div>
+                             </button>
+                           </div>`
+                        : ""
+                    }
                   </div>
                 </div>
               </div>
@@ -3320,7 +3993,10 @@ import Layout from "../../layouts/Layout.astro";
 
       contentEl.innerHTML = globalHeroHtml + dropsHtml;
 
-      // Bind units toggle
+      // Populate units table for every drop initially
+      drops.forEach((d) => renderDropUnitsTable(d.id));
+
+      // Bind units drawer toggles
       contentEl.querySelectorAll<HTMLButtonElement>("[data-units-toggle]").forEach((toggle) => {
         toggle.addEventListener("click", () => {
           const dropId = toggle.dataset.unitsToggle as string;
@@ -3329,7 +4005,14 @@ import Layout from "../../layouts/Layout.astro";
           drawer.hidden = !drawer.hidden;
           const drop = dropDataMap.get(dropId);
           const count = drop ? drop.units.length : 0;
-          toggle.textContent = drawer.hidden ? `Show all ${count} unit(s) & passport serials ▾` : `Hide unit list & passport serials ▴`;
+          const textSpan = toggle.querySelector("span:not(.admin-drawer-toggle-icon)") as HTMLElement;
+          const arrowSpan = toggle.querySelector(".admin-drawer-toggle-arrow") as HTMLElement;
+          if (textSpan) {
+            textSpan.textContent = drawer.hidden ? `View all ${count} numbered editions & passport serials` : `Hide unit list & passport serials`;
+          }
+          if (arrowSpan) {
+            arrowSpan.textContent = drawer.hidden ? "▾" : "▴";
+          }
         });
       });
 
@@ -3352,9 +4035,48 @@ import Layout from "../../layouts/Layout.astro";
         });
       });
 
-      contentEl.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
-        btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
+      // Bind quick preset pills (+5, +10, +25, +50)
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-preset-qty]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const qty = btn.dataset.presetQty;
+          const targetId = btn.dataset.target;
+          if (!targetId || !qty) return;
+          const input = document.getElementById(targetId) as HTMLInputElement;
+          if (input) {
+            input.value = qty;
+          }
+        });
       });
+
+      // Bind copy serials button for the drop
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-copy-serials-btn]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const dropId = btn.dataset.copySerialsBtn as string;
+          const drop = dropDataMap.get(dropId);
+          if (!drop || drop.units.length === 0) return;
+          const text = drop.units.map((u) => `${u.editionNumber}\t${u.serial}\t${u.status}`).join("\n");
+          try {
+            await navigator.clipboard.writeText(text);
+            const prev = btn.textContent;
+            btn.textContent = "Copied! ✓";
+            setTimeout(() => {
+              btn.textContent = prev;
+            }, 1800);
+          } catch {
+            window.prompt("Copy serials list:", text);
+          }
+        });
+      });
+
+      // Bind print QR sheet button
+      contentEl.querySelectorAll<HTMLButtonElement>("[data-print-sheet-btn]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const dropId = btn.dataset.printSheetBtn as string;
+          printQrSheet(dropId);
+        });
+      });
+
+      bindDropUnitButtons(contentEl);
 
       contentEl.querySelectorAll<HTMLButtonElement>("[data-restock-btn]").forEach((btn) => {
         btn.addEventListener("click", async () => {

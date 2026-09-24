@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { Image } from "astro:assets";
-import SlowBloomImage from "../assets/SlowBloom.png";
+import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
 ---
 
 <Layout
@@ -125,7 +125,7 @@ import SlowBloomImage from "../assets/SlowBloom.png";
            image" box below is a plain grey placeholder sitting in front
            of it, matching the original wireframe. -->
       <div class="latest-drop-live__backdrop" aria-hidden="true">
-        <img src="/assets/floral-pattern.svg" alt="" />
+        <img src="/assets/floral-pattern.png" alt="" />
       </div>
 
       <div class="latest-drop-live__content">
@@ -134,8 +134,8 @@ import SlowBloomImage from "../assets/SlowBloom.png";
         <p class="latest-drop-live__subtitle">Curated Edition Drop: 2026 RESET x Zero Waste Festival</p>
 
         <div class="latest-drop-live__media">
-          <div class="ph" style="aspect-ratio: 1 / 1;">
-            <Image src={SlowBloomImage} width={433} height={577} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          <div class="ph latest-drop-live__media-inner">
+            <Image src={SlowBloomHeroImage} width={1200} height={849} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-auto" onerror="this.style.display='none'" />
           </div>
         </div>
 
@@ -195,7 +195,7 @@ import SlowBloomImage from "../assets/SlowBloom.png";
 
     <!-- ============ EMAIL SIGNUP ============ -->
     <section class="wrap signup">
-      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <p class="signup__text">Every tile saves something out of the landfill. Join the movement.</p>
       <form class="signup__form" data-subscribe-form="home-signup">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="signup-name">Your name</label>
@@ -286,14 +286,17 @@ import SlowBloomImage from "../assets/SlowBloom.png";
      opacity, not part of the hero-image placeholder itself. */
   .latest-drop-live__backdrop {
     position: absolute;
-    inset: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 0;
     pointer-events: none;
   }
   .latest-drop-live__backdrop img {
+    display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     opacity: 0.35;
   }
   .latest-drop-live__content {
@@ -307,8 +310,24 @@ import SlowBloomImage from "../assets/SlowBloom.png";
   .latest-drop-live__subtitle { color: #555; margin-bottom: 28px; }
   .latest-drop-live__media {
     width: 100%;
-    max-width: 480px;
-    margin: 0 auto;
+  }
+  /* Real photo now — drop the grey placeholder mat/border, run it edge
+     to edge with the .wrap section (no side gap), and crop vertically
+     to a fixed height so it doesn't reflow the section as the viewport
+     changes. */
+  .latest-drop-live__media-inner {
+    background: none;
+    border: none;
+    min-height: 0;
+    display: block;
+    height: 600px;
+    overflow: hidden;
+  }
+  .latest-drop-live__media-inner img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .latest-drop-live__actions {
     display: flex;
@@ -378,6 +397,10 @@ import SlowBloomImage from "../assets/SlowBloom.png";
     .hero__media { order: -1; }
     .explore-tile { border-right: none; border-bottom: 1px solid var(--ink); padding-bottom: 24px; }
     .explore-tile:last-child { border-bottom: none; }
+    /* 1200px reads as an absurdly tall sliver on a phone-width crop —
+       keep the same "fixed height, no reflow" idea but scaled down for
+       this breakpoint. */
+    .latest-drop-live__media-inner { height: 320px; }
   }
 </style>
 

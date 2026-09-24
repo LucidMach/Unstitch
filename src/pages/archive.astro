@@ -1,99 +1,59 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Image, getImage } from "astro:assets";
+import RescueFileBannerImage from "../assets/rescue-file-banner.JPG";
+import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
+import ScrapFabricOffcutsImage from "../assets/scrap-fabric-offcuts.jpg";
+import BucketBagFeltImage from "../assets/bucket-bag-felt.jpg";
 
-// Fields below split out from a single "composition" string into
-// fibreContent + materialType (per your feedback), plus divertedFrom and
-// colour: all placeholder values pending your real material specs.
+// Square-cropped, web-optimized versions for the material-file tiles/modal
+// (which are all 1:1 frames) — fit:cover is the default here since both
+// width and height are given, so this crops to a clean square at build
+// time rather than relying on CSS alone. bucket-bag-felt.jpg is already
+// tightly cropped to the bag itself (see git history / chat) so it
+// actually fills the frame instead of sitting in a sea of studio white.
+const scrapFabricOptimized = await getImage({ src: ScrapFabricOffcutsImage, width: 900, height: 900, format: "webp" });
+const slowBloomSquareOptimized = await getImage({ src: SlowBloomHeroImage, width: 900, height: 900, format: "webp" });
+const bucketBagOptimized = await getImage({ src: BucketBagFeltImage, width: 900, height: 900, format: "webp" });
+
+// Real material files — replaces the placeholder set. Only two files
+// exist for now; fibreContent + materialType are combined into one
+// `material` field per feedback. rawImg/productImg point at generic
+// placeholders until real photos of these two materials are ready.
 const materials = [
   {
     id: "001",
-    name: "Deadstock Technical Canvas",
-    origin: "Brunswick Upholstery Workshop, Naarm",
-    divertedFrom: "Commercial furniture fabrication offcuts",
-    fibreContent: "100% Cotton",
-    materialType: "Heavyweight canvas, waxed finish",
-    colour: "Natural / waxed tan",
-    rescuedKg: "140 kg",
-    collection: "Modular Tote 01",
-    description: "Surplus cutting floor end-of-rolls diverted from commercial furniture fabrication. Precision laser-cut into modular interlocking tessellations.",
-    rawImg: "/Square.png",
-    productImg: "/Tote.png"
+    name: "Bedroom Shelved Felt",
+    origin: "Kind design friends at university (who want to get rid of it)",
+    divertedFrom: "Sitting in bedrooms",
+    material: "3mm industrial polyester felt",
+    colour: "Black, grey, beige",
+    rescuedKg: "300 g",
+    collection: "Bag Kit exhibition",
+    description: "3mm industrial polyester felt rescued from design-school friends' bedrooms, where it had been sitting unused after past projects.",
+    // Single image only — the finished bucket bag from this felt (same
+    // black/grey/beige colourway), no separate raw-material shot for now.
+    rawImg: null,
+    productImg: bucketBagOptimized.src
   },
   {
     id: "002",
-    name: "Architectural Felt Remnants",
-    origin: "Acoustic Panel Manufacturer, Dandenong",
-    divertedFrom: "Soundproofing wall panel installation surplus",
-    fibreContent: "100% Recycled PET",
-    materialType: "Non-woven felt",
-    colour: "Charcoal grey",
-    rescuedKg: "220 kg",
-    collection: "Modular Bucket Bag",
-    description: "High-density offcuts from soundproofing wall installation panels. Inherently semi-rigid, water-repellent, and structural without synthetic backings.",
-    rawImg: "/SquareFlip.png",
-    productImg: "/BucketFlip.png"
-  },
-  {
-    id: "003",
-    name: "Post-Industrial Denim Offcuts",
-    origin: "Workwear Manufacturer, Richmond",
-    divertedFrom: "Small-batch workwear production edge rolls",
-    fibreContent: "98% Cotton, 2% Elastane",
-    materialType: "Washed indigo denim",
-    colour: "Indigo",
-    rescuedKg: "185 kg",
-    collection: "Origami Clutch",
-    description: "Edge rolls and pattern scraps from small-batch indigo workwear production, washed and reinforced using interlocking mechanical joints.",
-    rawImg: "/Hero.png",
-    productImg: "/Clutch.png"
-  },
-  {
-    id: "004",
-    name: "High-Tenacity Cordura Scraps",
-    origin: "Outdoor Equipment Studio, Collingwood",
-    divertedFrom: "Expedition backpack cutting-room surplus",
-    fibreContent: "100% Nylon",
-    materialType: "500D Cordura, ripstop weave",
-    colour: "Slate grey / sand",
-    rescuedKg: "95 kg",
-    collection: "Crescent Moon Crossbody",
-    description: "Ultra-durable technical surplus from expedition backpack runs. Extreme abrasion resistance in an ultra-light modular framework.",
-    rawImg: "/Square.png",
-    productImg: "/Moon.png"
-  },
-  {
-    id: "005",
-    name: "Organic Heavy Twill",
-    origin: "Apparel Sampling Studio, Fitzroy",
-    divertedFrom: "Apparel sampling bolt-end surplus",
-    fibreContent: "100% Organic Cotton",
-    materialType: "Heavy twill, deadstock bolt ends",
-    colour: "Unbleached natural",
-    rescuedKg: "110 kg",
-    collection: "DIY Tile Builder Kit",
-    description: "Deadstock bolt ends in unbleached natural cotton, die-cut into user-assembled modules for tactile makers and workshops.",
-    rawImg: "/SquareFlip.png",
-    productImg: "/Semi.png"
-  },
-  {
-    id: "006",
-    name: "Technical Ripstop Canvas",
-    origin: "Sailmaker & Canvas Works, Williamstown",
-    divertedFrom: "Sailmaking and canvas-works remnants",
-    fibreContent: "100% Polyester",
-    materialType: "Ripstop grid canvas, marine-grade",
-    colour: "Marine navy",
-    rescuedKg: "160 kg",
-    collection: "Weekender Tote",
-    description: "Heavy marine-grade ripstop remnants with high tensile tear strength and weather protection.",
-    rawImg: "/Hero.png",
-    productImg: "/BigTote.png"
+    name: "Surplus Upholstery",
+    origin: "Kind design friends at university",
+    divertedFrom: "Sitting in bedrooms",
+    material: "Polyester upholstery fabric",
+    colour: "Navy, charcoal",
+    rescuedKg: "1 kg",
+    collection: "Slow Bloom",
+    description: "Polyester upholstery fabric surplus from design-school friends, diverted before it went to landfill and cut into Slow Bloom kits.",
+    rawImg: scrapFabricOptimized.src,
+    productImg: slowBloomSquareOptimized.src
   }
 ];
 ---
 
 <Layout
-  title="Material Archive | Unstitch: Rescued Surplus Textiles"
+  title="Material Archive | Unstitch — Rescued Surplus Textiles"
   description="Explore our rescued textile archive: marine ripstop, wool felt, and industrial offcuts given new life as interlocking modular pieces."
   keywords="textile archive, deadstock fabric rescue, surplus textiles melbourne, upcycled materials, circular textile catalog"
   image="/Hero.png"
@@ -102,8 +62,8 @@ const materials = [
   <main>
     <!-- ============ ARCHIVE HERO ============ -->
     <section class="media-hero archive-hero">
-      <div class="ph media-hero__media" style="background: #f7f4f6;">
-        <img src="/Hero.png" alt="Rescue Material Archive" class="w-full h-full object-contain p-8" onerror="this.style.display='none'" />
+      <div class="media-hero__media">
+        <Image src={RescueFileBannerImage} width={1600} height={1200} format="webp" alt="Behind the scenes photographing a rescued material bundle" class="w-full h-full object-cover" />
       </div>
       <div class="media-hero__content">
         <div class="wrap archive-hero__label-wrap">
@@ -129,14 +89,16 @@ const materials = [
       {materials.map((m) => (
         <button class="material-tile group" data-open-material={m.id} aria-haspopup="dialog">
           <div class="material-tile__img material-tile__img--collection">
-            <img src={m.productImg} alt={m.name} class="w-full h-full object-contain p-4" />
+            <img src={m.productImg} alt={m.name} class="w-full h-full object-cover" />
           </div>
-          <div class="material-tile__img material-tile__img--raw">
-            <img src={m.rawImg} alt={`Raw ${m.name}`} class="w-full h-full object-contain p-4 opacity-80" />
-            <div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-mono text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              View File #{m.id}
+          {m.rawImg && (
+            <div class="material-tile__img material-tile__img--raw">
+              <img src={m.rawImg} alt={`Raw ${m.name}`} class="w-full h-full object-cover opacity-80" />
+              <div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-mono text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                View File #{m.id}
+              </div>
             </div>
-          </div>
+          )}
           <div class="material-tile__meta">
             <span class="material-tile__num">File #{m.id}</span>
             <span class="material-tile__name">{m.name}</span>
@@ -147,7 +109,7 @@ const materials = [
 
     <!-- ============ EMAIL SIGNUP ============ -->
     <section class="wrap signup">
-      <p class="signup__text">Every tile keeps something out of the landfill. Join the movement.</p>
+      <p class="signup__text">Every tile saves something out of the landfill. Join the movement.</p>
       <form class="signup__form" data-subscribe-form="archive-signup">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="signup-name">Your name</label>
@@ -170,18 +132,20 @@ const materials = [
       <div class="material-scroll" data-material-scroll>
         {materials.map((m) => (
           <div class="material-modal" data-material={m.id} hidden>
-            <!-- Images on top, full width: matches the earlier static-HTML
+            <!-- Images on top, full width — matches the earlier static-HTML
                  archive layout, instead of the side-by-side gallery/info
                  split this modal used before. -->
-            <div class="material-modal__images">
+            <div class={`material-modal__images${m.rawImg ? "" : " material-modal__images--single"}`}>
               <div class="modal-img-card">
                 <img src={m.productImg} alt="Transformed Collection" />
                 <p class="modal-img-caption">Transformed Collection: {m.collection}</p>
               </div>
-              <div class="modal-img-card">
-                <img src={m.rawImg} alt="Raw Material Offcut" />
-                <p class="modal-img-caption">Rescued Source: {m.origin}</p>
-              </div>
+              {m.rawImg && (
+                <div class="modal-img-card">
+                  <img src={m.rawImg} alt="Raw Material Offcut" />
+                  <p class="modal-img-caption">Rescued Source: {m.origin}</p>
+                </div>
+              )}
             </div>
 
             <div class="material-modal__info">
@@ -202,12 +166,8 @@ const materials = [
                     <span class="spec-val">{m.divertedFrom}</span>
                   </div>
                   <div class="spec-row">
-                    <span class="spec-label">Fibre Content</span>
-                    <span class="spec-val">{m.fibreContent}</span>
-                  </div>
-                  <div class="spec-row">
-                    <span class="spec-label">Material Type</span>
-                    <span class="spec-val">{m.materialType}</span>
+                    <span class="spec-label">Material</span>
+                    <span class="spec-val">{m.material}</span>
                   </div>
                   <div class="spec-row">
                     <span class="spec-label">Rescue Volume</span>
@@ -231,14 +191,14 @@ const materials = [
 
               <div class="material-modal__actions">
                 <a href={`/contact?category=surplus-material-enquiry`} class="btn btn-filled">Partner on Similar Material</a>
-                <!-- "Explore in 3D" hidden for now: nothing is wired up at
+                <!-- "Explore in 3D" hidden for now — nothing is wired up at
                      /playground for a specific material yet. Re-add once
                      there's a real 3D view to link to. -->
               </div>
             </div>
 
             <!-- Invisible full-card nav zones, cursor-driven on mouse/trackpad
-                 (no floating arrow buttons), hidden on touch, where swipe
+                 (no floating arrow buttons) — hidden on touch, where swipe
                  takes over instead. See the script below and the
                  hover-media-query rules in the style block. -->
             <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file"></button>
@@ -387,7 +347,7 @@ const materials = [
     justify-content: center;
   }
 
-  /* Single centred column, image row on top, info below: matches the
+  /* Single centred column, image row on top, info below — matches the
      original static-HTML archive's layout, kept to a comfortable reading
      width instead of stretching edge-to-edge. */
   .material-modal {
@@ -399,7 +359,7 @@ const materials = [
     gap: 28px;
   }
 
-  /* Images sit right next to each other: one thin shared border around
+  /* Images sit right next to each other — one thin shared border around
      the pair with a single divider between them, no per-image card
      border/radius and much less internal padding than before. */
   .material-modal__images {
@@ -407,6 +367,16 @@ const materials = [
     grid-template-columns: 1fr 1fr;
     border: 1px solid var(--ink);
     width: 100%;
+  }
+  .material-modal__images--single {
+    grid-template-columns: 1fr;
+  }
+  /* A single full-width image at aspect-ratio 1/1 would render roughly
+     twice as tall as the two-column layout (where each square column is
+     only half the modal's width). Force the same 2:1 width:height so a
+     lone image matches the paired layout's height exactly. */
+  .material-modal__images--single .modal-img-card img {
+    aspect-ratio: 2/1;
   }
   .modal-img-card {
     position: relative;
@@ -418,13 +388,13 @@ const materials = [
   }
   .modal-img-card img {
     aspect-ratio: 1/1;
-    object-fit: contain;
+    object-fit: cover;
     width: 100%;
     display: block;
   }
   /* Caption sits on top of the image itself (a dark scrim behind the
      text for legibility) instead of adding its own strip below the
-     photo: the card no longer extends past the image to fit it. */
+     photo — the card no longer extends past the image to fit it. */
   .modal-img-caption {
     position: absolute;
     left: 0;
@@ -441,7 +411,7 @@ const materials = [
   /* ---- in-card hover navigation ----
      Invisible zones spanning the whole card (images + info), the same
      approach as the earlier static-HTML archive: no floating arrow
-     buttons: the cursor itself becomes a left/right arrow while
+     buttons — the cursor itself becomes a left/right arrow while
      hovering that third of the card. CTA links inside .material-modal__info
      sit above these zones (z-index) so they stay clickable. */
   .material-modal__nav-zone {
@@ -466,7 +436,7 @@ const materials = [
     pointer-events: none;
   }
 
-  /* Mouse/trackpad: no visible icon; the cursor becomes a left/right
+  /* Mouse/trackpad: no visible icon — the cursor becomes a left/right
      arrow while hovering that zone, reverting to default past the
      first/last file. */
   @media (hover: hover) and (pointer: fine) {
@@ -479,7 +449,7 @@ const materials = [
   }
 
   /* Touch can't hover or show a custom cursor, so the zones are invisible
-     (and inert) there; mobile navigates by swipe instead, see the script. */
+     (and inert) there — mobile navigates by swipe instead, see the script. */
   @media (hover: none) {
     .material-modal__nav-zone { display: none; }
   }
@@ -490,7 +460,7 @@ const materials = [
   }
 
   /* Specs (left) read like a garment/composition tag: label above value,
-     left-aligned, no bold, instead of the old label-left/value-right,
+     left-aligned, no bold — instead of the old label-left/value-right,
      bolded-value row. Story (right) gets the wider column. */
   .material-modal__body {
     display: grid;
@@ -559,7 +529,7 @@ const materials = [
     .material-shell { inset: 12px; }
     .material-scroll { padding: 24px 20px; }
     .material-modal__body { grid-template-columns: 1fr; gap: 24px; }
-    /* Overlay caption text gets cramped on narrow images: dropped on
+    /* Overlay caption text gets cramped on narrow images — dropped on
        mobile rather than shrunk further. The same info (origin,
        collection) is already in the spec list below. */
     .modal-img-caption { display: none; }
@@ -642,7 +612,7 @@ const materials = [
         if (e.key === 'ArrowRight') step(1);
       });
 
-      // Touch swipe: the invisible cursor-nav zones only make sense with
+      // Touch swipe — the invisible cursor-nav zones only make sense with
       // a mouse/trackpad (see the hover-media-query CSS), so touch devices
       // navigate by swiping the card left/right instead.
       if (materialScroll) {
