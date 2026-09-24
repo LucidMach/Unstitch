@@ -35,7 +35,7 @@ import Layout from "../../layouts/Layout.astro";
         <p class="passport-confirm__eyebrow">Hmm</p>
         <h1 class="passport-confirm__title">We couldn't confirm that</h1>
         <p class="passport-confirm__body" id="confirm-error-message">
-          It may have expired, or already been used. If you didn't request this, no action is needed — nothing was
+          It may have expired, or already been used. If you didn't request this, no action is needed; nothing was
           changed.
         </p>
         <a href="/passport" class="btn btn-outline">Back to Passports</a>
@@ -105,7 +105,7 @@ import Layout from "../../layouts/Layout.astro";
       })
       .catch(() => {
         (document.getElementById("confirm-error-message") as HTMLElement).textContent =
-          "Something went wrong confirming this transfer — please try the link again.";
+          "Something went wrong confirming this transfer. Please try the link again.";
         showOnly(errorPanel);
       });
   }

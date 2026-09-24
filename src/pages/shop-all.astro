@@ -49,8 +49,8 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
 ---
 
 <Layout
-  title="All Drops — Unstitch"
-  description="Every Unstitch drop, live and past — modular textile kits cut from rescued deadstock materials, Melbourne-made."
+  title="All Drops | Unstitch"
+  description="Every Unstitch drop, live and past: modular textile kits cut from rescued deadstock materials, Melbourne-made."
   keywords="unstitch all drops, unstitch collections, modular textile kits"
 >
   <main>
@@ -72,7 +72,7 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
             <div class="shop-all-hero__inner">
               <p class="section__eyebrow">{heroDrop.status === "live" ? "Live Now" : "Featured"}</p>
               <h2 class="shop-all-hero__title">{heroDrop.name}</h2>
-              <p class="shop-all-hero__body">{heroDrop.eyebrow} — {formatPrice(heroDrop.priceCents)}.</p>
+              <p class="shop-all-hero__body">{heroDrop.eyebrow}, {formatPrice(heroDrop.priceCents)}.</p>
               <a href={heroDrop.slug} class="btn btn-outline">
                 {heroDrop.status === "live" ? `Shop ${heroDrop.name}` : "View this drop"}
               </a>
@@ -85,7 +85,7 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
     <section class="wrap section shop-all__intro">
       <p class="section__eyebrow">Shop</p>
       <h1 class="section__title">All Drops</h1>
-      <p class="shop-all__subtitle">Each drop is a small, numbered batch — once it's gone, it's gone. New drops appear here as soon as they're announced.</p>
+      <p class="shop-all__subtitle">Each drop is a small, numbered batch: once it's gone, it's gone. New drops appear here as soon as they're announced.</p>
     </section>
 
     <section class="wrap section">
@@ -117,7 +117,7 @@ const heroDrop = drops.find((d) => d.status === "live") ?? drops[0] ?? null;
         ))}
       </div>
 
-      <p class="shop-all__empty-note">More drops will be added here as they're announced — <a href="/shop-countdown">check what's next</a>.</p>
+      <p class="shop-all__empty-note">More drops will be added here as they're announced. <a href="/shop-countdown">Check what's next</a>.</p>
     </section>
 
     <div class="stitch" aria-hidden="true"></div>

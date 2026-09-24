@@ -168,8 +168,14 @@ export default async function handler(req, res) {
     console.log('[Dev/Mock] Subscriber recorded:', { email, name, source });
   }
 
-  // 4. Send Raffle Confirmation Email (if source is zwf-raffle-draw)
-  if (source === 'zwf-raffle-draw' && process.env.RESEND_API_KEY) {
+  // 4. Send Raffle Confirmation Email (for Zero Waste Festival / event raffle entries)
+  const isRaffleSource =
+    source === 'zwf-raffle-draw' ||
+    source === 'zero-waste-festival-2026' ||
+    source === 'event-raffle' ||
+    (typeof source === 'string' && (source.includes('raffle') || source.includes('zwf') || source.includes('zero-waste')));
+
+  if (isRaffleSource && process.env.RESEND_API_KEY) {
     try {
       const { Resend } = await import('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);

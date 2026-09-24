@@ -23,7 +23,7 @@ const ComingSoon: React.FC = () => {
         
         <p className="text-lg text-zinc-600 leading-relaxed">
           The full collection is under construction, but you can already start creating.
-          Experience our <span className="font-semibold text-zinc-800">Playground</span> — a virtual simulation of making cloth items out of modular tessellation <span className="italic text-pink-500 font-medium">"tex-tiles"</span>.
+          Experience our <span className="font-semibold text-zinc-800">Playground</span>, a virtual simulation of making cloth items out of modular tessellation <span className="italic text-pink-500 font-medium">"tex-tiles"</span>.
         </p>
 
         <motion.div

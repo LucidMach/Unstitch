@@ -3,7 +3,7 @@ import Layout from "../layouts/Layout.astro";
 
 // Fields below split out from a single "composition" string into
 // fibreContent + materialType (per your feedback), plus divertedFrom and
-// colour — all placeholder values pending your real material specs.
+// colour: all placeholder values pending your real material specs.
 const materials = [
   {
     id: "001",
@@ -93,7 +93,7 @@ const materials = [
 ---
 
 <Layout
-  title="Material Archive | Unstitch — Rescued Surplus Textiles"
+  title="Material Archive | Unstitch: Rescued Surplus Textiles"
   description="Explore our rescued textile archive: marine ripstop, wool felt, and industrial offcuts given new life as interlocking modular pieces."
   keywords="textile archive, deadstock fabric rescue, surplus textiles melbourne, upcycled materials, circular textile catalog"
   image="/Hero.png"
@@ -170,7 +170,7 @@ const materials = [
       <div class="material-scroll" data-material-scroll>
         {materials.map((m) => (
           <div class="material-modal" data-material={m.id} hidden>
-            <!-- Images on top, full width — matches the earlier static-HTML
+            <!-- Images on top, full width: matches the earlier static-HTML
                  archive layout, instead of the side-by-side gallery/info
                  split this modal used before. -->
             <div class="material-modal__images">
@@ -231,14 +231,14 @@ const materials = [
 
               <div class="material-modal__actions">
                 <a href={`/contact?category=surplus-material-enquiry`} class="btn btn-filled">Partner on Similar Material</a>
-                <!-- "Explore in 3D" hidden for now — nothing is wired up at
+                <!-- "Explore in 3D" hidden for now: nothing is wired up at
                      /playground for a specific material yet. Re-add once
                      there's a real 3D view to link to. -->
               </div>
             </div>
 
             <!-- Invisible full-card nav zones, cursor-driven on mouse/trackpad
-                 (no floating arrow buttons) — hidden on touch, where swipe
+                 (no floating arrow buttons), hidden on touch, where swipe
                  takes over instead. See the script below and the
                  hover-media-query rules in the style block. -->
             <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file"></button>
@@ -387,7 +387,7 @@ const materials = [
     justify-content: center;
   }
 
-  /* Single centred column, image row on top, info below — matches the
+  /* Single centred column, image row on top, info below: matches the
      original static-HTML archive's layout, kept to a comfortable reading
      width instead of stretching edge-to-edge. */
   .material-modal {
@@ -399,7 +399,7 @@ const materials = [
     gap: 28px;
   }
 
-  /* Images sit right next to each other — one thin shared border around
+  /* Images sit right next to each other: one thin shared border around
      the pair with a single divider between them, no per-image card
      border/radius and much less internal padding than before. */
   .material-modal__images {
@@ -424,7 +424,7 @@ const materials = [
   }
   /* Caption sits on top of the image itself (a dark scrim behind the
      text for legibility) instead of adding its own strip below the
-     photo — the card no longer extends past the image to fit it. */
+     photo: the card no longer extends past the image to fit it. */
   .modal-img-caption {
     position: absolute;
     left: 0;
@@ -441,7 +441,7 @@ const materials = [
   /* ---- in-card hover navigation ----
      Invisible zones spanning the whole card (images + info), the same
      approach as the earlier static-HTML archive: no floating arrow
-     buttons — the cursor itself becomes a left/right arrow while
+     buttons: the cursor itself becomes a left/right arrow while
      hovering that third of the card. CTA links inside .material-modal__info
      sit above these zones (z-index) so they stay clickable. */
   .material-modal__nav-zone {
@@ -466,7 +466,7 @@ const materials = [
     pointer-events: none;
   }
 
-  /* Mouse/trackpad: no visible icon — the cursor becomes a left/right
+  /* Mouse/trackpad: no visible icon; the cursor becomes a left/right
      arrow while hovering that zone, reverting to default past the
      first/last file. */
   @media (hover: hover) and (pointer: fine) {
@@ -479,7 +479,7 @@ const materials = [
   }
 
   /* Touch can't hover or show a custom cursor, so the zones are invisible
-     (and inert) there — mobile navigates by swipe instead, see the script. */
+     (and inert) there; mobile navigates by swipe instead, see the script. */
   @media (hover: none) {
     .material-modal__nav-zone { display: none; }
   }
@@ -490,7 +490,7 @@ const materials = [
   }
 
   /* Specs (left) read like a garment/composition tag: label above value,
-     left-aligned, no bold — instead of the old label-left/value-right,
+     left-aligned, no bold, instead of the old label-left/value-right,
      bolded-value row. Story (right) gets the wider column. */
   .material-modal__body {
     display: grid;
@@ -559,7 +559,7 @@ const materials = [
     .material-shell { inset: 12px; }
     .material-scroll { padding: 24px 20px; }
     .material-modal__body { grid-template-columns: 1fr; gap: 24px; }
-    /* Overlay caption text gets cramped on narrow images — dropped on
+    /* Overlay caption text gets cramped on narrow images: dropped on
        mobile rather than shrunk further. The same info (origin,
        collection) is already in the spec list below. */
     .modal-img-caption { display: none; }
@@ -642,7 +642,7 @@ const materials = [
         if (e.key === 'ArrowRight') step(1);
       });
 
-      // Touch swipe — the invisible cursor-nav zones only make sense with
+      // Touch swipe: the invisible cursor-nav zones only make sense with
       // a mouse/trackpad (see the hover-media-query CSS), so touch devices
       // navigate by swiping the card left/right instead.
       if (materialScroll) {

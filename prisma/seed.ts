@@ -146,8 +146,8 @@ async function main() {
       sku: "UX-SLOWBLOOM",
       slug: "slow-bloom",
       name: "Slow Bloom",
-      tagline: "Placeholder tagline", // TODO: replace with real copy
-      description: "Placeholder description", // TODO: replace with real copy
+      tagline: "2026 RESET x Zero Waste Festival",
+      description: "Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made.",
       materialArchiveCardId: archive.id,
       colourPalette: ["#E8D8C3", "#B7C4A4", "#D98E73"],
       tileMaterial: "Curtain and polar fleece",
@@ -280,6 +280,25 @@ async function main() {
     ],
   });
 
+  await prisma.event.create({
+    data: {
+      slug: "zero-waste-festival-2026",
+      title: "Zero Waste Festival",
+      location: "Fed Square, Melbourne",
+      description: "Drop-in tile building all day 12pm–6pm, no experience needed. Visit to try out our newly launched virtual playground and go in the raffle draw to win 1 Unstitch's latest drop.",
+      color: "#6D771A",
+      startsAt: new Date("2026-09-12T12:00:00+10:00"),
+      endsAt: new Date("2026-09-12T18:00:00+10:00"),
+      ctaLabel: "Learn More",
+      ctaUrl: "https://zerowastevictoria.org.au/zero-waste-festival/activities/",
+      raffleEnabled: true,
+      raffleButtonLabel: "Enter the Raffle Draw",
+      raffleClosesAt: new Date("2026-10-31T23:59:59+10:00"),
+      raffleDrawCopy: "Thanks for stopping by the Unstitch stand and exploring our modular textile system today! Your entry into our Zero Waste Festival Raffle Draw is confirmed.",
+    },
+  });
+
+  console.log(`Seeded event "Zero Waste Festival"`);
   console.log(`Seeded product "${product.name}" (${product.sku})`);
   console.log(
     `Cost calculator: ${costCalc.effectiveTilesPerSheet} tiles/sheet, total cost $${(

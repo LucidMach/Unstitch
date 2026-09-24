@@ -48,7 +48,7 @@ export default async function handler(req, res) {
             madeYear: data.madeYear !== undefined ? data.madeYear : undefined,
           },
           include: {
-            product: { select: { id: true, name: true, slug: true, imageUrl: true } },
+            product: { select: { id: true, name: true, slug: true, imageUrl: true, tagline: true } },
           },
         });
         return sendJson(res, 200, { drop: updated });
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           releaseAt: data.releaseAt || null,
         },
         include: {
-          product: { select: { id: true, name: true, slug: true, imageUrl: true } },
+          product: { select: { id: true, name: true, slug: true, imageUrl: true, tagline: true } },
         },
       });
 
@@ -108,12 +108,12 @@ export default async function handler(req, res) {
       prisma.drop.findMany({
         orderBy: [{ releaseAt: 'desc' }, { createdAt: 'desc' }],
         include: {
-          product: { select: { id: true, name: true, slug: true, imageUrl: true } },
+          product: { select: { id: true, name: true, slug: true, imageUrl: true, tagline: true } },
           _count: { select: { units: true, reservations: true } },
         },
       }),
       prisma.product.findMany({
-        select: { id: true, name: true, slug: true, imageUrl: true },
+        select: { id: true, name: true, slug: true, imageUrl: true, tagline: true },
         orderBy: { name: 'asc' },
       }),
     ]);

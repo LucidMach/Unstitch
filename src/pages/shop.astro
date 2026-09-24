@@ -50,8 +50,8 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
 ---
 
 <Layout
-  title="Slow Bloom — Modular Textile Kit | Unstitch"
-  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
+  title="Slow Bloom: Modular Textile Kit | Unstitch"
+  description="Slow Bloom, the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
   keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
   image={slowBloomOptimized.src}
   imageAlt="Slow Bloom modular textile kit"
@@ -152,7 +152,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
           </button>
           <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
           <p class="product-hero__sold-out" data-sold-out-note hidden>
-            This drop is sold out — check back for the next one, or
+            This drop is sold out. Check back for the next one, or
             <a href="/contact">get in touch</a> to be notified.
           </p>
         </div>
@@ -172,8 +172,8 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
         <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
       </div>
       <div class="reviews__empty">
-        <p>No reviews yet — Slow Bloom just dropped.</p>
-        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified — Slow Bloom #7 of 10").</p>
+        <p>No reviews yet, Slow Bloom just dropped.</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified: Slow Bloom #7 of 10").</p>
       </div>
     </section>
 
@@ -737,7 +737,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomImage, width: 433, hei
         // delivered order before it can be saved, and that API is built
         // with checkout. Say so plainly rather than faking a success.
         reviewFeedback.textContent =
-          "Thanks — review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
+          "Thanks! Review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
         reviewFeedback.className = "review-form__feedback is-info";
       });
     }

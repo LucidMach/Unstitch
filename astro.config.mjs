@@ -62,49 +62,56 @@ function apiDevMiddleware() {
 
           if (req.url && req.url.startsWith('/api/')) {
             const endpoint = req.url.split('?')[0];
+            const load = async (/** @type {string} */ file) => (await import(`${file}?t=${Date.now()}`)).default;
             /** @type {any} */
             let handler;
 
             if (endpoint === '/api/subscribe') {
-              handler = (await import('./src/server/subscribe.js')).default;
+              handler = await load('./src/server/subscribe.js');
             } else if (endpoint === '/api/contact') {
-              handler = (await import('./src/server/contact.js')).default;
+              handler = await load('./src/server/contact.js');
             } else if (endpoint === '/api/share') {
-              handler = (await import('./src/server/share.js')).default;
+              handler = await load('./src/server/share.js');
             } else if (endpoint === '/api/create-checkout-session') {
-              handler = (await import('./api/create-checkout-session.js')).default;
+              handler = await load('./api/create-checkout-session.js');
             } else if (endpoint === '/api/stripe-webhook') {
-              handler = (await import('./api/stripe-webhook.js')).default;
+              handler = await load('./api/stripe-webhook.js');
             } else if (endpoint === '/api/order-status') {
-              handler = (await import('./src/server/order-status.js')).default;
+              handler = await load('./src/server/order-status.js');
             } else if (endpoint === '/api/admin/login') {
-              handler = (await import('./src/server/admin/login.js')).default;
+              handler = await load('./src/server/admin/login.js');
             } else if (endpoint === '/api/admin/logout') {
-              handler = (await import('./src/server/admin/logout.js')).default;
+              handler = await load('./src/server/admin/logout.js');
             } else if (endpoint === '/api/admin/orders') {
-              handler = (await import('./src/server/admin/orders.js')).default;
+              handler = await load('./src/server/admin/orders.js');
             } else if (endpoint === '/api/admin/product') {
-              handler = (await import('./src/server/admin/product.js')).default;
+              handler = await load('./src/server/admin/product.js');
             } else if (endpoint === '/api/admin/send-email') {
-              handler = (await import('./src/server/admin/send-email.js')).default;
+              handler = await load('./src/server/admin/send-email.js');
             } else if (endpoint === '/api/admin/inventory') {
-              handler = (await import('./src/server/admin/inventory.js')).default;
+              handler = await load('./src/server/admin/inventory.js');
             } else if (endpoint === '/api/admin/manual-order') {
-              handler = (await import('./src/server/admin/manual-order.js')).default;
+              handler = await load('./src/server/admin/manual-order.js');
             } else if (endpoint === '/api/admin/customers') {
-              handler = (await import('./src/server/admin/customers.js')).default;
+              handler = await load('./src/server/admin/customers.js');
+            } else if (endpoint === '/api/admin/events') {
+              handler = await load('./src/server/admin/events.js');
+            } else if (endpoint === '/api/admin/batch-drops') {
+              handler = await load('./src/server/admin/batch-drops.js');
+            } else if (endpoint === '/api/events') {
+              handler = await load('./src/server/events.js');
             } else if (endpoint === '/api/order-lookup-request') {
-              handler = (await import('./src/server/order-lookup-request.js')).default;
+              handler = await load('./src/server/order-lookup-request.js');
             } else if (endpoint === '/api/order-lookup') {
-              handler = (await import('./src/server/order-lookup.js')).default;
+              handler = await load('./src/server/order-lookup.js');
             } else if (endpoint === '/api/delivery-quote') {
-              handler = (await import('./src/server/delivery-quote.js')).default;
+              handler = await load('./src/server/delivery-quote.js');
             } else if (endpoint === '/api/drop-status') {
-              handler = (await import('./src/server/drop-status.js')).default;
+              handler = await load('./src/server/drop-status.js');
             } else if (endpoint === '/api/passport') {
-              handler = (await import('./src/server/passport.js')).default;
+              handler = await load('./src/server/passport.js');
             } else if (endpoint === '/api/passport-confirm-transfer') {
-              handler = (await import('./src/server/passport-confirm-transfer.js')).default;
+              handler = await load('./src/server/passport-confirm-transfer.js');
             }
 
             // The webhook needs the exact raw request bytes for Stripe

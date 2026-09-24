@@ -9,20 +9,57 @@ import Layout from "../../layouts/Layout.astro";
 ---
 
 <Layout
-  title="Admin login | Unstitch"
+  title="Admin Login | Unstitch: Studio Console"
   noindex
   showNavbar={false}
   showTicker={false}
   showFooter={false}
 >
   <main class="admin-login">
-    <form id="login-form" class="admin-login__card" autocomplete="off">
-      <h1>Unstitch admin</h1>
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus />
-      <button type="submit">Log in</button>
-      <p id="login-error" class="admin-login__error" hidden></p>
-    </form>
+    <div class="admin-login__container">
+      <div class="admin-login__brand">
+        <a href="/" class="admin-login__logo-link" title="Return to storefront">
+          <img src="/assets/logo-full.svg" alt="Unstitch" class="admin-login__logo" />
+        </a>
+      </div>
+
+      <form id="login-form" class="admin-login__card" autocomplete="off">
+        <div class="admin-login__card-header">
+          <span class="admin-login__badge">Studio Console</span>
+          <h1 class="admin-login__title">Admin Sign In</h1>
+          <p class="admin-login__subtitle">Enter your studio credentials to access orders, drops, and customer directories.</p>
+        </div>
+
+        <div class="stitch" aria-hidden="true"></div>
+
+        <div class="admin-login__field">
+          <label for="password">Studio Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="••••••••••••"
+            required
+            autofocus
+          />
+        </div>
+
+        <button type="submit" class="admin-login__btn">
+          <span>Sign In to Console</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+
+        <p id="login-error" class="admin-login__error" hidden></p>
+      </form>
+
+      <div class="admin-login__footer">
+        <a href="/" class="admin-login__back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Back to storefront</span>
+        </a>
+      </div>
+    </div>
   </main>
 </Layout>
 
@@ -32,52 +69,190 @@ import Layout from "../../layouts/Layout.astro";
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f5f4f1;
-    font-family: system-ui, -apple-system, sans-serif;
+    background-color: #faf9f6;
+    background-image: radial-gradient(#e5e1d8 0.75px, transparent 0.75px);
+    background-size: 24px 24px;
+    padding: 24px 16px;
+    font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
+    color: var(--ink, #111111);
   }
-  .admin-login__card {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 32px;
+
+  .admin-login__container {
     width: 100%;
-    max-width: 320px;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    gap: 20px;
   }
-  .admin-login__card h1 {
-    font-size: 1.1rem;
-    margin: 0 0 8px;
+
+  .admin-login__brand {
+    text-align: center;
   }
-  .admin-login__card label {
-    font-size: 0.85rem;
-    color: #555;
+
+  .admin-login__logo-link {
+    display: inline-block;
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
-  .admin-login__card input {
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
+
+  .admin-login__logo-link:hover {
+    transform: scale(1.03);
+    opacity: 0.9;
   }
-  .admin-login__card button {
-    margin-top: 8px;
-    padding: 10px 12px;
-    border: none;
-    border-radius: 6px;
-    background: #1a1a1a;
-    color: #fff;
+
+  .admin-login__logo {
+    height: 32px;
+    width: auto;
+  }
+
+  .admin-login__card {
+    background: #ffffff;
+    border: 1.5px solid var(--ink, #111111);
+    border-radius: var(--radius, 6px);
+    box-shadow: 4px 4px 0px var(--ink, #111111);
+    padding: 32px 28px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-sizing: border-box;
+  }
+
+  .admin-login__card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-login__badge {
+    align-self: flex-start;
+    display: inline-block;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--accent-pale, #eedfe9);
+    color: var(--accent, #A36E93);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .admin-login__title {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .admin-login__subtitle {
+    font-size: 0.84rem;
+    color: #666666;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .admin-login__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .admin-login__field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #444444;
+  }
+
+  .admin-login__field input {
+    padding: 12px 14px;
+    border: 1.5px solid #dcd9d4;
+    border-radius: var(--radius, 6px);
     font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--ink, #111111);
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .admin-login__field input:focus {
+    border-color: var(--ink, #111111);
+    box-shadow: 0 0 0 3px rgba(163, 110, 147, 0.22);
+  }
+
+  .admin-login__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    margin-top: 6px;
+    background: var(--ink, #111111);
+    color: #ffffff;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1.5px solid var(--ink, #111111);
+    border-radius: var(--radius, 6px);
     cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    box-sizing: border-box;
+    width: 100%;
   }
-  .admin-login__card button:disabled {
+
+  .admin-login__btn:hover:not(:disabled) {
+    background: var(--accent, #A36E93);
+    border-color: var(--accent, #A36E93);
+  }
+
+  .admin-login__btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .admin-login__btn:disabled {
     opacity: 0.6;
-    cursor: default;
+    cursor: not-allowed;
   }
+
   .admin-login__error {
-    color: #b3261e;
-    font-size: 0.85rem;
+    background: #fdf2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 0.84rem;
+    padding: 10px 12px;
+    border-radius: var(--radius, 6px);
     margin: 4px 0 0;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .admin-login__footer {
+    text-align: center;
+  }
+
+  .admin-login__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #666666;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .admin-login__back:hover {
+    color: var(--ink, #111111);
+    text-decoration: underline;
   }
 </style>
 
@@ -105,7 +280,7 @@ import Layout from "../../layouts/Layout.astro";
       errorEl.textContent = data.error || "Login failed.";
       errorEl.hidden = false;
     } catch {
-      errorEl.textContent = "Network error — try again.";
+      errorEl.textContent = "Network error. Try again.";
       errorEl.hidden = false;
     } finally {
       submitBtn.disabled = false;

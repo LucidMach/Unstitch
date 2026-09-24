@@ -163,7 +163,7 @@ import Layout from "../../layouts/Layout.astro";
         message.hidden = false;
         form.hidden = true;
       } catch {
-        message.textContent = "Something went wrong — please try again in a moment.";
+        message.textContent = "Something went wrong. Please try again in a moment.";
         message.hidden = false;
       } finally {
         btn.disabled = false;
@@ -199,7 +199,7 @@ import Layout from "../../layouts/Layout.astro";
           <span class="order-card__status">${o.status.replace(/_/g, " ")}</span>
           <ul class="order-card__items">
             ${o.items
-              .map((it: any) => `<li>${it.quantity} × ${it.productName} — ${money(it.lineTotalCents, o.currency)}</li>`)
+              .map((it: any) => `<li>${it.quantity} × ${it.productName}: ${money(it.lineTotalCents, o.currency)}</li>`)
               .join("")}
           </ul>
           <p class="order-card__meta">Total: ${money(o.totalCents, o.currency)} · Placed ${new Date(o.createdAt).toLocaleDateString()}</p>

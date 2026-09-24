@@ -21,33 +21,61 @@ import Layout from "../../layouts/Layout.astro";
 >
   <main class="admin">
     <header class="admin__bar">
-      <h1>Unstitch admin</h1>
-      <button id="logout-btn" class="btn-ghost">Log out</button>
+      <div class="admin__brand">
+        <a href="/" class="admin__logo-link" title="Return to Unstitch storefront">
+          <img class="admin__logo" src="/assets/logo-full.svg" alt="Unstitch" />
+        </a>
+        <div class="admin__brand-divider" aria-hidden="true"></div>
+        <span class="admin__badge">Studio Console</span>
+      </div>
+      <div class="admin__bar-actions">
+        <a href="/" class="btn-ghost btn-ghost--small admin__storefront-btn" target="_blank" rel="noopener">
+          <span>Storefront</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <button id="logout-btn" class="btn-ghost btn-ghost--small">Log out</button>
+      </div>
     </header>
 
-    <nav class="admin__tabs">
+    <div class="stitch" aria-hidden="true"></div>
+
+    <nav class="admin__tabs" aria-label="Admin Navigation Tabs">
       <button class="admin__tab is-active" data-tab="orders">Orders</button>
       <button class="admin__tab" data-tab="inventory">Inventory</button>
       <button class="admin__tab" data-tab="pricing">Pricing</button>
       <button class="admin__tab" data-tab="customers">Customers</button>
       <button class="admin__tab" data-tab="events">Events</button>
       <button class="admin__tab" data-tab="batch-drops">Batch Drops</button>
-      <button class="admin__tab" data-tab="email">Send email</button>
+      <button class="admin__tab" data-tab="email">Send Email</button>
     </nav>
 
     <p id="global-error" class="admin__error" hidden></p>
 
     <!-- ORDERS -->
     <section data-panel="orders" class="admin__panel">
+      <div class="admin__panel-header">
+        <h2>Orders &amp; Fulfillment</h2>
+        <div class="admin__panel-header-actions">
+          <button id="orders-email-selected" class="btn-primary btn-primary--small" hidden>Email 0 selected</button>
+          <button id="orders-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">Manage customer orders, track payments, review shipping addresses, and mark physical kits as fulfilled.</p>
+
+      <div class="admin-pills" id="order-filter-pills">
+        <button type="button" class="admin-pill is-active" data-filter="all">All (<span id="count-orders-all">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="unshipped">Needs Shipping (<span id="count-orders-unshipped">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="paid">Paid (<span id="count-orders-paid">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="pending">Pending Quote (<span id="count-orders-pending">0</span>)</button>
+        <button type="button" class="admin-pill" data-filter="shipped">Dispatched (<span id="count-orders-shipped">0</span>)</button>
+      </div>
+
+      <div class="admin-search-row" style="margin-bottom: 14px;">
+        <input id="orders-search" type="search" placeholder="Search orders by number, customer, email, type, or note…" class="admin-search-input" />
+      </div>
+
       <div class="admin__panel-split">
         <div class="admin__orders-list">
-          <div class="admin__panel-header">
-            <h2>Recent orders</h2>
-            <div class="admin__panel-header-actions">
-              <button id="orders-email-selected" class="btn-primary btn-primary--small" hidden>Email 0 selected</button>
-              <button id="orders-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
-            </div>
-          </div>
           <table class="admin-table">
             <thead>
               <tr><th class="admin-table__checkbox-col"><input type="checkbox" id="orders-select-all" aria-label="Select all orders" /></th><th>Order</th><th>Customer</th><th>Type</th><th>Status</th><th>Total</th><th>Ship by</th><th>Date</th></tr>
@@ -129,15 +157,15 @@ import Layout from "../../layouts/Layout.astro";
             <label>Delivery fee override ($, optional) <span class="admin-muted">(for a larger/heavier piece)</span><input id="mo-delivery-fee" type="number" step="0.01" min="0" placeholder="uses resolved zone fee" /></label>
             <label>Payment status
               <select id="mo-payment-status">
-                <option value="PAID">Paid — payment already received</option>
-                <option value="UNPAID">Quote issued — not paid yet</option>
+                <option value="PAID">Paid: payment already received</option>
+                <option value="UNPAID">Quote issued: not paid yet</option>
               </select>
             </label>
-            <label>Expected ship date <span class="admin-muted">(optional — leave blank to auto-calculate; min 5 business days out)</span><input id="mo-ship-date" type="date" /></label>
+            <label>Expected ship date <span class="admin-muted">(optional: leave blank to auto-calculate; min 5 business days out)</span><input id="mo-ship-date" type="date" /></label>
             <label>Note (internal only, optional)<input id="mo-note" type="text" maxlength="500" /></label>
           </div>
 
-          <h3 class="admin-manual-order__subheading">Shipping address <span class="admin-muted">(optional — needed to show "Shipping to" on the order and in the confirmation email)</span></h3>
+          <h3 class="admin-manual-order__subheading">Shipping address <span class="admin-muted">(optional: needed to show "Shipping to" on the order and in the confirmation email)</span></h3>
           <div class="admin-grid">
             <label>Recipient name<input id="mo-recipient" type="text" placeholder="defaults to customer name/email" /></label>
             <label>Address line 1<input id="mo-address1" type="text" /></label>
@@ -148,11 +176,11 @@ import Layout from "../../layouts/Layout.astro";
 
           <label class="admin-checkbox-label"><input id="mo-send-email" type="checkbox" /> Email the customer a confirmation</label>
           <div id="mo-email-fields" hidden>
-            <label for="mo-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
+            <label for="mo-email-message">Message <span class="admin-muted">(optional: leave blank for the standard "made to order" note)</span></label>
             <textarea id="mo-email-message" rows="4" maxlength="10000"></textarea>
             <div class="admin-grid">
-              <label>Sign as <span class="admin-muted">(optional — defaults to Astra)</span><input id="mo-email-sig-name" type="text" placeholder="Astra" /></label>
-              <label>Their role <span class="admin-muted">(optional — defaults to Designer at Unstitch)</span><input id="mo-email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
+              <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="mo-email-sig-name" type="text" placeholder="Astra" /></label>
+              <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="mo-email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
             </div>
           </div>
 
@@ -164,6 +192,14 @@ import Layout from "../../layouts/Layout.astro";
 
     <!-- INVENTORY -->
     <section data-panel="inventory" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Drop Inventory &amp; Serials</h2>
+        <div class="admin__panel-header-actions">
+          <button id="inventory-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">Manage numbered kit edition serials, stock allocations, voided units, and digital passport QR downloads.</p>
+
       <p id="inventory-loading">Loading drops…</p>
       <div id="inventory-content" hidden></div>
     </section>
@@ -175,7 +211,7 @@ import Layout from "../../layouts/Layout.astro";
       <div id="pricing-content" hidden>
         <div class="admin-card">
           <h2>Quick price override</h2>
-          <p class="admin-muted">Sets the retail price directly — no recalculation, no change to the cost recipe below.</p>
+          <p class="admin-muted">Sets the retail price directly: no recalculation, no change to the cost recipe below.</p>
           <div class="admin-field-row">
             <label for="price-override">Price (AUD)</label>
             <input id="price-override" type="number" step="0.01" min="0" />
@@ -311,14 +347,14 @@ import Layout from "../../layouts/Layout.astro";
         </div>
         <div class="admin-grid">
           <label>Title<input id="ed-title" type="text" maxlength="200" placeholder="e.g. Zero Waste Festival" /></label>
-          <label>Slug <span class="admin-muted">(used for attribution tag — lowercase, hyphens only)</span><input id="ed-slug" type="text" maxlength="160" placeholder="zero-waste-festival-2026" /></label>
+          <label>Slug <span class="admin-muted">(used for attribution tag: lowercase, hyphens only)</span><input id="ed-slug" type="text" maxlength="160" placeholder="zero-waste-festival-2026" /></label>
           <label>Location <span class="admin-muted">(optional)</span><input id="ed-location" type="text" maxlength="200" placeholder="Fed Square, Melbourne" /></label>
           <label>Starts<input id="ed-starts-at" type="datetime-local" /></label>
           <label>Ends <span class="admin-muted">(optional)</span><input id="ed-ends-at" type="datetime-local" /></label>
           <label>CTA label <span class="admin-muted">(optional)</span><input id="ed-cta-label" type="text" maxlength="100" placeholder="Learn More" /></label>
           <label>CTA URL <span class="admin-muted">(optional)</span><input id="ed-cta-url" type="text" maxlength="500" placeholder="https://…" /></label>
         </div>
-        <label>Description <span class="admin-muted">(optional — shown on the homepage callout)</span><textarea id="ed-description" rows="3"></textarea></label>
+        <label>Description <span class="admin-muted">(optional: shown on the homepage callout)</span><textarea id="ed-description" rows="3"></textarea></label>
 
         <!-- Color Customization -->
         <div class="admin-card" style="margin-top: 14px; background: #faf9f6;">
@@ -343,10 +379,10 @@ import Layout from "../../layouts/Layout.astro";
         <h3 style="margin-top: 16px;">Playground Raffle</h3>
         <label class="admin-checkbox-label"><input id="ed-raffle-enabled" type="checkbox" /> This event has a raffle</label>
         <div class="admin-grid">
-          <label>Raffle button label <span class="admin-muted">(optional — defaults to "Enter Raffle")</span><input id="ed-raffle-button-label" type="text" maxlength="100" placeholder="Enter Raffle" /></label>
+          <label>Raffle button label <span class="admin-muted">(optional: defaults to "Enter Raffle")</span><input id="ed-raffle-button-label" type="text" maxlength="100" placeholder="Enter Raffle" /></label>
           <label>Raffle closes at <span class="admin-muted">(Playground button auto-hides once this passes)</span><input id="ed-raffle-closes-at" type="datetime-local" /></label>
         </div>
-        <label>Raffle draw copy <span class="admin-muted">(optional — shown after user enters)</span><textarea id="ed-raffle-draw-copy" rows="2"></textarea></label>
+        <label>Raffle draw copy <span class="admin-muted">(optional: shown after user enters)</span><textarea id="ed-raffle-draw-copy" rows="2"></textarea></label>
 
         <div class="admin__actions" style="margin-top: 16px; display: flex; gap: 10px;">
           <button id="event-detail-save" class="btn-primary">Save event</button>
@@ -408,19 +444,19 @@ import Layout from "../../layouts/Layout.astro";
     <section data-panel="email" class="admin__panel" hidden>
       <div class="admin-card">
         <h2>Send a custom email</h2>
-        <label for="email-to">To <span class="admin-muted">(comma or newline-separated — sent individually, never CC'd together)</span></label>
+        <label for="email-to">To <span class="admin-muted">(comma or newline-separated: sent individually, never CC'd together)</span></label>
         <textarea id="email-to" rows="2" placeholder="one@example.com, two@example.com"></textarea>
         <p class="admin-muted">Or check recipients from the <button type="button" id="email-goto-customers" class="admin-link-btn">Customers</button> or <button type="button" id="email-goto-orders" class="admin-link-btn">Orders</button> tab.</p>
         <label for="email-subject">Subject</label>
         <input id="email-subject" type="text" maxlength="200" />
         <label for="email-message">Message</label>
         <textarea id="email-message" rows="6" maxlength="10000"></textarea>
-        <p class="admin-muted">Your sign-off (Astra — Designer at Unstitch, with website/LinkedIn/Instagram) is added automatically. Sends as a branded HTML email, with a plain-text fallback.</p>
-        <label for="email-gif-url">Sign-off gif URL <span class="admin-muted">(optional — e.g. for a workshop or new-contact welcome note)</span></label>
+        <p class="admin-muted">Your sign-off (Astra, Designer at Unstitch, with website/LinkedIn/Instagram) is added automatically. Sends as a branded HTML email, with a plain-text fallback.</p>
+        <label for="email-gif-url">Sign-off gif URL <span class="admin-muted">(optional: e.g. for a workshop or new-contact welcome note)</span></label>
         <input id="email-gif-url" type="url" placeholder="https://unstitchx.com/…/welcome.gif" />
         <div class="admin-grid">
-          <label>Sign as <span class="admin-muted">(optional — defaults to Astra)</span><input id="email-sig-name" type="text" placeholder="Astra" /></label>
-          <label>Their role <span class="admin-muted">(optional — defaults to Designer at Unstitch)</span><input id="email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
+          <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="email-sig-name" type="text" placeholder="Astra" /></label>
+          <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
         <button id="email-send" class="btn-primary">Send</button>
         <p id="email-status" class="admin__hint" hidden></p>
@@ -430,198 +466,1231 @@ import Layout from "../../layouts/Layout.astro";
   </main>
 
 <style is:global>
-  .admin {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 28px 20px 80px;
-    font-family: system-ui, -apple-system, sans-serif;
-    color: #1a1a1a;
+  body {
+    background-color: #faf9f6;
   }
+
+  .admin {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
+    color: var(--ink, #111111);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --- Top Admin Bar --- */
   .admin__bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    padding: 10px 0 18px;
+    gap: 16px;
   }
-  .admin__bar h1 { font-size: 1.2rem; margin: 0; }
-  .admin__tabs { display: flex; gap: 8px; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
+
+  .admin__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .admin__logo-link {
+    display: inline-flex;
+    align-items: center;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .admin__logo-link:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+
+  .admin__logo {
+    height: 26px;
+    width: auto;
+    display: block;
+  }
+
+  .admin__brand-divider {
+    width: 1.5px;
+    height: 18px;
+    background: #dcd9d4;
+  }
+
+  .admin__badge {
+    display: inline-block;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--accent-pale, #eedfe9);
+    color: var(--accent, #A36E93);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .admin__bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .admin .stitch {
+    margin-bottom: 24px;
+    opacity: 0.8;
+  }
+
+  /* --- Tabs Navigation --- */
+  .admin__tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1.5px solid #e8e5df;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1px;
+  }
+
+  .admin__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
   .admin__tab {
-    background: none; border: none; padding: 10px 14px; font-size: 0.9rem;
-    cursor: pointer; color: #666; border-bottom: 2px solid transparent;
+    background: none;
+    border: 1.5px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius, 6px) var(--radius, 6px) 0 0;
+    padding: 10px 16px;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    color: #666666;
+    transition: all 0.15s ease;
+    margin-bottom: -1.5px;
+    white-space: nowrap;
   }
-  .admin__tab.is-active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; }
+
+  .admin__tab:hover {
+    color: var(--ink, #111111);
+    background: #f2efe9;
+  }
+
+  .admin__tab.is-active {
+    color: var(--ink, #111111);
+    background: #ffffff;
+    font-weight: 700;
+    border-color: #e8e5df;
+    border-bottom: 3px solid var(--accent, #A36E93);
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02);
+  }
+
   .admin__error {
-    background: #fdecea; color: #b3261e; border: 1px solid #f3c8c4;
-    padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem;
+    background: #fdf2f2;
+    color: #991b1b;
+    border: 1.5px solid #fecaca;
+    padding: 12px 16px;
+    border-radius: var(--radius, 6px);
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    font-weight: 500;
   }
-  .admin__panel-split { display: grid; grid-template-columns: 1fr; gap: 24px; }
-  @media (min-width: 860px) {
-    .admin__panel-split { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+
+  .admin__panel-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    align-items: start;
   }
-  .admin__panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .admin__panel-header h2 { font-size: 1rem; margin: 0; }
+  @media (min-width: 1040px) {
+    .admin__panel-split:has(#order-detail:not([hidden])) {
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: start;
+    }
+  }
+  .admin__panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+  .admin__panel-header h2 { font-family: var(--font-display, 'Space Grotesk', sans-serif); font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
   .admin__panel-header-actions { display: flex; align-items: center; gap: 8px; }
-  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  .admin-table th { text-align: left; padding: 8px 6px; color: #777; font-weight: 500; border-bottom: 1px solid #ddd; }
-  .admin-table td { padding: 8px 6px; border-bottom: 1px solid #eee; }
-  .admin-table tr[data-order-row] { cursor: pointer; }
-  .admin-table tr[data-order-row]:hover { background: #f7f6f3; }
-  .admin-table tr[data-customer-row] { cursor: pointer; }
-  .admin-table tr[data-customer-row]:hover { background: #f7f6f3; }
-  .admin-table__checkbox-col { width: 28px; }
-  .btn-primary--small { padding: 4px 10px; font-size: 0.78rem; }
-  .admin-link-btn {
-    background: none; border: none; padding: 0; font: inherit; color: var(--accent, #1a1a1a);
-    text-decoration: underline; cursor: pointer;
+  .admin-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.86rem; background: #ffffff; border: 1.5px solid #e8e5df; border-radius: var(--radius, 6px); overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); }
+  .admin-table th { text-align: left; padding: 12px 14px; font-family: var(--font-display, 'Space Grotesk', sans-serif); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #555555; background: #faf8f5; border-bottom: 1.5px solid #e8e5df; white-space: nowrap; }
+  .admin-table td { padding: 12px 14px; border-bottom: 1px solid #f1eeea; color: var(--ink, #111111); vertical-align: middle; }
+  .admin-table tr:last-child td {
+    border-bottom: none;
   }
-  .admin-table__empty { color: #888; text-align: center; padding: 20px !important; }
-  .admin__order-detail { background: #fff; border: 1px solid #e2e0db; border-radius: 10px; padding: 18px; }
-  .admin-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.88rem; margin: 0 0 14px; }
-  .admin-kv dt { color: #777; }
-  .admin-kv dd { margin: 0; }
-  .admin-list { list-style: none; padding: 0; margin: 0 0 14px; font-size: 0.88rem; }
-  .admin-list li { padding: 6px 0; border-bottom: 1px solid #eee; }
-  .admin-list--inline { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-  .admin-list--inline li { border-bottom: none; padding: 0; font-size: 0.85rem; }
-  .admin-muted { color: #777; font-size: 0.85rem; }
-  .admin-card {
-    background: #fff; border: 1px solid #e2e0db; border-radius: 10px;
-    padding: 20px; margin-bottom: 20px;
-  }
-  .admin-card h2 { font-size: 1rem; margin: 0 0 6px; }
-  .admin-card label { display: block; font-size: 0.82rem; color: #555; margin: 10px 0 4px; }
-  .admin-card input, .admin-card textarea, .admin-card select {
-    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem;
-    box-sizing: border-box; font-family: inherit;
-  }
-  .admin-field-row { display: flex; align-items: flex-end; gap: 10px; }
-  .admin-field-row label { flex: 0 0 auto; }
-  .admin-field-row input { width: 140px; }
-  .admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 16px; }
-  @media (min-width: 620px) {
-    .admin-grid { grid-template-columns: repeat(3, 1fr); }
-  }
-  /* --- Buttons: every actionable button gets a visible hover/active state
-     and a colour that signals what it does (black = normal action, red =
-     destructive/removes something, outlined = secondary/toggle). --- */
-  .btn-primary {
-    margin-top: 14px; padding: 9px 16px; border: 1px solid #1a1a1a; border-radius: 6px;
-    background: #1a1a1a; color: #fff; font-size: 0.88rem; font-weight: 600; cursor: pointer;
-    transition: background-color 0.12s ease, transform 0.05s ease;
-  }
-  .btn-primary:hover:not(:disabled) { background: #3a3a3a; }
-  .btn-primary:active:not(:disabled) { transform: translateY(1px); }
-  .btn-primary:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-primary--ship { background: #1a5f3f; border-color: #1a5f3f; }
-  .btn-primary--ship:hover:not(:disabled) { background: #227a51; }
-  .btn-danger {
-    margin-top: 14px; padding: 9px 16px; border: 1px solid #b3261e; border-radius: 6px;
-    background: #fff; color: #b3261e; font-size: 0.88rem; font-weight: 600; cursor: pointer;
-    transition: background-color 0.12s ease, color 0.12s ease, transform 0.05s ease;
-  }
-  .btn-danger:hover:not(:disabled) { background: #b3261e; color: #fff; }
-  .btn-danger:active:not(:disabled) { transform: translateY(1px); }
-  .btn-danger:focus-visible { outline: 2px solid #b3261e; outline-offset: 2px; }
-  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-ghost {
-    background: none; border: 1px solid #ccc; border-radius: 6px; padding: 7px 12px;
-    font-size: 0.85rem; cursor: pointer; color: #333; transition: background-color 0.12s ease, border-color 0.12s ease;
-  }
-  .btn-ghost:hover:not(:disabled) { background: #f2f1ee; border-color: #999; }
-  .btn-ghost:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
-  .btn-ghost--small { padding: 4px 10px; font-size: 0.78rem; }
-  .admin__actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .admin__hint { font-size: 0.82rem; margin-top: 8px; }
-  .admin__hint.is-success { color: #1a7f37; }
-  .admin__hint.is-error { color: #b3261e; }
 
-  /* --- Manual order --- */
-  .admin-card--collapsible { cursor: default; }
-  .admin-card--collapsible > summary {
-    cursor: pointer; font-weight: 600; font-size: 0.92rem; list-style: none;
+  .admin-table tr[data-order-row],
+  .admin-table tr[data-customer-row],
+  .admin-table tr[data-event-row],
+  .admin-table tr[data-batch-drop-row] {
+    cursor: pointer;
+    transition: background-color 0.12s ease;
   }
-  .admin-card--collapsible > summary::-webkit-details-marker { display: none; }
-  .admin-manual-order { margin-top: 14px; }
-  .admin-manual-order__subheading { font-size: 0.88rem; margin: 18px 0 4px; font-weight: 600; }
-  .admin-checkbox-label {
-    display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
-    color: #333; margin: 16px 0 6px; cursor: pointer;
-  }
-  .admin-checkbox-label input { width: auto; margin: 0; }
 
-  /* --- Inventory: drop cards --- */
-  .admin-drop-card { display: flex; gap: 16px; }
-  .admin-drop-photo {
-    width: 72px; height: 72px; flex: 0 0 auto; border-radius: 8px; object-fit: cover;
-    background: #f2f1ee; border: 1px solid #e2e0db;
+  .admin-table tr[data-order-row]:hover,
+  .admin-table tr[data-customer-row]:hover,
+  .admin-table tr[data-event-row]:hover,
+  .admin-table tr[data-batch-drop-row]:hover {
+    background: #fcf9fb;
   }
-  .admin-drop-body { flex: 1 1 auto; min-width: 0; }
-  .admin-drop-code {
-    display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 0.8rem; font-weight: 700; background: #1a1a1a; color: #fff;
-    padding: 2px 8px; border-radius: 4px; letter-spacing: 0.02em; margin-left: 8px;
+
+  .admin-table__checkbox-col {
+    width: 34px;
+    text-align: center;
+    padding-left: 14px !important;
+    padding-right: 6px !important;
+  }
+
+  .admin-table input[type="checkbox"] {
+    accent-color: var(--accent, #A36E93);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
     vertical-align: middle;
   }
-  .admin-status-chip {
-    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.76rem;
-    background: #eee; color: #444; border: 1px solid #ddd;
-  }
-  .admin-status-chip[data-status="IN_STOCK"] { background: #e7f4ec; color: #1a5f3f; border-color: #bfe3cc; }
-  .admin-status-chip[data-status="RESERVED"] { background: #fff6e0; color: #8a6d1a; border-color: #f0dfa3; }
-  .admin-status-chip[data-status="SOLD"], .admin-status-chip[data-status="SHIPPED"], .admin-status-chip[data-status="DELIVERED"] {
-    background: #e8eefc; color: #2b4c9b; border-color: #c7d5f5;
-  }
-  .admin-status-chip[data-status="VOID"] { background: #f5eaea; color: #8a3a3a; border-color: #e6c9c9; text-decoration: line-through; }
-  .admin-flag {
-    display: inline-block; font-size: 0.72rem; font-weight: 700; color: #8a3a1a;
-    background: #fdece0; border: 1px solid #f0c9a8; border-radius: 4px;
-    padding: 1px 6px; margin-left: 6px; vertical-align: middle; cursor: help;
-  }
-  .admin-flag--muted { color: #666; background: #f2f2f2; border-color: #ddd; font-weight: 400; }
-  .admin-shipby--overdue { color: #a33a3a; font-weight: 700; }
-  .admin-units-toggle {
-    background: none; border: none; padding: 4px 0; font-size: 0.82rem; color: #555;
-    text-decoration: underline; cursor: pointer; margin-top: 6px;
-  }
-  .admin-units-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 8px; }
-  .admin-units-table th { text-align: left; padding: 4px 6px; color: #888; font-weight: 500; }
-  .admin-units-table td { padding: 4px 6px; border-top: 1px solid #eee; }
-  .admin-restock-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  .admin-restock-row .admin-field-row { margin-right: 4px; }
 
-  /* --- Audience, Events & Batch Drops enhancements --- */
-  .admin-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .admin-table__empty {
+    color: #777777;
+    text-align: center;
+    padding: 32px 20px !important;
+    font-size: 0.9rem;
+    background: #ffffff;
+  }
+
+  .admin-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent, #A36E93);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .admin-link-btn:hover {
+    color: var(--ink, #111111);
+  }
+
+  /* --- Order / Detail Slide-In Panel --- */
+  .admin__order-detail {
+    background: #ffffff;
+    border: 1.5px solid var(--ink, #111111);
+    border-radius: var(--radius, 6px);
+    box-shadow: 4px 4px 0px var(--ink, #111111);
+    padding: 22px 24px;
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    box-sizing: border-box;
+  }
+
+  .admin__order-detail h2 {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+
+  .admin__order-detail h3 {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .admin-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    font-size: 0.88rem;
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 14px 16px;
+    margin: 0 0 16px;
+  }
+
+  .admin-kv dt {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #666666;
+  }
+
+  .admin-kv dd {
+    margin: 0;
+    font-weight: 500;
+    color: var(--ink, #111111);
+  }
+
+  .admin-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+    font-size: 0.88rem;
+  }
+
+  .admin-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0ede8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .admin-list--inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+
+  .admin-list--inline li {
+    border-bottom: none;
+    padding: 0;
+    font-size: 0.85rem;
+  }
+
+  .admin-muted {
+    color: #666666;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  /* --- Cards --- */
+  .admin-card {
+    background: #ffffff;
+    border: 1.5px solid #e8e5df;
+    border-radius: var(--radius, 6px);
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .admin-card h2 {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+
+  .admin-card label,
+  .admin__order-detail label,
+  .admin-manual-order label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444444;
+    margin: 12px 0 6px;
+  }
+
+  .admin-card input,
+  .admin-card textarea,
+  .admin-card select,
+  .admin__order-detail input,
+  .admin__order-detail textarea,
+  .admin__order-detail select,
+  .admin-manual-order input,
+  .admin-manual-order textarea,
+  .admin-manual-order select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #dcd9d4;
+    border-radius: var(--radius, 6px);
+    font-size: 0.9rem;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    box-sizing: border-box;
+    background: #ffffff;
+    color: var(--ink, #111111);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .admin-card input:focus,
+  .admin-card textarea:focus,
+  .admin-card select:focus,
+  .admin__order-detail input:focus,
+  .admin__order-detail textarea:focus,
+  .admin__order-detail select:focus,
+  .admin-manual-order input:focus,
+  .admin-manual-order textarea:focus,
+  .admin-manual-order select:focus,
+  .admin-search-input:focus {
+    border-color: var(--ink, #111111);
+    box-shadow: 0 0 0 3px rgba(163, 110, 147, 0.2);
+  }
+
+  .admin-field-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .admin-field-row label {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .admin-field-row input {
+    width: 140px;
+  }
+
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 16px;
+  }
+
+  @media (min-width: 620px) {
+    .admin-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  /* --- Buttons --- */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 10px 18px;
+    border: 1.5px solid var(--ink, #111111);
+    border-radius: var(--radius, 6px);
+    background: var(--ink, #111111);
+    color: #ffffff;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent, #A36E93);
+    border-color: var(--accent, #A36E93);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(163, 110, 147, 0.25);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--ink, #111111);
+    outline-offset: 2px;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-primary--ship {
+    background: #1a5f3f;
+    border-color: #1a5f3f;
+  }
+
+  .btn-primary--ship:hover:not(:disabled) {
+    background: #144930;
+    border-color: #144930;
+    box-shadow: 0 2px 6px rgba(26, 95, 63, 0.25);
+  }
+
+  .btn-primary--small {
+    margin-top: 0;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 10px 18px;
+    border: 1.5px solid #dc2626;
+    border-radius: var(--radius, 6px);
+    background: #ffffff;
+    color: #dc2626;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    color: #ffffff;
+  }
+
+  .btn-danger:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-danger:focus-visible {
+    outline: 2px solid #dc2626;
+    outline-offset: 2px;
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1.5px solid #dcd9d4;
+    border-radius: var(--radius, 6px);
+    padding: 8px 14px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--ink, #111111);
+    transition: all 0.15s ease;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background: #f5f3ef;
+    border-color: var(--ink, #111111);
+  }
+
+  .btn-ghost:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-ghost:focus-visible {
+    outline: 2px solid var(--ink, #111111);
+    outline-offset: 2px;
+  }
+
+  .btn-ghost--small {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+  }
+
+  .admin__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .admin__hint {
+    font-size: 0.82rem;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  .admin__hint.is-success {
+    color: #166534;
+  }
+
+  .admin__hint.is-error {
+    color: #991b1b;
+  }
+
+  /* --- Manual Order Section --- */
+  .admin-card--collapsible {
+    cursor: default;
+    border: 1.5px dashed #ccc9c2;
+    background: #fbfaf8;
+  }
+
+  .admin-card--collapsible > summary {
+    cursor: pointer;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-weight: 700;
+    font-size: 0.95rem;
+    list-style: none;
+    color: var(--ink, #111111);
+  }
+
+  .admin-card--collapsible > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .admin-manual-order {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #e8e5df;
+  }
+
+  .admin-manual-order__subheading {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.95rem;
+    margin: 20px 0 6px;
+    font-weight: 700;
+  }
+
+  .admin-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--ink, #111111);
+    margin: 16px 0 8px;
+    cursor: pointer;
+  }
+
+  .admin-checkbox-label input {
+    width: 16px !important;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent, #A36E93);
+    cursor: pointer;
+  }
+
+  /* --- Inventory: Drop Cards & Metrics --- */
+  .admin-drop-card {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  @media (max-width: 720px) {
+    .admin-drop-card {
+      flex-direction: column;
+    }
+  }
+
+  .admin-drop-photo-wrap {
+    flex: 0 0 110px;
+    position: relative;
+  }
+
+  .admin-drop-photo {
+    width: 110px;
+    height: 110px;
+    border-radius: var(--radius, 6px);
+    object-fit: cover;
+    background: #faf8f5;
+    border: 1.5px solid #e8e5df;
+    display: block;
+  }
+
+  .admin-drop-body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admin-drop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .admin-drop-header-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-drop-product-link {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ink, #111111);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .admin-drop-product-link:hover {
+    color: var(--accent, #A36E93);
+    text-decoration: underline;
+  }
+
+  .admin-drop-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--ink, #111111);
+    color: #ffffff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+
+  .admin-drop-meta-tags {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: #666666;
+    margin-bottom: 12px;
+  }
+
+  .admin-drop-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* --- Inventory Allocation Progress Bar --- */
+  .admin-drop-progress {
+    margin: 12px 0 16px;
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 12px 14px;
+  }
+
+  .admin-drop-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+  }
+
+  .admin-drop-progress-title {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555555;
+    font-size: 0.72rem;
+  }
+
+  .admin-drop-bar {
+    height: 10px;
+    border-radius: 999px;
+    background: #e6e3dc;
+    display: flex;
+    overflow: hidden;
+    gap: 2px;
+  }
+
+  .admin-drop-bar-seg {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .admin-drop-bar-seg--sold {
+    background: #6d28d9;
+  }
+
+  .admin-drop-bar-seg--reserved {
+    background: #d97706;
+  }
+
+  .admin-drop-bar-seg--instock {
+    background: #059669;
+  }
+
+  .admin-drop-bar-seg--void {
+    background: #d1d5db;
+  }
+
+  .admin-drop-progress-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 0.76rem;
+    color: #666666;
+  }
+
+  .admin-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .admin-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .admin-legend-dot--sold { background: #6d28d9; }
+  .admin-legend-dot--reserved { background: #d97706; }
+  .admin-legend-dot--instock { background: #059669; }
+  .admin-legend-dot--void { background: #9ca3af; }
+
+  /* --- Inventory Stat Grid --- */
+  .admin-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+    margin: 12px 0 14px;
+  }
+
+  .admin-stat-card {
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .admin-stat-label {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #777777;
+  }
+
+  .admin-stat-value {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--ink, #111111);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .admin-stat-value--instock { color: #166534; }
+  .admin-stat-value--reserved { color: #92400e; }
+  .admin-stat-value--sold { color: #5b21b6; }
+  .admin-stat-value--void { color: #991b1b; text-decoration: line-through; }
+
+  /* --- Studio Tools Deck (Add Stock & Adjustments) --- */
+  .admin-drop-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 18px;
+  }
+  @media (min-width: 820px) {
+    .admin-drop-tools {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .admin-tool-box {
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .admin-tool-box--primary {
+    background: #ffffff;
+    border-color: #dcd9d4;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .admin-tool-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-tool-box-header h4 {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: var(--ink, #111111);
+  }
+
+  .admin-tool-box-desc {
+    font-size: 0.78rem;
+    color: #666666;
+    margin: 0 0 12px;
+    line-height: 1.35;
+  }
+
+  .admin-tool-box-action {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-tool-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin-tool-action-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-tool-action-row--subtle {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed #e5e2db;
+  }
+
+  /* --- Units & Passports Drawer --- */
+  .admin-units-drawer {
+    margin-top: 14px;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    background: #ffffff;
+    padding: 14px 16px;
+  }
+
+  .admin-units-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .admin-units-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .admin-edition-pill {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--ink, #111111);
+  }
+
+  .admin-pill--small {
+    padding: 4px 10px;
+    font-size: 0.74rem;
+  }
+
+  .admin-search-input--small {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    max-width: 240px;
+  }
+
+  /* --- Status Chips & Badges --- */
+  .admin-status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #f0eee9;
+    color: #555555;
+    border: 1px solid #dcd9d4;
+  }
+
+  .admin-status-chip[data-status="IN_STOCK"] {
+    background: #eaf5ed;
+    color: #166534;
+    border-color: #bbf7d0;
+  }
+
+  .admin-status-chip[data-status="RESERVED"] {
+    background: #fffbeb;
+    color: #92400e;
+    border-color: #fde68a;
+  }
+
+  .admin-status-chip[data-status="SOLD"],
+  .admin-status-chip[data-status="SHIPPED"],
+  .admin-status-chip[data-status="DELIVERED"] {
+    background: #f5f3ff;
+    color: #5b21b6;
+    border-color: #ddd6fe;
+  }
+
+  .admin-status-chip[data-status="VOID"] {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+    text-decoration: line-through;
+  }
+
+  /* Typography & Table Micro-elements */
+  .admin-code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: #f2eee8;
+    color: var(--ink, #111111);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid #e2ded8;
+  }
+
+  .admin-amount {
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink, #111111);
+  }
+
+  .admin-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .admin-cell-sub {
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .admin-cell-primary {
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  .admin-flag {
+    display: inline-block;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #9a3412;
+    background: #ffedd5;
+    border: 1px solid #fed7aa;
+    border-radius: 4px;
+    padding: 1px 7px;
+    margin-left: 6px;
+    vertical-align: middle;
+    cursor: help;
+  }
+
+  .admin-flag--muted {
+    color: #666666;
+    background: #f4f3ef;
+    border-color: #dcd9d4;
+    font-weight: 500;
+  }
+
+  .admin-shipby--due {
+    color: #444444;
+  }
+
+  .admin-shipby--overdue {
+    color: #b91c1c;
+    font-weight: 700;
+  }
+
+  /* Order Detail List Rows */
+  .admin-order-item-row,
+  .admin-payment-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    background: #faf8f5;
+    border: 1.5px solid #eae7e1;
+    border-radius: var(--radius, 6px);
+    margin-bottom: 8px;
+    font-size: 0.86rem;
+  }
+
+  .admin-order-item-title,
+  .admin-payment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* --- Audience, Events & Batch Drops Pills & Search --- */
+  .admin-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
   .admin-pill {
-    background: #f4f3ef; border: 1px solid #dcdad5; padding: 6px 14px; border-radius: 20px;
-    font-size: 0.8rem; font-weight: 500; cursor: pointer; color: #555; transition: all 0.15s ease;
+    background: #ffffff;
+    border: 1.5px solid #dcd9d4;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: #555555;
+    transition: all 0.15s ease;
   }
-  .admin-pill:hover { background: #e8e6e0; color: #222; }
-  .admin-pill.is-active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 600; }
+
+  .admin-pill:hover {
+    border-color: var(--ink, #111111);
+    color: var(--ink, #111111);
+    background: #f8f6f2;
+  }
+
+  .admin-pill.is-active {
+    background: var(--ink, #111111);
+    color: #ffffff;
+    border-color: var(--ink, #111111);
+    font-weight: 700;
+  }
+
   .admin-search-input {
-    width: 100%; max-width: 360px; padding: 7px 12px; border: 1px solid #ccc;
-    border-radius: 6px; font-size: 0.86rem; box-sizing: border-box;
+    width: 100%;
+    max-width: 380px;
+    padding: 9px 14px;
+    border: 1.5px solid #dcd9d4;
+    border-radius: var(--radius, 6px);
+    font-size: 0.88rem;
+    box-sizing: border-box;
+    background: #ffffff;
   }
+
   .admin-badge {
-    display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem;
-    font-weight: 600; text-transform: uppercase; margin-right: 4px; letter-spacing: 0.03em;
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--font-display, 'Space Grotesk', sans-serif);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 4px;
+    letter-spacing: 0.04em;
   }
-  .admin-badge--customer { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-  .admin-badge--subscriber { background: #e1f5fe; color: #0288d1; border: 1px solid #b3e5fc; }
-  .admin-badge--raffle { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
-  .admin-badge--contact { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-  .admin-badge--playground_export { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
+
+  .admin-badge--customer {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .admin-badge--subscriber {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .admin-badge--raffle {
+    background: #fdf4ff;
+    color: #a21caf;
+    border: 1px solid #f0abfc;
+  }
+
+  .admin-badge--contact {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+  }
+
+  .admin-badge--playground_export {
+    background: #faf5ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+  }
+
+  .admin-badge--drop_sale {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .admin-badge--workshop {
+    background: #fdf4ff;
+    color: #a21caf;
+    border: 1px solid #f0abfc;
+  }
+
+  .admin-badge--commission {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+  }
+
+  .admin-badge--other {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+  }
+
+  .admin-badge--payment {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+  }
 
   .event-color-chip {
-    display: inline-block; width: 14px; height: 14px; border-radius: 50%;
-    vertical-align: middle; margin-right: 6px; border: 1px solid rgba(0,0,0,0.18);
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1.5px solid rgba(0, 0, 0, 0.18);
   }
-  .admin-color-presets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .admin-color-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .admin-color-swatch {
-    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
-    box-shadow: 0 0 0 1px #ccc; cursor: pointer; padding: 0; transition: transform 0.1s ease;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 1.5px #111111;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease;
   }
-  .admin-color-swatch:hover { transform: scale(1.15); }
+
+  .admin-color-swatch:hover {
+    transform: scale(1.2);
+  }
 </style>
 
 <script>
@@ -685,7 +1754,7 @@ import Layout from "../../layouts/Layout.astro";
     madeLocation: string;
     madeYear: number;
     releaseAt: string | null;
-    product: { id: string; name: string; slug: string; imageUrl: string | null };
+    product: { id: string; name: string; slug: string; imageUrl: string | null; tagline?: string | null };
     _count?: { units: number; reservations: number };
   };
 
@@ -694,6 +1763,7 @@ import Layout from "../../layouts/Layout.astro";
     name: string;
     slug: string;
     imageUrl: string | null;
+    tagline?: string | null;
   };
 
   // Selection state for the bulk-email workflow — shared across the Orders
@@ -780,6 +1850,42 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Orders ---
+  let allOrdersCache: OrderSummary[] = [];
+  let currentOrderFilter = "all";
+
+  function renderOrderTypeBadge(note: string | null | undefined): string {
+    const label = orderTypeLabel(note);
+    if (label === "—") return `<span class="admin-muted">—</span>`;
+    const slug = label.toLowerCase().replace(/\s+/g, "_");
+    return `<span class="admin-badge admin-badge--${slug}">${esc(label)}</span>`;
+  }
+
+  function renderOrderStatusChip(status: string): string {
+    const norm = (status || "").toUpperCase();
+    let label = norm;
+    let chipStatus = norm;
+    if (norm === "PAID") {
+      label = "Paid";
+      chipStatus = "IN_STOCK";
+    } else if (norm === "PENDING_PAYMENT") {
+      label = "Pending Quote";
+      chipStatus = "RESERVED";
+    } else if (norm === "OUT_FOR_DELIVERY" || norm === "SHIPPED") {
+      label = "Shipped";
+      chipStatus = "SHIPPED";
+    } else if (norm === "DELIVERED") {
+      label = "Delivered";
+      chipStatus = "DELIVERED";
+    } else if (norm === "CANCELLED") {
+      label = "Cancelled";
+      chipStatus = "VOID";
+    } else if (norm === "REFUNDED" || norm === "PARTIALLY_REFUNDED") {
+      label = "Refunded";
+      chipStatus = "VOID";
+    }
+    return `<span class="admin-status-chip" data-status="${chipStatus}">${esc(label)}</span>`;
+  }
+
   // Renders one order table row. Extracted from loadOrders() so both the
   // full-list render and a single-row patch (after mark-paid/mark-shipped/
   // update-ship-date/update-order-details, see patchOrderRow below) share
@@ -796,21 +1902,27 @@ import Layout from "../../layouts/Layout.astro";
         : "";
     const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= Date.now();
     const shipByCell = o.shippedAt
-      ? `Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}`
+      ? `<span class="admin-muted" style="font-size: 0.82rem;">Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}</span>`
       : o.expectedShipAt
-        ? `<span class="${overdue ? "admin-shipby--overdue" : ""}">${overdue ? "Overdue — " : ""}${esc(new Date(o.expectedShipAt).toLocaleDateString())}</span>`
-        : "—";
+        ? `<span class="${overdue ? "admin-shipby--overdue" : "admin-shipby--due"}">${overdue ? "⚠️ Overdue · " : ""}${esc(new Date(o.expectedShipAt).toLocaleDateString())}</span>`
+        : `<span class="admin-muted">—</span>`;
     const id = esc(o.id);
+    const custName = o.customer?.name ? esc(o.customer.name) : "";
+    const custEmail = o.customer?.email ? esc(o.customer.email) : "—";
+    const customerHtml = custName
+      ? `<div class="admin-cell-stack"><strong>${custName}</strong><span class="admin-muted admin-cell-sub">${custEmail}</span></div>`
+      : `<span class="admin-cell-primary">${custEmail}</span>`;
+
     return `
         <tr data-order-row data-id="${id}">
           <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${id}" aria-label="Select order ${esc(o.orderNumber)}" /></td>
-          <td>${esc(o.orderNumber)}${noteFlag}</td>
-          <td>${esc(o.customer?.name || o.customer?.email || "—")}</td>
-          <td>${esc(orderTypeLabel(o.internalNote))}</td>
-          <td>${esc(o.status)}</td>
-          <td>${esc(money(o.totalCents, o.currency))}</td>
+          <td><code class="admin-code">#${esc(o.orderNumber)}</code>${noteFlag}</td>
+          <td>${customerHtml}</td>
+          <td>${renderOrderTypeBadge(o.internalNote)}</td>
+          <td>${renderOrderStatusChip(o.status)}</td>
+          <td><strong class="admin-amount">${esc(money(o.totalCents, o.currency))}</strong></td>
           <td>${shipByCell}</td>
-          <td>${esc(new Date(o.createdAt).toLocaleDateString())}</td>
+          <td><span class="admin-muted" style="font-size: 0.82rem;">${esc(new Date(o.createdAt).toLocaleDateString())}</span></td>
         </tr>`;
   }
 
@@ -838,22 +1950,81 @@ import Layout from "../../layouts/Layout.astro";
     });
   }
 
+  function updateOrderCounts() {
+    const updateCount = (id: string, val: number) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(val);
+    };
+    updateCount("count-orders-all", allOrdersCache.length);
+    updateCount(
+      "count-orders-unshipped",
+      allOrdersCache.filter((o) => !o.shippedAt && o.status !== "CANCELLED" && o.status !== "REFUNDED").length,
+    );
+    updateCount(
+      "count-orders-paid",
+      allOrdersCache.filter((o) => o.status === "PAID").length,
+    );
+    updateCount(
+      "count-orders-pending",
+      allOrdersCache.filter((o) => o.status === "PENDING_PAYMENT").length,
+    );
+    updateCount(
+      "count-orders-shipped",
+      allOrdersCache.filter((o) => !!o.shippedAt || o.status === "OUT_FOR_DELIVERY" || o.status === "DELIVERED").length,
+    );
+  }
+
+  function renderFilteredOrders() {
+    const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
+    if (!tbody) return;
+
+    let filtered = [...allOrdersCache];
+    if (currentOrderFilter === "unshipped") {
+      filtered = filtered.filter((o) => !o.shippedAt && o.status !== "CANCELLED" && o.status !== "REFUNDED");
+    } else if (currentOrderFilter === "paid") {
+      filtered = filtered.filter((o) => o.status === "PAID");
+    } else if (currentOrderFilter === "pending") {
+      filtered = filtered.filter((o) => o.status === "PENDING_PAYMENT");
+    } else if (currentOrderFilter === "shipped") {
+      filtered = filtered.filter((o) => !!o.shippedAt || o.status === "OUT_FOR_DELIVERY" || o.status === "DELIVERED");
+    }
+
+    const searchInput = document.getElementById("orders-search") as HTMLInputElement | null;
+    const query = (searchInput?.value || "").trim().toLowerCase();
+
+    if (query) {
+      filtered = filtered.filter((o) =>
+        o.orderNumber.toLowerCase().includes(query) ||
+        (o.customer?.email && o.customer.email.toLowerCase().includes(query)) ||
+        (o.customer?.name && o.customer.name.toLowerCase().includes(query)) ||
+        (o.internalNote && o.internalNote.toLowerCase().includes(query)) ||
+        (orderTypeLabel(o.internalNote).toLowerCase().includes(query)) ||
+        (o.status.toLowerCase().includes(query))
+      );
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">No matching orders found.</td></tr>`;
+      updateOrdersEmailButton();
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(renderOrderRow).join("");
+    tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => bindOrderRow(row, tbody));
+    updateOrdersEmailButton();
+  }
+
   async function loadOrders() {
     const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
     try {
       const res = await api("/api/admin/orders");
       if (!res.ok) throw new Error("Failed to load orders");
       const { orders } = (await res.json()) as { orders: OrderSummary[] };
+      allOrdersCache = orders || [];
       orderEmailsById.clear();
-      if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">No orders yet.</td></tr>`;
-        updateOrdersEmailButton();
-        return;
-      }
       orders.forEach((o) => orderEmailsById.set(o.id, o.customer?.email || ""));
-      tbody.innerHTML = orders.map(renderOrderRow).join("");
-      tbody.querySelectorAll<HTMLTableRowElement>("tr[data-order-row]").forEach((row) => bindOrderRow(row, tbody));
-      updateOrdersEmailButton();
+      updateOrderCounts();
+      renderFilteredOrders();
     } catch {
       tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty">Couldn't load orders.</td></tr>`;
     }
@@ -861,20 +2032,17 @@ import Layout from "../../layouts/Layout.astro";
 
   // Replaces exactly the one row for updatedOrder in place, instead of the
   // full 200-row loadOrders() refetch + tbody rebuild the four order-detail
-  // actions used to trigger. Falls back to a full loadOrders() only if the
-  // row can't be found (e.g. it scrolled out of the currently-loaded list),
-  // so behaviour degrades safely rather than silently doing nothing.
+  // actions used to trigger.
   function patchOrderRow(updatedOrder: OrderSummary) {
     orderEmailsById.set(updatedOrder.id, updatedOrder.customer?.email || "");
-    const tbody = document.getElementById("orders-tbody") as HTMLTableSectionElement;
-    const existingRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-order-row][data-id="${CSS.escape(updatedOrder.id)}"]`);
-    if (!existingRow) {
-      loadOrders();
-      return;
+    const idx = allOrdersCache.findIndex((o) => o.id === updatedOrder.id);
+    if (idx !== -1) {
+      allOrdersCache[idx] = updatedOrder;
+    } else {
+      allOrdersCache.unshift(updatedOrder);
     }
-    existingRow.outerHTML = renderOrderRow(updatedOrder);
-    const newRow = tbody.querySelector<HTMLTableRowElement>(`tr[data-order-row][data-id="${CSS.escape(updatedOrder.id)}"]`);
-    if (newRow) bindOrderRow(newRow, tbody);
+    updateOrderCounts();
+    renderFilteredOrders();
   }
 
   document.getElementById("orders-select-all")?.addEventListener("change", (e) => {
@@ -905,20 +2073,20 @@ import Layout from "../../layouts/Layout.astro";
       if (!res.ok) throw new Error("not found");
       const { order } = await res.json();
       detail.hidden = false;
-      (document.getElementById("detail-number") as HTMLElement).textContent = order.orderNumber;
+      (document.getElementById("detail-number") as HTMLElement).textContent = `#${order.orderNumber}`;
       (document.getElementById("detail-summary") as HTMLElement).innerHTML = `
         <dt>Customer</dt><dd>${esc(order.customer.email)}${order.customer.name ? ` (${esc(order.customer.name)})` : ""}</dd>
-        <dt>Status</dt><dd>${order.status}</dd>
-        <dt>Total</dt><dd>${money(order.totalCents, order.currency)}</dd>
+        <dt>Status</dt><dd>${renderOrderStatusChip(order.status)}</dd>
+        <dt>Total</dt><dd><strong class="admin-amount">${money(order.totalCents, order.currency)}</strong></dd>
         <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
-        <dt>Shipped</dt><dd>${order.shippedAt ? new Date(order.shippedAt).toLocaleString() : "Not yet"}</dd>
+        <dt>Shipped</dt><dd>${order.shippedAt ? new Date(order.shippedAt).toLocaleString() : '<span class="admin-muted">Not yet dispatched</span>'}</dd>
       `;
       (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
         .map(
           (it: any) =>
-            `<li>${it.quantity} × ${esc(it.product?.name || "Item")}${it.unit?.serial ? ` — unit ${esc(it.unit.serial)}` : ""} — ${money(it.lineTotalCents, order.currency)}</li>`,
+            `<li class="admin-order-item-row"><div class="admin-order-item-title"><strong>${it.quantity} × ${esc(it.product?.name || "Item")}</strong>${it.unit?.serial ? ` <code class="admin-code">${esc(it.unit.serial)}</code>` : ""}</div><strong class="admin-amount">${money(it.lineTotalCents, order.currency)}</strong></li>`,
         )
-        .join("") || "<li>No items</li>";
+        .join("") || `<li class="admin-muted">No items</li>`;
       const addr = order.deliveryAddress;
       (document.getElementById("detail-address-empty-hint") as HTMLElement).hidden = !!addr;
       (document.getElementById("detail-addr-recipient") as HTMLInputElement).value = addr?.recipientName || "";
@@ -966,8 +2134,16 @@ import Layout from "../../layouts/Layout.astro";
 
       (document.getElementById("detail-payments") as HTMLElement).innerHTML =
         order.payments
-          .map((p: any) => `<li>${esc(p.provider)} — ${esc(p.status)} — ${money(p.amountCents, order.currency)}</li>`)
-          .join("") || "<li>No payments recorded</li>";
+          .map((p: any) => `
+            <li class="admin-payment-row">
+              <div class="admin-payment-meta">
+                <span class="admin-badge admin-badge--payment">${esc(p.provider)}</span>
+                <span class="admin-status-chip" data-status="${p.status === 'SUCCEEDED' ? 'IN_STOCK' : 'RESERVED'}">${esc(p.status)}</span>
+              </div>
+              <strong class="admin-amount">${money(p.amountCents, order.currency)}</strong>
+            </li>
+          `)
+          .join("") || `<li class="admin-muted">No payments recorded</li>`;
 
       const shipDateInput = document.getElementById("detail-ship-date") as HTMLInputElement;
       const shipDateSaveBtn = document.getElementById("detail-ship-date-save") as HTMLButtonElement;
@@ -1080,7 +2256,7 @@ import Layout from "../../layouts/Layout.astro";
       deleteStatus.hidden = true;
       deleteBtn.onclick = async () => {
         const warning = order.shippedAt
-          ? `Order ${order.orderNumber} has already been marked shipped — this permanently deletes it and puts any numbered unit(s) it sold back IN_STOCK as if never sold. This cannot be undone. Continue?`
+          ? `Order ${order.orderNumber} has already been marked shipped. This permanently deletes it and puts any numbered unit(s) it sold back IN_STOCK as if never sold. This cannot be undone. Continue?`
           : `Permanently delete order ${order.orderNumber} and put any numbered unit(s) it sold back IN_STOCK as if never sold? This cannot be undone.`;
         if (!window.confirm(warning)) return;
         deleteBtn.disabled = true;
@@ -1111,6 +2287,17 @@ import Layout from "../../layouts/Layout.astro";
     (document.getElementById("order-detail") as HTMLDivElement).hidden = true;
   });
   document.getElementById("orders-refresh")?.addEventListener("click", loadOrders);
+
+  document.getElementById("order-filter-pills")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".admin-pill");
+    if (!btn) return;
+    document.querySelectorAll("#order-filter-pills .admin-pill").forEach((p) => p.classList.remove("is-active"));
+    btn.classList.add("is-active");
+    currentOrderFilter = btn.dataset.filter || "all";
+    renderFilteredOrders();
+  });
+
+  document.getElementById("orders-search")?.addEventListener("input", renderFilteredOrders);
 
   // --- Customers & Audience Directory ---
   let allCustomersCache: CustomerSummary[] = [];
@@ -1247,13 +2434,19 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("customers-search")?.addEventListener("input", renderFilteredCustomers);
 
-  function patchCustomerRow(saved: { id: string; email: string; name: string | null; createdAt: string }) {
+  function patchCustomerRow(saved: { id: string; email: string; name: string | null; phone?: string | null; createdAt: string }) {
     const previous = customersCache.get(saved.id);
     if (!previous) {
       loadCustomers();
       return;
     }
-    const updated: CustomerSummary = { ...previous, email: saved.email, name: saved.name, createdAt: saved.createdAt };
+    const updated: CustomerSummary = {
+      ...previous,
+      email: saved.email,
+      name: saved.name,
+      phone: saved.phone !== undefined ? saved.phone : previous.phone,
+      createdAt: saved.createdAt,
+    };
     customersCache.set(saved.id, updated);
     const idx = allCustomersCache.findIndex((c) => c.id === saved.id);
     if (idx !== -1) allCustomersCache[idx] = updated;
@@ -1263,6 +2456,7 @@ import Layout from "../../layouts/Layout.astro";
   async function openCustomerDetail(id: string) {
     const detail = document.getElementById("customer-detail") as HTMLDivElement;
     const status = document.getElementById("customer-detail-status") as HTMLElement;
+    const titleEl = document.getElementById("customer-detail-title") as HTMLElement;
     const badgesRow = document.getElementById("customer-badges-row") as HTMLElement;
     const extraInfo = document.getElementById("customer-extra-info") as HTMLElement;
     status.hidden = true;
@@ -1274,6 +2468,9 @@ import Layout from "../../layouts/Layout.astro";
     }
 
     detail.hidden = false;
+    if (titleEl) {
+      titleEl.textContent = contact.name ? `Contact details: ${contact.name}` : `Contact details: ${contact.email}`;
+    }
     badgesRow.innerHTML = renderRoleBadges(contact.roles);
     (document.getElementById("cd-email") as HTMLInputElement).value = contact.email;
     (document.getElementById("cd-name") as HTMLInputElement).value = contact.name || "";
@@ -1301,12 +2498,17 @@ import Layout from "../../layouts/Layout.astro";
       try {
         const r = await api("/api/admin/customers", {
           method: "POST",
-          body: JSON.stringify({ customerId: contact.id.startsWith("sub-") || contact.id.startsWith("ct-") ? undefined : contact.id, email, name: name || null, phone: phone || null }),
+          body: JSON.stringify({
+            customerId: contact.id,
+            email,
+            name: name || null,
+            phone: phone || null,
+          }),
         });
         const data = await r.json();
         if (r.ok) {
           showHint(status, "Saved.", true);
-          patchCustomerRow(data.customer || { id: contact.id, email, name, createdAt: contact.createdAt });
+          patchCustomerRow(data.customer || { id: contact.id, email, name, phone, createdAt: contact.createdAt });
         } else {
           showHint(status, data.error || "Failed to save.", false);
         }
@@ -1566,10 +2768,11 @@ import Layout from "../../layouts/Layout.astro";
       ARCHIVED: '<span class="admin-status-chip" data-status="VOID">ARCHIVED</span>',
     };
 
+    const eventSubtitle = d.product.tagline ? `<div class="admin-muted" style="font-size:0.75rem; margin-top: 2px;">${esc(d.product.tagline)}</div>` : '';
     return `
       <tr data-batch-drop-row data-drop-id="${esc(d.id)}">
         <td><span class="admin-drop-code">${esc(d.dropCode)}</span></td>
-        <td><strong>${esc(d.product.name)}</strong></td>
+        <td><strong>${esc(d.product.name)}</strong>${eventSubtitle}</td>
         <td>${esc(d.totalUnits)} total</td>
         <td>${esc(releaseStr)}</td>
         <td>${statusMap[d.status] || esc(d.status)}</td>
@@ -1591,7 +2794,7 @@ import Layout from "../../layouts/Layout.astro";
       if (productSelect) {
         productSelect.innerHTML =
           '<option value="">Select a product…</option>' +
-          products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+          products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}${p.tagline ? ` (${esc(p.tagline)})` : ''}</option>`).join("");
       }
 
       if (drops.length === 0) {
@@ -1781,8 +2984,61 @@ import Layout from "../../layouts/Layout.astro";
       // Let the next click retry the import in case this failure was a
       // transient network hiccup rather than something permanently wrong.
       qrModulePromise = null;
-      window.alert("Couldn't generate that QR code — check your network connection and try again.");
+      window.alert("Couldn't generate that QR code. Check your network connection and try again.");
     }
+  }
+
+  const dropDataMap = new Map<string, DropSummary>();
+
+  function renderDropUnitsTable(dropId: string) {
+    const drop = dropDataMap.get(dropId);
+    if (!drop) return;
+    const drawer = document.querySelector(`[data-units-drawer="${dropId}"]`);
+    if (!drawer) return;
+    const searchInput = drawer.querySelector<HTMLInputElement>(`[data-unit-search="${dropId}"]`);
+    const query = (searchInput?.value || "").trim().toLowerCase();
+    const activePill = drawer.querySelector<HTMLButtonElement>(`[data-unit-pill="${dropId}"].is-active`);
+    const filterStatus = activePill?.dataset.filter || "all";
+
+    let filtered = [...drop.units];
+    if (filterStatus !== "all") {
+      if (filterStatus === "SOLD") {
+        filtered = filtered.filter((u) => u.status === "SOLD" || u.status === "SHIPPED" || u.status === "DELIVERED");
+      } else {
+        filtered = filtered.filter((u) => u.status === filterStatus);
+      }
+    }
+    if (query) {
+      filtered = filtered.filter((u) => u.serial.toLowerCase().includes(query) || String(u.editionNumber).includes(query));
+    }
+
+    const tbody = drawer.querySelector<HTMLTableSectionElement>(`[data-units-tbody="${dropId}"]`);
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">No matching units found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered
+      .map(
+        (u) => `
+          <tr>
+            <td><span class="admin-edition-pill">#${u.editionNumber}</span></td>
+            <td><code class="admin-code">${esc(u.serial)}</code></td>
+            <td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td>
+            <td style="text-align: right; white-space: nowrap;">
+              <a href="/passport?serial=${encodeURIComponent(u.serial)}" target="_blank" class="btn-ghost btn-ghost--small" title="Inspect Digital Passport" style="margin-right: 6px;">Passport ↗</a>
+              <button type="button" class="btn-ghost btn-ghost--small" data-qr-btn="${esc(u.serial)}" title="Download Passport QR tag">Download QR ↓</button>
+            </td>
+          </tr>
+        `,
+      )
+      .join("");
+
+    tbody.querySelectorAll<HTMLButtonElement>("[data-qr-btn]").forEach((btn) => {
+      btn.addEventListener("click", () => downloadUnitQr(btn.dataset.qrBtn as string));
+    });
   }
 
   let inventoryLoaded = false;
@@ -1805,77 +3061,256 @@ import Layout from "../../layouts/Layout.astro";
         return;
       }
 
-      contentEl.innerHTML = drops
+      dropDataMap.clear();
+      drops.forEach((d) => dropDataMap.set(d.id, d));
+
+      let totalAllUnits = 0;
+      let totalAllInStock = 0;
+      let totalAllReserved = 0;
+      let totalAllSold = 0;
+
+      drops.forEach((d) => {
+        totalAllUnits += d.totalUnits || d.units.length || 0;
+        totalAllInStock += d.statusCounts.IN_STOCK || 0;
+        totalAllReserved += d.statusCounts.RESERVED || 0;
+        totalAllSold += (d.statusCounts.SOLD || 0) + (d.statusCounts.SHIPPED || 0) + (d.statusCounts.DELIVERED || 0);
+      });
+
+      const globalHeroHtml = `
+        <div class="admin-stat-grid" style="margin-top: 0; margin-bottom: 24px;">
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Active Drops</span>
+            <span class="admin-stat-value">${drops.length}</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Total Units Made</span>
+            <span class="admin-stat-value">${totalAllUnits}</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">In Stock Ready to Ship</span>
+            <span class="admin-stat-value admin-stat-value--instock">${totalAllInStock}</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Active Bag Reservations</span>
+            <span class="admin-stat-value admin-stat-value--reserved">${totalAllReserved}</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Total Units Sold</span>
+            <span class="admin-stat-value admin-stat-value--sold">${totalAllSold}</span>
+          </div>
+        </div>
+      `;
+
+      const dropsHtml = drops
         .map((drop) => {
-          const countsHtml =
-            Object.entries(drop.statusCounts)
-              .map(
-                ([status, count]) =>
-                  `<li><span class="admin-status-chip" data-status="${status}">${UNIT_STATUS_LABELS[status] || status}</span> <strong>${count}</strong></li>`,
-              )
-              .join("") || "<li>No units yet</li>";
           const inStockCount = drop.statusCounts.IN_STOCK || 0;
           const reservedCount = drop.statusCounts.RESERVED || 0;
+          const soldCount = (drop.statusCounts.SOLD || 0) + (drop.statusCounts.SHIPPED || 0) + (drop.statusCounts.DELIVERED || 0);
           const voidCount = drop.statusCounts.VOID || 0;
-          const unitsRows = drop.units
-            .map(
-              (u) =>
-                `<tr><td>${esc(u.serial)}</td><td>${u.editionNumber}</td><td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td><td><button type="button" class="admin-link-btn" data-qr-btn="${esc(u.serial)}">Download QR</button></td></tr>`,
-            )
-            .join("");
+          const accounted = inStockCount + reservedCount + soldCount + voidCount;
+          const totalBase = Math.max(accounted, drop.totalUnits, 1);
+
+          const pctSold = Math.min(100, Math.round((soldCount / totalBase) * 100));
+          const pctReserved = Math.min(100 - pctSold, Math.round((reservedCount / totalBase) * 100));
+          const pctInStock = Math.min(100 - pctSold - pctReserved, Math.round((inStockCount / totalBase) * 100));
+          const pctVoid = Math.max(0, 100 - pctSold - pctReserved - pctInStock);
+          const pctAllocated = pctSold + pctReserved;
+
+          const dropStatus = drop.status || "UPCOMING";
+          const dropStatusChip = dropStatus === "LIVE"
+            ? `<span class="admin-status-chip" data-status="IN_STOCK">LIVE</span>`
+            : dropStatus === "UPCOMING"
+              ? `<span class="admin-status-chip" data-status="RESERVED">UPCOMING</span>`
+              : dropStatus === "SOLD_OUT"
+                ? `<span class="admin-status-chip" data-status="SOLD">SOLD OUT</span>`
+                : `<span class="admin-status-chip" data-status="VOID">${esc(dropStatus)}</span>`;
+
           return `
         <div class="admin-card" data-drop-card="${drop.id}">
           <div class="admin-drop-card">
-            <img class="admin-drop-photo" src="${esc(drop.product.imageUrl || "")}" alt="${esc(drop.product.name)}" onerror="this.style.visibility='hidden'" />
+            <div class="admin-drop-photo-wrap">
+              <img class="admin-drop-photo" src="${esc(drop.product.imageUrl || "")}" alt="${esc(drop.product.name)}" onerror="this.style.visibility='hidden'" />
+            </div>
             <div class="admin-drop-body">
-              <h2>${esc(drop.product.name)}<span class="admin-drop-code">${esc(drop.dropCode)}</span> <span class="admin-muted">(${drop.status})</span></h2>
-              <ul class="admin-list admin-list--inline">${countsHtml}</ul>
-              <p class="admin-muted">${drop.totalUnits} unit(s) total${drop.releaseAt ? ` · released ${new Date(drop.releaseAt).toLocaleDateString()}` : ""}</p>
-
-              <button type="button" class="admin-units-toggle" data-units-toggle="${drop.id}">Show all ${drop.units.length} unit(s) &amp; serials ▾</button>
-              <table class="admin-units-table" data-units-table="${drop.id}" hidden>
-                <thead><tr><th>Serial</th><th>Edition</th><th>Status</th><th>Passport QR</th></tr></thead>
-                <tbody>${unitsRows || '<tr><td colspan="4">No units yet</td></tr>'}</tbody>
-              </table>
-
-              <div class="admin-restock-row">
-                <div class="admin-field-row">
-                  <label for="restock-qty-${drop.id}">Add stock</label>
-                  <input id="restock-qty-${drop.id}" type="number" min="1" max="500" step="1" value="10" />
-                  <button class="btn-primary" data-restock-btn="${drop.id}" title="Adds new numbered units to this drop">+ Add units</button>
+              <div class="admin-drop-header">
+                <div class="admin-drop-header-info">
+                  <span class="admin-drop-badge">${esc(drop.dropCode)}</span>
+                  <a href="/shop/${encodeURIComponent(drop.product.slug)}" target="_blank" class="admin-drop-product-link" title="Open storefront product page">
+                    ${esc(drop.product.name)} ↗
+                  </a>
                 </div>
-                <div class="admin-field-row">
-                  <label for="void-qty-${drop.id}">Remove stock</label>
-                  <input id="void-qty-${drop.id}" type="number" min="1" max="${Math.max(1, inStockCount)}" step="1" value="1" ${inStockCount === 0 ? "disabled" : ""} />
-                  <button class="btn-danger" data-void-btn="${drop.id}" title="Undoes an accidental restock — only removes in-stock units, never a reserved or sold one" ${inStockCount === 0 ? "disabled" : ""}>− Remove units</button>
+                <div class="admin-drop-header-status">
+                  ${dropStatusChip}
+                </div>
+              </div>
+
+              <div class="admin-drop-meta-tags">
+                <span class="admin-drop-meta-item"><strong>SKU:</strong> <code class="admin-code">${esc(drop.product.sku || drop.dropCode)}</code></span>
+                <span class="admin-drop-meta-item">·</span>
+                <span class="admin-drop-meta-item"><strong>Total Run:</strong> ${drop.totalUnits} units</span>
+                ${drop.releaseAt ? `
+                  <span class="admin-drop-meta-item">·</span>
+                  <span class="admin-drop-meta-item"><strong>Released:</strong> ${new Date(drop.releaseAt).toLocaleDateString()}</span>
+                ` : ""}
+              </div>
+
+              <div class="admin-stat-grid">
+                <div class="admin-stat-card">
+                  <span class="admin-stat-label">In Stock</span>
+                  <span class="admin-stat-value admin-stat-value--instock">${inStockCount}</span>
+                </div>
+                <div class="admin-stat-card">
+                  <span class="admin-stat-label">Reserved (Cart)</span>
+                  <span class="admin-stat-value admin-stat-value--reserved">${reservedCount}</span>
+                </div>
+                <div class="admin-stat-card">
+                  <span class="admin-stat-label">Units Sold</span>
+                  <span class="admin-stat-value admin-stat-value--sold">${soldCount}</span>
                 </div>
                 ${
                   voidCount > 0
-                    ? `<div class="admin-field-row">
-                         <label for="undo-void-qty-${drop.id}">Bring back</label>
-                         <input id="undo-void-qty-${drop.id}" type="number" min="1" max="${voidCount}" step="1" value="1" />
-                         <button class="btn-ghost" data-undo-void-btn="${drop.id}" title="Brings the most recently voided units back to In stock — safe, nothing was deleted">↺ Undo void</button>
+                    ? `<div class="admin-stat-card">
+                         <span class="admin-stat-label">Voided</span>
+                         <span class="admin-stat-value admin-stat-value--void">${voidCount}</span>
                        </div>`
                     : ""
                 }
+                <div class="admin-stat-card">
+                  <span class="admin-stat-label">Total Edition</span>
+                  <span class="admin-stat-value">${drop.totalUnits}</span>
+                </div>
               </div>
-              <p class="admin-muted">Remove takes back the most recently added in-stock units — it can never touch a unit that's already reserved or sold.</p>
-              ${
-                reservedCount > 0
-                  ? `<div class="admin-field-row">
-                       <button class="btn-ghost" data-release-stale-btn="${drop.id}" title="Hands back units stuck in Reserved from an abandoned checkout whose expiry webhook never arrived — only touches reservations older than 30 minutes, never one a customer might still be mid-payment on">↺ Release stuck reservations</button>
-                       <span class="admin-muted">${reservedCount} unit(s) currently Reserved</span>
-                     </div>`
-                  : ""
-              }
-              ${
-                voidCount > 0
-                  ? `<div class="admin-field-row">
-                       <button class="btn-danger" data-delete-void-btn="${drop.id}" title="Permanently deletes every voided unit on this drop from the database — cannot be undone">⨯ Permanently delete ${voidCount} voided unit(s)</button>
-                       <span class="admin-muted">Frees these edition numbers for the next restock. Only safe if none of these serials were ever printed on a real tag.</span>
-                     </div>`
-                  : ""
-              }
+
+              <div class="admin-drop-progress">
+                <div class="admin-drop-progress-header">
+                  <span class="admin-drop-progress-title">Allocation &amp; Velocity</span>
+                  <span class="admin-drop-progress-stat">
+                    <strong>${pctAllocated}% Allocated</strong> (${soldCount} sold, ${reservedCount} in cart, ${inStockCount} available)
+                  </span>
+                </div>
+                <div class="admin-drop-bar" aria-label="Drop allocation breakdown">
+                  ${pctSold > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--sold" style="width: ${pctSold}%" title="${soldCount} Sold (${pctSold}%)"></div>` : ""}
+                  ${pctReserved > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--reserved" style="width: ${pctReserved}%" title="${reservedCount} Reserved (${pctReserved}%)"></div>` : ""}
+                  ${pctInStock > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--instock" style="width: ${pctInStock}%" title="${inStockCount} In Stock (${pctInStock}%)"></div>` : ""}
+                  ${voidCount > 0 ? `<div class="admin-drop-bar-seg admin-drop-bar-seg--void" style="width: ${pctVoid}%" title="${voidCount} Voided (${pctVoid}%)"></div>` : ""}
+                </div>
+                <div class="admin-drop-progress-legend">
+                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--sold"></span> Sold (${soldCount})</span>
+                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--reserved"></span> Reserved (${reservedCount})</span>
+                  <span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--instock"></span> Available (${inStockCount})</span>
+                  ${voidCount > 0 ? `<span class="admin-legend-item"><span class="admin-legend-dot admin-legend-dot--void"></span> Voided (${voidCount})</span>` : ""}
+                </div>
+              </div>
+
+              <button type="button" class="btn-ghost btn-ghost--small" data-units-toggle="${drop.id}" style="margin-top: 6px; margin-bottom: 12px;">
+                Show all ${drop.units.length} unit(s) &amp; passport serials ▾
+              </button>
+
+              <div class="admin-units-drawer" data-units-drawer="${drop.id}" hidden>
+                <div class="admin-units-toolbar">
+                  <div class="admin-units-filter-group" data-unit-filters="${drop.id}">
+                    <button type="button" class="admin-pill admin-pill--small is-active" data-unit-pill="${drop.id}" data-filter="all">All (${drop.units.length})</button>
+                    <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="IN_STOCK">In Stock (${inStockCount})</button>
+                    <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="RESERVED">Reserved (${reservedCount})</button>
+                    <button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="SOLD">Sold (${soldCount})</button>
+                    ${voidCount > 0 ? `<button type="button" class="admin-pill admin-pill--small" data-unit-pill="${drop.id}" data-filter="VOID">Voided (${voidCount})</button>` : ""}
+                  </div>
+                  <input type="search" placeholder="Search serial or #…" class="admin-search-input admin-search-input--small" data-unit-search="${drop.id}" />
+                </div>
+
+                <table class="admin-table" data-units-table="${drop.id}">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px;">Edition</th>
+                      <th>Serial Key</th>
+                      <th>Status</th>
+                      <th style="text-align: right;">Digital Passport &amp; Tag</th>
+                    </tr>
+                  </thead>
+                  <tbody data-units-tbody="${drop.id}">
+                    ${
+                      drop.units
+                        .map(
+                          (u) => `
+                      <tr>
+                        <td><span class="admin-edition-pill">#${u.editionNumber}</span></td>
+                        <td><code class="admin-code">${esc(u.serial)}</code></td>
+                        <td><span class="admin-status-chip" data-status="${u.status}">${UNIT_STATUS_LABELS[u.status] || u.status}</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                          <a href="/passport?serial=${encodeURIComponent(u.serial)}" target="_blank" class="btn-ghost btn-ghost--small" title="Inspect Digital Passport" style="margin-right: 6px;">Passport ↗</a>
+                          <button type="button" class="btn-ghost btn-ghost--small" data-qr-btn="${esc(u.serial)}" title="Download Passport QR tag">Download QR ↓</button>
+                        </td>
+                      </tr>
+                    `,
+                        )
+                        .join("") || '<tr><td colspan="4" class="admin-table__empty">No units yet</td></tr>'
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="admin-drop-tools">
+                <div class="admin-tool-box admin-tool-box--primary">
+                  <div>
+                    <div class="admin-tool-box-header">
+                      <h4>Produce &amp; Add Stock</h4>
+                      <span class="admin-muted" style="font-size:0.75rem;">Next edition: #${drop.units.length + 1}</span>
+                    </div>
+                    <p class="admin-tool-box-desc">Creates new numbered kit blanks for this drop, stamping consecutive edition numbers and unique digital passport hashes.</p>
+                  </div>
+                  <div class="admin-tool-box-action">
+                    <div class="admin-field-row" style="margin: 0; flex: 1;">
+                      <label for="restock-qty-${drop.id}">Quantity</label>
+                      <input id="restock-qty-${drop.id}" type="number" min="1" max="500" step="1" value="10" />
+                    </div>
+                    <button class="btn-primary" data-restock-btn="${drop.id}" title="Adds new numbered units to this drop">+ Add units</button>
+                  </div>
+                </div>
+
+                <div class="admin-tool-box">
+                  <div>
+                    <div class="admin-tool-box-header">
+                      <h4>Stock Adjustments &amp; Safety</h4>
+                    </div>
+                    <p class="admin-tool-box-desc">Safely adjust in-stock counts or recover abandoned reservation locks without touching sold or registered units.</p>
+                  </div>
+                  <div class="admin-tool-actions-list">
+                    <div class="admin-tool-action-row">
+                      <div class="admin-field-row" style="margin: 0;">
+                        <label for="void-qty-${drop.id}">Withdraw</label>
+                        <input id="void-qty-${drop.id}" type="number" min="1" max="${Math.max(1, inStockCount)}" step="1" value="1" ${inStockCount === 0 ? "disabled" : ""} style="width: 68px;" />
+                        <button class="btn-ghost btn-ghost--small" data-void-btn="${drop.id}" title="Undoes an accidental restock: only removes in-stock units, never a reserved or sold one" ${inStockCount === 0 ? "disabled" : ""}>− Remove units</button>
+                      </div>
+                      ${
+                        voidCount > 0
+                          ? `<div class="admin-field-row" style="margin: 0;">
+                               <label for="undo-void-qty-${drop.id}">Reactivate</label>
+                               <input id="undo-void-qty-${drop.id}" type="number" min="1" max="${voidCount}" step="1" value="1" style="width: 68px;" />
+                               <button class="btn-ghost btn-ghost--small" data-undo-void-btn="${drop.id}" title="Brings the most recently voided units back to In stock">↺ Undo void</button>
+                             </div>`
+                          : ""
+                      }
+                    </div>
+
+                    <div class="admin-tool-action-row admin-tool-action-row--subtle">
+                      ${
+                        reservedCount > 0
+                          ? `<button class="btn-ghost btn-ghost--small" data-release-stale-btn="${drop.id}" title="Hands back units stuck in Reserved from an abandoned checkout whose expiry webhook never arrived (older than 30 minutes)">
+                               ↺ Release stuck reservations (${reservedCount})
+                             </button>`
+                          : ""
+                      }
+                      ${
+                        voidCount > 0
+                          ? `<button class="btn-danger btn-danger--small" data-delete-void-btn="${drop.id}" title="Permanently deletes every voided unit on this drop from the database">
+                               ⨯ Purge ${voidCount} voided unit(s)
+                             </button>`
+                          : ""
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
               <p class="admin__hint" data-restock-status="${drop.id}" hidden></p>
             </div>
           </div>
@@ -1883,13 +3318,37 @@ import Layout from "../../layouts/Layout.astro";
         })
         .join("");
 
+      contentEl.innerHTML = globalHeroHtml + dropsHtml;
+
+      // Bind units toggle
       contentEl.querySelectorAll<HTMLButtonElement>("[data-units-toggle]").forEach((toggle) => {
         toggle.addEventListener("click", () => {
           const dropId = toggle.dataset.unitsToggle as string;
-          const table = document.querySelector(`[data-units-table="${dropId}"]`) as HTMLElement;
-          table.hidden = !table.hidden;
-          const count = table.querySelectorAll("tbody tr").length;
-          toggle.textContent = table.hidden ? `Show all ${count} unit(s) & serials ▾` : `Hide unit list ▴`;
+          const drawer = document.querySelector(`[data-units-drawer="${dropId}"]`) as HTMLElement;
+          if (!drawer) return;
+          drawer.hidden = !drawer.hidden;
+          const drop = dropDataMap.get(dropId);
+          const count = drop ? drop.units.length : 0;
+          toggle.textContent = drawer.hidden ? `Show all ${count} unit(s) & passport serials ▾` : `Hide unit list & passport serials ▴`;
+        });
+      });
+
+      // Bind unit filter pills and search inputs
+      contentEl.querySelectorAll<HTMLInputElement>("[data-unit-search]").forEach((input) => {
+        input.addEventListener("input", () => {
+          const dropId = input.dataset.unitSearch as string;
+          renderDropUnitsTable(dropId);
+        });
+      });
+
+      contentEl.querySelectorAll<HTMLDivElement>("[data-unit-filters]").forEach((filterGroup) => {
+        filterGroup.addEventListener("click", (e) => {
+          const pill = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-unit-pill]");
+          if (!pill) return;
+          const dropId = pill.dataset.unitPill as string;
+          filterGroup.querySelectorAll("[data-unit-pill]").forEach((p) => p.classList.remove("is-active"));
+          pill.classList.add("is-active");
+          renderDropUnitsTable(dropId);
         });
       });
 
@@ -1983,7 +3442,7 @@ import Layout from "../../layouts/Layout.astro";
                 status,
                 data.unitsReleased > 0
                   ? `Released ${data.unitsReleased} unit(s): ${data.releasedSerials.join(", ")}.`
-                  : "Nothing to release — no reservation is over 30 minutes old.",
+                  : "Nothing to release: no reservation is over 30 minutes old.",
                 true,
               );
               loadInventory(true);
@@ -2034,7 +3493,7 @@ import Layout from "../../layouts/Layout.astro";
           const status = document.querySelector(`[data-restock-status="${dropId}"]`) as HTMLElement;
           if (
             !window.confirm(
-              "Permanently delete every voided unit on this drop? This cannot be undone, and only makes sense if none of those serials were ever printed on a real QR tag/postcard — reusing a printed serial breaks its link to the physical kit.",
+              "Permanently delete every voided unit on this drop? This cannot be undone, and only makes sense if none of those serials were ever printed on a real QR tag/postcard; reusing a printed serial breaks its link to the physical kit.",
             )
           ) {
             return;
@@ -2051,7 +3510,7 @@ import Layout from "../../layouts/Layout.astro";
                 status,
                 data.unitsDeleted > 0
                   ? `Permanently deleted ${data.unitsDeleted} unit(s): ${data.deletedSerials.join(", ")}.`
-                  : "Nothing to delete — no voided units on this drop.",
+                  : "Nothing to delete: no voided units on this drop.",
                 true,
               );
               loadInventory(true);
@@ -2069,6 +3528,8 @@ import Layout from "../../layouts/Layout.astro";
       loadingEl.textContent = "Couldn't load inventory.";
     }
   }
+
+  document.getElementById("inventory-refresh")?.addEventListener("click", () => loadInventory(true));
 
   // --- Pricing ---
   let productLoaded = false;
@@ -2163,7 +3624,7 @@ import Layout from "../../layouts/Layout.astro";
         (v) => v === null,
       )
     ) {
-      return showHint(status, "Check the dollar fields — one of them isn't a valid number.", false);
+      return showHint(status, "Check the dollar fields: one of them isn't a valid number.", false);
     }
 
     const recipe = {
@@ -2190,7 +3651,7 @@ import Layout from "../../layouts/Layout.astro";
       if (res.ok) {
         showHint(
           status,
-          `Recalculated — cost ${money(data.costCalc.totalCostCents)}, new price ${money(data.product.basePriceCents)}.`,
+          `Recalculated: cost ${money(data.costCalc.totalCostCents)}, new price ${money(data.product.basePriceCents)}.`,
           true,
         );
       } else {
@@ -2239,17 +3700,17 @@ import Layout from "../../layouts/Layout.astro";
     const deliveryFeeOverrideCents = deliveryFeeStr ? dollarsToCents(deliveryFeeStr) : undefined;
     if (deliveryFeeStr && deliveryFeeOverrideCents === null) return showHint(status, "Delivery fee override isn't a valid number.", false);
     if ((type === "COMMISSION" || type === "OTHER") && unitPriceCents === undefined) {
-      if (!window.confirm("No price override set — this will default to the current retail price. Continue?")) {
+      if (!window.confirm("No price override set; this will default to the current retail price. Continue?")) {
         return;
       }
     }
     if ((deliveryMethod === "SELF_DELIVERY" || deliveryMethod === "AUSPOST") && !postcode && deliveryFeeOverrideCents === undefined) {
-      if (!window.confirm("No postcode or delivery fee override set — this order will be charged $0 delivery. Continue?")) {
+      if (!window.confirm("No postcode or delivery fee override set; this order will be charged $0 delivery. Continue?")) {
         return;
       }
     }
     if ((addressLine1 || suburb || state) && !(addressLine1 && suburb && state && postcode)) {
-      if (!window.confirm("The shipping address looks incomplete (needs address line 1, suburb, state and postcode) — it won't be saved. Continue anyway?")) {
+      if (!window.confirm("The shipping address looks incomplete (needs address line 1, suburb, state and postcode); it won't be saved. Continue anyway?")) {
         return;
       }
     }
@@ -2285,7 +3746,7 @@ import Layout from "../../layouts/Layout.astro";
       if (res.ok) {
         showHint(
           status,
-          `Order ${data.order.orderNumber} created${paymentStatus === "UNPAID" ? " as an unpaid quote." : "."} (delivery ${money(data.order.deliveryFeeCents, data.order.currency)})${sendEmail ? (data.emailSent ? " — confirmation emailed." : " — email failed to send.") : ""}`,
+          `Order ${data.order.orderNumber} created${paymentStatus === "UNPAID" ? " as an unpaid quote." : "."} (delivery ${money(data.order.deliveryFeeCents, data.order.currency)})${sendEmail ? (data.emailSent ? " (confirmation emailed)" : " (email failed to send)") : ""}`,
           true,
         );
         (document.getElementById("mo-email") as HTMLInputElement).value = "";

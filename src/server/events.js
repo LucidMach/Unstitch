@@ -97,7 +97,33 @@ export default async function handler(req, res) {
         }
       : null;
 
-    return sendJson(res, 200, { upcoming, past, nextBatchDrop });
+    // Active raffle: nearest upcoming event with open raffle, OR any event with an active open raffle
+    const raffleCandidate =
+      (nearest?.raffleEnabled && nearest.raffleClosesAt && nearest.raffleClosesAt.getTime() > now ? nearest : null) ||
+      events.find(
+        (e) =>
+          e.raffleEnabled &&
+          (!e.raffleClosesAt || e.raffleClosesAt.getTime() > now)
+      ) ||
+      null;
+
+    const activeRaffle = raffleCandidate
+      ? {
+          slug: raffleCandidate.slug,
+          title: raffleCandidate.title,
+          color: raffleCandidate.color || null,
+          raffleEnabled: raffleCandidate.raffleEnabled,
+          raffleOpen: !!(
+            raffleCandidate.raffleEnabled &&
+            (!raffleCandidate.raffleClosesAt || raffleCandidate.raffleClosesAt.getTime() > now)
+          ),
+          raffleButtonLabel: raffleCandidate.raffleButtonLabel,
+          raffleClosesAt: raffleCandidate.raffleClosesAt,
+          raffleDrawCopy: raffleCandidate.raffleDrawCopy,
+        }
+      : null;
+
+    return sendJson(res, 200, { upcoming, past, nextBatchDrop, activeRaffle });
   } catch (err) {
     console.error('[events] Lookup failed:', err);
     return sendJson(res, 500, { error: 'Unable to load events.' });

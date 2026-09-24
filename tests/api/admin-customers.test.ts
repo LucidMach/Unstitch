@@ -216,4 +216,152 @@ describe('admin/customers API handler', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.customer.name).toBe('New Name');
   });
+
+  it('updates a subscriber entry via POST (e.g. raffle or newsletter entry)', async () => {
+    vi.spyOn(prisma.subscriber, 'findUnique').mockImplementation(async ({ where }: any) => {
+      if (where.id === 42) {
+        return {
+          id: 42,
+          email: 'raffle-entrant@example.com',
+          name: 'Old Entrant',
+          source: 'zwf-raffle-draw',
+          createdAt: new Date('2026-09-12T00:00:00Z'),
+        } as any;
+      }
+      return null;
+    });
+
+    vi.spyOn(prisma.subscriber, 'update').mockResolvedValue({
+      id: 42,
+      email: 'raffle-updated@example.com',
+      name: 'Updated Entrant',
+      source: 'zwf-raffle-draw',
+      createdAt: new Date('2026-09-12T00:00:00Z'),
+    } as any);
+
+    vi.spyOn(prisma.customer, 'findFirst').mockResolvedValue(null);
+
+    const req: any = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        customerId: 'sub-42',
+        email: 'raffle-updated@example.com',
+        name: 'Updated Entrant',
+        phone: '0499887766',
+      },
+    };
+    const res = createMockRes();
+    await customersHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.customer.id).toBe('sub-42');
+    expect(res.body.customer.email).toBe('raffle-updated@example.com');
+    expect(res.body.customer.name).toBe('Updated Entrant');
+  });
+
+  it('updates a contact submission entry via POST', async () => {
+    vi.spyOn(prisma.contactSubmission, 'findUnique').mockImplementation(async ({ where }: any) => {
+      if (where.id === 7) {
+        return {
+          id: 7,
+          email: 'inquiry@example.com',
+          name: 'Initial Name',
+          phone: null,
+          subject: 'Custom inquiry',
+          message: 'Hello',
+          createdAt: new Date('2026-03-01T00:00:00Z'),
+        } as any;
+      }
+      return null;
+    });
+
+    vi.spyOn(prisma.contactSubmission, 'update').mockResolvedValue({
+      id: 7,
+      email: 'inquiry@example.com',
+      name: 'Corrected Name',
+      phone: '0411223344',
+      subject: 'Custom inquiry',
+      message: 'Hello',
+      createdAt: new Date('2026-03-01T00:00:00Z'),
+    } as any);
+
+    vi.spyOn(prisma.customer, 'findFirst').mockResolvedValue(null);
+
+    const req: any = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        customerId: 'ct-7',
+        email: 'inquiry@example.com',
+        name: 'Corrected Name',
+        phone: '0411223344',
+      },
+    };
+    const res = createMockRes();
+    await customersHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.customer.id).toBe('ct-7');
+    expect(res.body.customer.name).toBe('Corrected Name');
+    expect(res.body.customer.phone).toBe('0411223344');
+  });
+
+  it('retrieves individual subscriber or contact submission via GET ?id=', async () => {
+    vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue({
+      id: 5,
+      email: 'fan@example.com',
+      name: 'Fan',
+      source: 'newsletter',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    } as any);
+
+    const req: any = {
+      method: 'GET',
+      headers: { cookie: adminCookieHeader() },
+      url: '/api/admin/customers?id=sub-5',
+    };
+    const res = createMockRes();
+    await customersHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.customer.email).toBe('fan@example.com');
+    expect(res.body.customer.id).toBe('sub-5');
+  });
+
+  it('updates a contact by email when customerId is undefined or omitted', async () => {
+    vi.spyOn(prisma.customer, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue({
+      id: 99,
+      email: 'subscriber@example.com',
+      name: 'Old Name',
+      source: 'newsletter',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    } as any);
+
+    vi.spyOn(prisma.subscriber, 'update').mockResolvedValue({
+      id: 99,
+      email: 'subscriber@example.com',
+      name: 'Brand New Name',
+      source: 'newsletter',
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    } as any);
+
+    vi.spyOn(prisma.customer, 'findFirst').mockResolvedValue(null);
+
+    const req: any = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        email: 'subscriber@example.com',
+        name: 'Brand New Name',
+      },
+    };
+    const res = createMockRes();
+    await customersHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.customer.name).toBe('Brand New Name');
+    expect(res.body.customer.id).toBe('sub-99');
+  });
 });

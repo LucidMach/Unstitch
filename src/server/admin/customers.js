@@ -11,12 +11,17 @@ import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
 
-const UpdateCustomerSchema = z.object({
-  customerId: z.string().uuid(),
-  email: z.string().trim().toLowerCase().email('Enter a valid email').optional(),
-  name: z.string().trim().max(200).optional().nullable(),
-  phone: z.string().trim().max(40).optional().nullable(),
-});
+const UpdateCustomerSchema = z
+  .object({
+    customerId: z.string().trim().min(1).optional(),
+    email: z.string().trim().toLowerCase().email('Enter a valid email').optional(),
+    name: z.string().trim().max(200).optional().nullable(),
+    phone: z.string().trim().max(40).optional().nullable(),
+  })
+  .refine((data) => !!(data.customerId || data.email), {
+    message: 'Either customerId or email is required.',
+    path: ['customerId'],
+  });
 
 export default async function handler(req, res) {
   if (!prisma) return sendJson(res, 503, { error: 'Not configured' });
@@ -29,10 +34,152 @@ export default async function handler(req, res) {
       const formatted = formatZodError(parseResult.error);
       return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
     }
-    const { customerId, email, name, phone } = parseResult.data;
+    let { customerId, email, name, phone } = parseResult.data;
     try {
-      const existing = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customerId && email) {
+        const cust = await prisma.customer.findUnique({ where: { email } });
+        if (cust) {
+          customerId = cust.id;
+        } else {
+          const sub = await prisma.subscriber.findUnique({ where: { email } });
+          if (sub) {
+            customerId = `sub-${sub.id}`;
+          } else {
+            const ct = await prisma.contactSubmission.findFirst({ where: { email } });
+            if (ct) {
+              customerId = `ct-${ct.id}`;
+            }
+          }
+        }
+      }
+
+      if (!customerId) {
+        return sendJson(res, 404, { error: 'Customer or contact entry not found.' });
+      }
+
+      if (customerId.startsWith('sub-')) {
+        const subId = parseInt(customerId.slice(4), 10);
+        if (isNaN(subId)) return sendJson(res, 400, { error: 'Invalid subscriber ID.' });
+
+        const existing = await prisma.subscriber.findUnique({ where: { id: subId } });
+        if (!existing) return sendJson(res, 404, { error: 'Subscriber entry not found.' });
+
+        if (email && email !== existing.email) {
+          const clash = await prisma.subscriber.findUnique({ where: { email } });
+          if (clash) {
+            return sendJson(res, 409, { error: `Another subscriber already uses ${email}.` });
+          }
+        }
+
+        const updated = await prisma.subscriber.update({
+          where: { id: subId },
+          data: {
+            email: email ?? undefined,
+            name: name === undefined ? undefined : name || null,
+          },
+        });
+
+        try {
+          const existingCust = await prisma.customer.findFirst({
+            where: { OR: [{ email: existing.email }, { email: updated.email }] },
+          });
+          if (existingCust) {
+            await prisma.customer.update({
+              where: { id: existingCust.id },
+              data: {
+                email: email ?? undefined,
+                name: name === undefined ? undefined : name || null,
+                phone: phone === undefined ? undefined : phone || null,
+              },
+            });
+          } else if (phone) {
+            await prisma.customer.create({
+              data: {
+                email: updated.email,
+                name: updated.name || null,
+                phone: phone || null,
+              },
+            });
+          }
+        } catch (syncErr) {
+          console.warn('[admin/customers] Sync customer error (non-fatal):', syncErr);
+        }
+
+        return sendJson(res, 200, {
+          customer: {
+            id: customerId,
+            email: updated.email,
+            name: updated.name,
+            phone: phone || null,
+            createdAt: updated.createdAt,
+          },
+        });
+      }
+
+      if (customerId.startsWith('ct-')) {
+        const ctId = parseInt(customerId.slice(3), 10);
+        if (isNaN(ctId)) return sendJson(res, 400, { error: 'Invalid contact ID.' });
+
+        const existing = await prisma.contactSubmission.findUnique({ where: { id: ctId } });
+        if (!existing) return sendJson(res, 404, { error: 'Contact submission not found.' });
+
+        const updated = await prisma.contactSubmission.update({
+          where: { id: ctId },
+          data: {
+            email: email ?? undefined,
+            name: name === undefined ? undefined : name || undefined,
+            phone: phone === undefined ? undefined : phone || null,
+          },
+        });
+
+        try {
+          const existingCust = await prisma.customer.findFirst({
+            where: { OR: [{ email: existing.email }, { email: updated.email }] },
+          });
+          if (existingCust) {
+            await prisma.customer.update({
+              where: { id: existingCust.id },
+              data: {
+                email: email ?? undefined,
+                name: name === undefined ? undefined : name || null,
+                phone: phone === undefined ? undefined : phone || null,
+              },
+            });
+          } else if (phone) {
+            await prisma.customer.create({
+              data: {
+                email: updated.email,
+                name: updated.name || null,
+                phone: phone || null,
+              },
+            });
+          }
+        } catch (syncErr) {
+          console.warn('[admin/customers] Sync customer error (non-fatal):', syncErr);
+        }
+
+        return sendJson(res, 200, {
+          customer: {
+            id: customerId,
+            email: updated.email,
+            name: updated.name,
+            phone: updated.phone || null,
+            createdAt: updated.createdAt,
+          },
+        });
+      }
+
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(customerId);
+      let existing = null;
+      if (isUuid) {
+        existing = await prisma.customer.findUnique({ where: { id: customerId } });
+      }
+      if (!existing && email) {
+        existing = await prisma.customer.findUnique({ where: { email } });
+      }
       if (!existing) return sendJson(res, 404, { error: 'Customer not found.' });
+
+      const targetId = existing.id;
 
       if (email && email !== existing.email) {
         const clash = await prisma.customer.findUnique({ where: { email } });
@@ -42,13 +189,37 @@ export default async function handler(req, res) {
       }
 
       const customer = await prisma.customer.update({
-        where: { id: customerId },
+        where: { id: targetId },
         data: {
           email: email ?? undefined,
           name: name === undefined ? undefined : name || null,
           phone: phone === undefined ? undefined : phone || null,
         },
       });
+
+      if (email && email !== existing.email) {
+        try {
+          if (prisma.subscriber?.updateMany) {
+            await prisma.subscriber.updateMany({
+              where: { email: existing.email },
+              data: { email, name: name === undefined ? undefined : name || null },
+            });
+          }
+          if (prisma.contactSubmission?.updateMany) {
+            await prisma.contactSubmission.updateMany({
+              where: { email: existing.email },
+              data: {
+                email,
+                name: name === undefined ? undefined : name || undefined,
+                phone: phone === undefined ? undefined : phone || null,
+              },
+            });
+          }
+        } catch (syncErr) {
+          console.warn('[admin/customers] Cross-table sync non-fatal warning:', syncErr);
+        }
+      }
+
       return sendJson(res, 200, { customer });
     } catch (err) {
       console.error('[admin/customers] Update failed:', err);
@@ -67,6 +238,37 @@ export default async function handler(req, res) {
 
   try {
     if (id) {
+      if (id.startsWith('sub-')) {
+        const subId = parseInt(id.slice(4), 10);
+        const sub = await prisma.subscriber.findUnique({ where: { id: subId } });
+        if (!sub) return sendJson(res, 404, { error: 'Subscriber not found.' });
+        return sendJson(res, 200, {
+          customer: {
+            id,
+            email: sub.email,
+            name: sub.name,
+            phone: null,
+            createdAt: sub.createdAt,
+          },
+        });
+      }
+      if (id.startsWith('ct-')) {
+        const ctId = parseInt(id.slice(3), 10);
+        const ct = await prisma.contactSubmission.findUnique({ where: { id: ctId } });
+        if (!ct) return sendJson(res, 404, { error: 'Contact submission not found.' });
+        return sendJson(res, 200, {
+          customer: {
+            id,
+            email: ct.email,
+            name: ct.name,
+            phone: ct.phone,
+            createdAt: ct.createdAt,
+          },
+        });
+      }
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+      if (!isUuid) return sendJson(res, 404, { error: 'Customer not found.' });
+
       const customer = await prisma.customer.findUnique({ where: { id } });
       if (!customer) return sendJson(res, 404, { error: 'Customer not found.' });
       return sendJson(res, 200, { customer });

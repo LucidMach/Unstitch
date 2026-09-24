@@ -4,7 +4,7 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout
-  title="3D Textile Playground | Unstitch — Interactive Modular Studio"
+  title="3D Textile Playground | Unstitch: Interactive Modular Studio"
   description="Design, simulate, and fold parametric 3D modular textile creations in real-time in the Unstitch browser playground. No sewing, stitching, or glue required."
   keywords="3D textile simulation, parametric textiles, interactive 3D modeler, modular fabric builder, zero waste 3D design, Unstitch playground"
   image="/OneTileGif.gif"
@@ -23,8 +23,8 @@ import Layout from "../layouts/Layout.astro";
        event's raffle window. Hidden by default and only revealed once
        /api/events reports an upcoming event with an open raffle — auto-hides
        with zero redeployment once the raffle closing date passes. -->
-  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog" hidden>
-    Enter Raffle
+  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog" style="background-color: #6D771A; border-color: #6D771A;">
+    Enter the Raffle Draw
   </button>
 
   <div id="raffle-overlay" class="raffle-overlay" hidden></div>
@@ -35,11 +35,11 @@ import Layout from "../layouts/Layout.astro";
     </button>
 
     <div id="raffle-form-state">
-      <p class="section__eyebrow" id="raffle-eyebrow">Event Raffle</p>
+      <p class="section__eyebrow" id="raffle-eyebrow">Zero Waste Festival</p>
       <h2 id="raffle-title" class="raffle-dialog__title">Enter the Raffle Draw</h2>
-      <p class="raffle-dialog__body" id="raffle-body">Playing at our stand today? Pop in your name and email for a chance to win one of Unstitch's latest drops.</p>
+      <p class="raffle-dialog__body" id="raffle-body">Visiting our stand at Zero Waste Festival? Enter your name and email for a chance to win 1 Unstitch modular textile kit.</p>
 
-      <form id="raffle-form">
+      <form id="raffle-form" data-subscribe-form="zero-waste-festival-2026">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
         <label class="sr-only" for="raffle-name">Your name</label>
         <input id="raffle-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" required />
@@ -51,9 +51,9 @@ import Layout from "../layouts/Layout.astro";
     </div>
 
     <div id="raffle-success-state" hidden>
-      <p class="section__eyebrow" id="raffle-success-eyebrow">Event Raffle</p>
+      <p class="section__eyebrow" id="raffle-success-eyebrow">Zero Waste Festival</p>
       <h2 class="raffle-dialog__title">You're in!</h2>
-      <p class="raffle-dialog__body" id="raffle-success-body">We'll be in touch if you win. Enjoy the rest of the playground!</p>
+      <p class="raffle-dialog__body" id="raffle-success-body">Thanks for stopping by the Unstitch stand and exploring our modular textile system today! Your entry into our Zero Waste Festival Raffle Draw is confirmed.</p>
       <button type="button" class="btn btn-outline" id="raffle-done-btn">Back to Playground</button>
     </div>
   </div>
@@ -206,15 +206,15 @@ import Layout from "../layouts/Layout.astro";
     try {
       const res = await fetch('/api/events');
       if (!res.ok) return;
-      const data = (await res.json()) as { upcoming: PublicEvent | null };
-      const ev = data.upcoming;
+      const data = (await res.json()) as { upcoming: PublicEvent | null; activeRaffle?: PublicEvent | null };
+      const ev = data.activeRaffle || data.upcoming;
       if (!ev || !ev.raffleEnabled || !ev.raffleOpen) {
         // Auto-remove: stays hidden if no event, raffle disabled, or closing date passed
         openBtn.hidden = true;
         return;
       }
 
-      openBtn.textContent = ev.raffleButtonLabel || 'Enter Raffle';
+      openBtn.textContent = ev.raffleButtonLabel || 'Enter the Raffle Draw';
       if (ev.color) {
         openBtn.style.backgroundColor = ev.color;
         openBtn.style.borderColor = ev.color;

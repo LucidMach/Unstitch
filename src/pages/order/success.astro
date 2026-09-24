@@ -27,7 +27,7 @@ import Layout from "../../layouts/Layout.astro";
         <p class="order-status__eyebrow">Thank you!</p>
         <h1 class="order-status__title">Your order is confirmed</h1>
         <p class="order-status__body">
-          Order <strong data-order-number></strong> — <span data-order-total></span>
+          Order <strong data-order-number></strong>: <span data-order-total></span>
         </p>
         <p class="order-status__body">A confirmation email is on its way. We'll be in touch with shipping details soon.</p>
         <a href="/shop" class="btn btn-outline order-status__cta">Back to shop</a>
@@ -37,7 +37,7 @@ import Layout from "../../layouts/Layout.astro";
         <p class="order-status__eyebrow">Hmm</p>
         <h1 class="order-status__title">We couldn't confirm that order</h1>
         <p class="order-status__body" data-order-notfound-message>
-          If you completed payment, check your inbox for a confirmation email — it may just be catching up. If you're unsure, reach out and we'll sort it out.
+          If you completed payment, check your inbox for a confirmation email (it may just be catching up). If you're unsure, reach out and we'll sort it out.
         </p>
         <div class="order-status__actions">
           <a href="/shop" class="btn btn-outline">Back to shop</a>

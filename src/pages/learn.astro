@@ -26,11 +26,11 @@ import Layout from "../layouts/Layout.astro";
           </div>
           <div class="media-hero__content">
             <div class="wrap">
-              <div class="learn-hero__inner">
-                <p class="section__eyebrow">Up Next | Workshop</p>
-                <h1 class="learn-hero__title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h1>
-                <p class="learn-hero__body">Drop-in tile building all day, no experience needed.</p>
-                <a href="/contact?category=school-workshop-enquiry" class="btn btn-filled mt-4">Register Interest</a>
+              <div class="learn-hero__inner" id="learn-hero-slide-1">
+                <p class="section__eyebrow" id="learn-hero-eyebrow">Hands-on Workshops</p>
+                <h1 class="learn-hero__title" id="learn-hero-title">Circular Design &amp;<br />Modular Textile Studios.<br />Naarm, Melbourne.</h1>
+                <p class="learn-hero__body" id="learn-hero-body">Drop-in tile building, school incursions, and interactive public installations.</p>
+                <a href="/contact?category=school-workshop-enquiry" class="btn btn-filled mt-4" id="learn-hero-cta">Register Interest</a>
               </div>
             </div>
           </div>
@@ -530,6 +530,22 @@ import Layout from "../layouts/Layout.astro";
         }
       });
     });
+
+    fetch('/api/events')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.upcoming) {
+          const eyebrow = document.getElementById('learn-hero-eyebrow');
+          const title = document.getElementById('learn-hero-title');
+          const body = document.getElementById('learn-hero-body');
+          const cta = document.getElementById('learn-hero-cta') as HTMLAnchorElement | null;
+          if (eyebrow) eyebrow.textContent = `Up Next | ${data.upcoming.title}`;
+          if (title) title.innerHTML = `${data.upcoming.title}.<br />${data.upcoming.location || 'Melbourne'}.`;
+          if (body && data.upcoming.description) body.textContent = data.upcoming.description;
+          if (cta && data.upcoming.ctaUrl) cta.href = data.upcoming.ctaUrl;
+        }
+      })
+      .catch(() => {});
   }
 
   initLearnPage();

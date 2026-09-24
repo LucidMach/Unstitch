@@ -14,7 +14,7 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout
   title="Product Passport | Unstitch"
-  description="Look up your Unstitch kit's digital passport — edition number, care instructions, and registration."
+  description="Look up your Unstitch kit's digital passport: edition number, care instructions, and registration."
   noindex
 >
   <main>
@@ -108,7 +108,7 @@ import Layout from "../layouts/Layout.astro";
           <div id="p-register-form-wrap">
             <h2>Register this kit</h2>
             <p class="passport__body">
-              Claim your passport with your email — we'll let you know about care tips and future drops, and your reviews will show as verified.
+              Claim your passport with your email. We'll let you know about care tips and future drops, and your reviews will show as verified.
             </p>
             <form id="passport-register-form" class="passport__form passport__form--stacked">
               <input id="p-register-name" type="text" placeholder="Name (optional)" autocomplete="name" />
@@ -132,7 +132,7 @@ import Layout from "../layouts/Layout.astro";
         <section class="passport-card">
           <h2>Scan again anytime</h2>
           <p class="passport__body">
-            This same code is printed on your Unstitch Mail postcard — scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.
+            This same code is printed on your Unstitch Mail postcard. Scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.
           </p>
         </section>
 
@@ -226,7 +226,7 @@ import Layout from "../layouts/Layout.astro";
   const DEFAULT_CARE_STEPS = [
     "Unfold the Furoshiki wrap flat and lay out all your tiles by colour.",
     "Follow the fold guide on your Unstitch Mail postcard to interlock the first row.",
-    "Hand wash cold, lay flat to dry — avoid the tumble dryer.",
+    "Hand wash cold, lay flat to dry (avoid the tumble dryer).",
     "Re-fold along the original stitch lines when storing between uses.",
   ];
 
@@ -294,7 +294,7 @@ import Layout from "../layouts/Layout.astro";
     swatches.innerHTML = (unit.product.colourPalette || [])
       .map((hex) => `<span class="passport-swatch" style="background:${hex}"></span>`)
       .join("");
-    (document.getElementById("p-material") as HTMLElement).textContent = unit.product.tileMaterial || "—";
+    (document.getElementById("p-material") as HTMLElement).textContent = unit.product.tileMaterial || "-";
     (document.getElementById("p-made") as HTMLElement).textContent = `${unit.drop.madeLocation}, by hand`;
     (document.getElementById("p-status") as HTMLElement).textContent = STATUS_LABELS[unit.status] || unit.status;
 
@@ -302,7 +302,7 @@ import Layout from "../layouts/Layout.astro";
     renderDesignsSection();
 
     (document.getElementById("p-review-copy") as HTMLElement).textContent =
-      `You're the ${unit.registered ? "verified owner" : "keeper"} of edition ${unit.editionNumber} of ${unit.drop.totalUnits}. Leave a review and it'll show as "Verified — ${unit.product.name} #${unit.editionNumber} of ${unit.drop.totalUnits}."`;
+      `You're the ${unit.registered ? "verified owner" : "keeper"} of edition ${unit.editionNumber} of ${unit.drop.totalUnits}. Leave a review and it'll show as "Verified: ${unit.product.name} #${unit.editionNumber} of ${unit.drop.totalUnits}."`;
 
     const formWrap = document.getElementById("p-register-form-wrap") as HTMLElement;
     const registeredWrap = document.getElementById("p-registered-wrap") as HTMLElement;
@@ -335,7 +335,7 @@ import Layout from "../layouts/Layout.astro";
       renderUnit(data.unit);
     } catch {
       (document.getElementById("passport-error-message") as HTMLElement).textContent =
-        "Network error — please try again.";
+        "Network error. Please try again.";
       showOnly(els().error);
     }
   }
@@ -377,11 +377,11 @@ import Layout from "../layouts/Layout.astro";
       if (res.ok) {
         renderUnit(data.unit);
       } else {
-        status.textContent = data.error || "Couldn't register this kit — please try again.";
+        status.textContent = data.error || "Couldn't register this kit. Please try again.";
         status.hidden = false;
       }
     } catch {
-      status.textContent = "Network error — please try again.";
+      status.textContent = "Network error. Please try again.";
       status.hidden = false;
     } finally {
       submitBtn.disabled = false;

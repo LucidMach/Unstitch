@@ -101,7 +101,7 @@ describe('events API handler (/api/events)', () => {
     await eventsHandler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ upcoming: null, past: [], nextBatchDrop: null });
+    expect(res.body).toEqual({ upcoming: null, past: [], nextBatchDrop: null, activeRaffle: null });
   });
 
   it('correctly reports raffleOpen: true before raffleClosesAt and false after', async () => {
@@ -124,6 +124,7 @@ describe('events API handler (/api/events)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.upcoming.raffleOpen).toBe(true);
     expect(res.body.upcoming.color).toBe('#B45309');
+    expect(res.body.activeRaffle.raffleOpen).toBe(true);
 
     // Advance clock past raffleClosesAt
     vi.setSystemTime(new Date('2026-06-13T00:00:00Z'));
@@ -134,6 +135,35 @@ describe('events API handler (/api/events)', () => {
     // Effective end is June 10, so it moved to past, upcoming is null
     expect(res2.body.upcoming).toBeNull();
     expect(res2.body.past).toHaveLength(1);
+    expect(res2.body.activeRaffle).toBeNull();
+  });
+
+  it('keeps activeRaffle available even if event dates are past but raffle remains open', async () => {
+    const pastWorkshopActiveRaffle = makeEvent({
+      id: 'zwf-1',
+      slug: 'zero-waste-festival-2026',
+      title: 'Zero Waste Festival',
+      startsAt: new Date('2026-05-12T00:00:00Z'), // in the past relative to NOW (June 1)
+      endsAt: new Date('2026-05-12T18:00:00Z'),
+      raffleEnabled: true,
+      raffleClosesAt: new Date('2026-06-15T00:00:00Z'), // in the future relative to NOW (June 1)
+      color: '#6D771A',
+    });
+
+    vi.spyOn(prisma.event, 'findMany').mockResolvedValue([pastWorkshopActiveRaffle] as any);
+    vi.spyOn(prisma.drop, 'findMany').mockResolvedValue([]);
+
+    const req: any = { method: 'GET', headers: {} };
+    const res = createMockRes();
+    await eventsHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.upcoming).toBeNull();
+    expect(res.body.past).toHaveLength(1);
+    expect(res.body.activeRaffle).not.toBeNull();
+    expect(res.body.activeRaffle.slug).toBe('zero-waste-festival-2026');
+    expect(res.body.activeRaffle.raffleOpen).toBe(true);
+    expect(res.body.activeRaffle.color).toBe('#6D771A');
   });
 
   it('includes nextBatchDrop with product info when scheduled', async () => {
