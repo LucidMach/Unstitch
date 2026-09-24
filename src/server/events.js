@@ -73,13 +73,37 @@ export default async function handler(req, res) {
         }
       : null;
 
+    const upcomingEvents = upcomingCandidates.slice(0, 3).map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      location: e.location,
+      description: e.description,
+      color: e.color || null,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt,
+      ctaLabel: e.ctaLabel,
+      ctaUrl: e.ctaUrl,
+      raffleEnabled: e.raffleEnabled,
+      raffleOpen: !!(
+        e.raffleEnabled &&
+        e.raffleClosesAt &&
+        e.raffleClosesAt.getTime() > now
+      ),
+      raffleButtonLabel: e.raffleButtonLabel,
+      raffleClosesAt: e.raffleClosesAt,
+      raffleDrawCopy: e.raffleDrawCopy,
+    }));
+
     const past = pastCandidates.slice(0, MAX_PAST_EVENTS).map((e) => ({
       slug: e.slug,
       title: e.title,
       location: e.location,
+      description: e.description,
       color: e.color || null,
       startsAt: e.startsAt,
       endsAt: e.endsAt,
+      ctaLabel: e.ctaLabel,
+      ctaUrl: e.ctaUrl,
     }));
 
     const nearestDrop = upcomingDrops[0] || null;
@@ -97,14 +121,17 @@ export default async function handler(req, res) {
         }
       : null;
 
+    // Helper to verify if an event's raffle is currently active and open
+    const isEventRaffleOpen = (e) => {
+      if (!e || !e.raffleEnabled) return false;
+      const expiry = e.raffleClosesAt ?? e.endsAt ?? e.startsAt;
+      return expiry ? expiry.getTime() > now : false;
+    };
+
     // Active raffle: nearest upcoming event with open raffle, OR any event with an active open raffle
     const raffleCandidate =
-      (nearest?.raffleEnabled && nearest.raffleClosesAt && nearest.raffleClosesAt.getTime() > now ? nearest : null) ||
-      events.find(
-        (e) =>
-          e.raffleEnabled &&
-          (!e.raffleClosesAt || e.raffleClosesAt.getTime() > now)
-      ) ||
+      (nearest && isEventRaffleOpen(nearest) ? nearest : null) ||
+      events.find((e) => isEventRaffleOpen(e)) ||
       null;
 
     const activeRaffle = raffleCandidate
@@ -113,17 +140,14 @@ export default async function handler(req, res) {
           title: raffleCandidate.title,
           color: raffleCandidate.color || null,
           raffleEnabled: raffleCandidate.raffleEnabled,
-          raffleOpen: !!(
-            raffleCandidate.raffleEnabled &&
-            (!raffleCandidate.raffleClosesAt || raffleCandidate.raffleClosesAt.getTime() > now)
-          ),
+          raffleOpen: true,
           raffleButtonLabel: raffleCandidate.raffleButtonLabel,
           raffleClosesAt: raffleCandidate.raffleClosesAt,
           raffleDrawCopy: raffleCandidate.raffleDrawCopy,
         }
       : null;
 
-    return sendJson(res, 200, { upcoming, past, nextBatchDrop, activeRaffle });
+    return sendJson(res, 200, { upcoming, upcomingEvents, past, nextBatchDrop, activeRaffle });
   } catch (err) {
     console.error('[events] Lookup failed:', err);
     return sendJson(res, 500, { error: 'Unable to load events.' });

@@ -93,7 +93,7 @@ describe('events API handler (/api/events)', () => {
     expect(res.statusCode).toBe(429);
   });
 
-  it('returns upcoming: null, past: [], nextBatchDrop: null when empty', async () => {
+  it('returns upcoming: null, upcomingEvents: [], past: [], nextBatchDrop: null when empty', async () => {
     vi.spyOn(prisma.event, 'findMany').mockResolvedValue([]);
     vi.spyOn(prisma.drop, 'findMany').mockResolvedValue([]);
     const req: any = { method: 'GET', headers: {} };
@@ -101,7 +101,7 @@ describe('events API handler (/api/events)', () => {
     await eventsHandler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ upcoming: null, past: [], nextBatchDrop: null, activeRaffle: null });
+    expect(res.body).toEqual({ upcoming: null, upcomingEvents: [], past: [], nextBatchDrop: null, activeRaffle: null });
   });
 
   it('correctly reports raffleOpen: true before raffleClosesAt and false after', async () => {
@@ -124,6 +124,8 @@ describe('events API handler (/api/events)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.upcoming.raffleOpen).toBe(true);
     expect(res.body.upcoming.color).toBe('#B45309');
+    expect(res.body.upcomingEvents).toHaveLength(1);
+    expect(res.body.upcomingEvents[0].slug).toBe('open-raffle');
     expect(res.body.activeRaffle.raffleOpen).toBe(true);
 
     // Advance clock past raffleClosesAt
@@ -134,6 +136,7 @@ describe('events API handler (/api/events)', () => {
     expect(res2.statusCode).toBe(200);
     // Effective end is June 10, so it moved to past, upcoming is null
     expect(res2.body.upcoming).toBeNull();
+    expect(res2.body.upcomingEvents).toEqual([]);
     expect(res2.body.past).toHaveLength(1);
     expect(res2.body.activeRaffle).toBeNull();
   });
