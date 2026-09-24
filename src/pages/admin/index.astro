@@ -3854,7 +3854,7 @@ import Layout from "../../layouts/Layout.astro";
                 <button type="button" class="admin-drawer-toggle-btn" data-units-toggle="${drop.id}">
                   <span style="display:flex; align-items:center; gap:8px;">
                     <span class="admin-drawer-toggle-icon">✦</span>
-                    <span>View all ${drop.units.length} numbered editions &amp; passport serials</span>
+                    <span class="admin-drawer-toggle-label">View all ${drop.units.length} numbered editions &amp; passport serials</span>
                   </span>
                   <span class="admin-drawer-toggle-arrow">▾</span>
                 </button>
@@ -4005,10 +4005,10 @@ import Layout from "../../layouts/Layout.astro";
           drawer.hidden = !drawer.hidden;
           const drop = dropDataMap.get(dropId);
           const count = drop ? drop.units.length : 0;
-          const textSpan = toggle.querySelector("span:not(.admin-drawer-toggle-icon)") as HTMLElement;
+          const labelSpan = toggle.querySelector(".admin-drawer-toggle-label") as HTMLElement;
           const arrowSpan = toggle.querySelector(".admin-drawer-toggle-arrow") as HTMLElement;
-          if (textSpan) {
-            textSpan.textContent = drawer.hidden ? `View all ${count} numbered editions & passport serials` : `Hide unit list & passport serials`;
+          if (labelSpan) {
+            labelSpan.textContent = drawer.hidden ? `View all ${count} numbered editions & passport serials` : `Hide unit list & passport serials`;
           }
           if (arrowSpan) {
             arrowSpan.textContent = drawer.hidden ? "▾" : "▴";
