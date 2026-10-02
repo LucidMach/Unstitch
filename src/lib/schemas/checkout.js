@@ -44,4 +44,19 @@ export const CreateCheckoutSessionSchema = z.object({
     .string({ required_error: 'Postcode is required' })
     .trim()
     .regex(/^[0-9]{4}$/, 'Enter a valid 4-digit postcode'),
+
+  // Optional gift note, collected in the bag drawer before redirecting to
+  // Stripe. Order.giftWrap / Order.giftMessage already existed in the
+  // schema (unused until now) — see api/create-checkout-session.js, which
+  // carries these through as Stripe Checkout Session metadata, and
+  // api/stripe-webhook.js, which writes them onto the Order it creates.
+  giftWrap: z.boolean().optional().default(false),
+
+  giftMessage: z
+    .string()
+    .trim()
+    .max(500, 'Gift message must be 500 characters or fewer')
+    .optional()
+    .nullable()
+    .transform((val) => (val ? val : undefined)),
 });

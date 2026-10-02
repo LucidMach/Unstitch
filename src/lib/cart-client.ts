@@ -24,6 +24,22 @@ export interface CartItem {
 
 const STORAGE_KEY = "unstitch:cart";
 
+/**
+ * Checkout-in-progress prefs (delivery postcode + gift message) — kept
+ * separately from the cart items themselves. These live only in the
+ * cart drawer's in-memory DOM state otherwise, so clicking through to
+ * Stripe and then back ("back to store", or the browser back button)
+ * reloads the page fresh and wipes them. Persisting them here means
+ * they're still filled in when the drawer re-renders after that trip.
+ */
+export interface CheckoutPrefs {
+  postcode: string;
+  giftWrap: boolean;
+  giftMessage: string;
+}
+
+const CHECKOUT_PREFS_KEY = "unstitch:checkout-prefs";
+
 function isBrowser(): boolean {
   return typeof window !== "undefined";
 }
@@ -92,6 +108,46 @@ export function removeFromCart(id: string): CartItem[] {
  */
 export function clearCart(): CartItem[] {
   return saveCart([]);
+}
+
+export function getCheckoutPrefs(): CheckoutPrefs {
+  const empty: CheckoutPrefs = { postcode: "", giftWrap: false, giftMessage: "" };
+  if (!isBrowser()) return empty;
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_PREFS_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    return {
+      postcode: typeof parsed.postcode === "string" ? parsed.postcode : "",
+      giftWrap: !!parsed.giftWrap,
+      giftMessage: typeof parsed.giftMessage === "string" ? parsed.giftMessage : "",
+    };
+  } catch {
+    return empty;
+  }
+}
+
+export function saveCheckoutPrefs(prefs: CheckoutPrefs): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(CHECKOUT_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // Same acceptable degrade as saveCart — just won't persist this trip.
+  }
+}
+
+/**
+ * Called once an order actually completes (see /order/success) so the
+ * next purchase starts with a clean postcode/gift message rather than
+ * carrying over the last order's details.
+ */
+export function clearCheckoutPrefs(): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.removeItem(CHECKOUT_PREFS_KEY);
+  } catch {
+    // no-op
+  }
 }
 
 export function cartCount(items: CartItem[] = getCart()): number {

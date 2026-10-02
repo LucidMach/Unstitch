@@ -41,6 +41,7 @@ import Layout from "../../layouts/Layout.astro";
 
     <nav class="admin__tabs" aria-label="Admin Navigation Tabs">
       <button class="admin__tab is-active" data-tab="orders">Orders</button>
+      <button class="admin__tab" data-tab="product">Product</button>
       <button class="admin__tab" data-tab="inventory">Inventory</button>
       <button class="admin__tab" data-tab="pricing">Pricing</button>
       <button class="admin__tab" data-tab="passport">Passport</button>
@@ -189,6 +190,67 @@ import Layout from "../../layouts/Layout.astro";
           <p id="mo-status" class="admin__hint" hidden></p>
         </div>
       </details>
+    </section>
+
+    <!-- PRODUCT OVERVIEW: everything shown on the live shop page, in one
+         place. Previously spread across Inventory/Pricing/Passport/Batch
+         Drops plus a hardcoded object in src/pages/shop.astro — this tab
+         edits the same underlying fields those tabs already save (so it's
+         always in sync with them), via the same section=price/copy/passport
+         API calls. Specialized stock/drop-scheduling controls stay on
+         their own tabs rather than being duplicated here. -->
+    <section data-panel="product" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <div>
+          <h2>Product Overview</h2>
+          <p class="admin-muted" style="margin-top: 4px;">Everything shown on the live shop page (/shop) in one place. Saving here updates the same database fields as the Pricing and Passport tabs.</p>
+        </div>
+      </div>
+
+      <p id="pd-loading">Loading product…</p>
+
+      <div id="pd-content" hidden>
+        <div class="admin-card">
+          <h2>Shop page content</h2>
+          <label for="pd-name">Product name</label>
+          <input id="pd-name" type="text" disabled />
+          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">Renaming the product is a bigger change (affects the URL slug and checkout code) — ask for that separately if needed.</p>
+
+          <label for="pd-tagline">Eyebrow / tagline</label>
+          <input id="pd-tagline" type="text" maxlength="280" placeholder="2026 RESET x Zero Waste Festival" />
+
+          <label for="pd-price">Price (AUD)</label>
+          <input id="pd-price" type="number" step="0.01" min="0" />
+
+          <label>Drop reference</label>
+          <input id="pd-drop-ref" type="text" disabled />
+          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">Batch size and drop code are managed in the Inventory and Batch Drops tabs.</p>
+
+          <label>Pieces per kit</label>
+          <input id="pd-pieces" type="text" disabled />
+          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">Managed in Pricing → Cost recipe (changing it there also recalculates the price).</p>
+
+          <label for="pd-colour-palette">Colour palette (hex codes, one per line or comma-separated)</label>
+          <textarea id="pd-colour-palette" rows="2" placeholder="#383433, #90c4c4, #002644"></textarea>
+
+          <label for="pd-feel">Feel (shown as stacked lines, one per line)</label>
+          <textarea id="pd-feel" rows="2" placeholder="Soft&#10;Low-rigidity"></textarea>
+
+          <div class="admin-field-row">
+            <label for="pd-age-min">Ages — from</label>
+            <input id="pd-age-min" type="text" maxlength="20" placeholder="4" />
+            <label for="pd-age-max">to</label>
+            <input id="pd-age-max" type="text" maxlength="20" placeholder="100+" />
+          </div>
+
+          <label for="pd-kit-contents">What's in your kit (one per line)</label>
+          <textarea id="pd-kit-contents" rows="7" placeholder="3 Designs&#10;Wrap Build Mat&#10;Unstitch Mail&#10;Tiles&#10;x3 Tile for Change&#10;Product Passport&#10;Gift Message (optional)"></textarea>
+          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">A line matching one of the built-in icons (Designs, Wrap Build Mat, Unstitch Mail, Tiles, Tile for Change, Product Passport, Gift Message) shows that icon on the shop page; anything else shows a generic tile icon.</p>
+
+          <button id="pd-save" class="btn-primary">Save product details</button>
+          <p id="pd-status" class="admin__hint" hidden></p>
+        </div>
+      </div>
     </section>
 
     <!-- INVENTORY -->
@@ -2211,6 +2273,7 @@ import Layout from "../../layouts/Layout.astro";
     expectedShipAt?: string | null;
     shippedAt?: string | null;
     internalNote?: string | null;
+    giftWrap?: boolean;
     customer: { email: string; name: string | null };
   };
 
@@ -2339,6 +2402,7 @@ import Layout from "../../layouts/Layout.astro";
     document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
       panel.hidden = panel.dataset.panel !== target;
     });
+    if (target === "product") loadProductOverview();
     if (target === "pricing") loadProduct();
     if (target === "inventory") loadInventory();
     if (target === "passport") loadPassport();
@@ -2406,6 +2470,7 @@ import Layout from "../../layouts/Layout.astro";
       : o.internalNote
         ? ` <span class="admin-flag admin-flag--muted" title="${noteTitle}">📝</span>`
         : "";
+    const giftFlag = o.giftWrap ? ` <span class="admin-flag admin-flag--muted" title="Gift message included — see order detail">🎁 gift</span>` : "";
     const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= Date.now();
     const shipByCell = o.shippedAt
       ? `<span class="admin-muted" style="font-size: 0.82rem;">Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}</span>`
@@ -2422,7 +2487,7 @@ import Layout from "../../layouts/Layout.astro";
     return `
         <tr data-order-row data-id="${id}">
           <td class="admin-table__checkbox-col" data-checkbox-cell><input type="checkbox" class="order-select-checkbox" data-order-id="${id}" aria-label="Select order ${esc(o.orderNumber)}" /></td>
-          <td><code class="admin-code">#${esc(o.orderNumber)}</code>${noteFlag}</td>
+          <td><code class="admin-code">#${esc(o.orderNumber)}</code>${noteFlag}${giftFlag}</td>
           <td>${customerHtml}</td>
           <td>${renderOrderTypeBadge(o.internalNote)}</td>
           <td>${renderOrderStatusChip(o.status)}</td>
@@ -2586,6 +2651,7 @@ import Layout from "../../layouts/Layout.astro";
         <dt>Total</dt><dd><strong class="admin-amount">${money(order.totalCents, order.currency)}</strong></dd>
         <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
         <dt>Shipped</dt><dd>${order.shippedAt ? new Date(order.shippedAt).toLocaleString() : '<span class="admin-muted">Not yet dispatched</span>'}</dd>
+        ${order.giftWrap ? `<dt>Gift message</dt><dd>🎁 ${esc(order.giftMessage || "(no message text)")}</dd>` : ""}
       `;
       (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
         .map(
@@ -4489,6 +4555,100 @@ import Layout from "../../layouts/Layout.astro";
         );
       } else {
         showHint(status, data.error || "Failed to recalculate.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Product overview (consolidated shop-page editor) ---
+  // "Feel" is stored as a single Product.materialRigidity string (see
+  // schema.prisma), shown here one line per stacked line on the shop
+  // page. Accepts the legacy "Soft / low-rigidity" seed format too, same
+  // as shop.astro's own splitFeelLines().
+  function materialRigidityToLines(value: string | null | undefined): string {
+    if (!value) return "";
+    const byNewline = value.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (byNewline.length > 1) return byNewline.join("\n");
+    return value.split("/").map((s) => s.trim()).filter(Boolean).join("\n");
+  }
+
+  let productOverviewLoaded = false;
+  async function loadProductOverview(force = false) {
+    if (productOverviewLoaded && !force) return;
+    try {
+      const res = await api("/api/admin/product");
+      if (!res.ok) throw new Error("Failed to load product");
+      const { product, activeDrop } = await res.json();
+      productOverviewLoaded = true;
+      (document.getElementById("pd-loading") as HTMLElement).hidden = true;
+      (document.getElementById("pd-content") as HTMLElement).hidden = false;
+
+      (document.getElementById("pd-name") as HTMLInputElement).value = product.name || "";
+      (document.getElementById("pd-tagline") as HTMLInputElement).value = product.tagline || "";
+      (document.getElementById("pd-price") as HTMLInputElement).value = centsToDollarsStr(product.basePriceCents);
+      (document.getElementById("pd-drop-ref") as HTMLInputElement).value = activeDrop
+        ? `Drop ${activeDrop.dropCode} · ${activeDrop.totalUnits} kits in this batch`
+        : "No drop yet";
+      (document.getElementById("pd-pieces") as HTMLInputElement).value =
+        product.costRecipe?.tilesPerKit != null ? String(product.costRecipe.tilesPerKit) : "Not set";
+      (document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value = arrayToLines(product.colourPalette);
+      (document.getElementById("pd-feel") as HTMLTextAreaElement).value = materialRigidityToLines(product.materialRigidity);
+      (document.getElementById("pd-age-min") as HTMLInputElement).value = product.ageRangeMin || "";
+      (document.getElementById("pd-age-max") as HTMLInputElement).value = product.ageRangeMax || "";
+      (document.getElementById("pd-kit-contents") as HTMLTextAreaElement).value = kitContentsToLines(product.kitContents);
+    } catch {
+      (document.getElementById("pd-loading") as HTMLElement).textContent = "Couldn't load product.";
+    }
+  }
+
+  // Saves everything on the card in one click — fires the same three
+  // section calls the Pricing/Passport tabs already use (price/copy/
+  // passport), so this never creates a fourth, divergent write path.
+  document.getElementById("pd-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pd-status") as HTMLElement;
+    const cents = dollarsToCents((document.getElementById("pd-price") as HTMLInputElement).value);
+    if (cents === null || cents <= 0) return showHint(status, "Enter a valid price.", false);
+
+    const feelLines = linesToArray((document.getElementById("pd-feel") as HTMLTextAreaElement).value);
+
+    try {
+      const [priceRes, copyRes, passportRes] = await Promise.all([
+        api("/api/admin/product", {
+          method: "POST",
+          body: JSON.stringify({ section: "price", basePriceCents: cents }),
+        }),
+        api("/api/admin/product", {
+          method: "POST",
+          body: JSON.stringify({
+            section: "copy",
+            tagline: (document.getElementById("pd-tagline") as HTMLInputElement).value,
+          }),
+        }),
+        api("/api/admin/product", {
+          method: "POST",
+          body: JSON.stringify({
+            section: "passport",
+            colourPalette: colourPaletteToArray((document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value),
+            materialRigidity: feelLines.length ? feelLines.join("\n") : null,
+            ageRangeMin: (document.getElementById("pd-age-min") as HTMLInputElement).value.trim() || null,
+            ageRangeMax: (document.getElementById("pd-age-max") as HTMLInputElement).value.trim() || null,
+            kitContents: linesToArray((document.getElementById("pd-kit-contents") as HTMLTextAreaElement).value),
+          }),
+        }),
+      ]);
+
+      const results = await Promise.all([priceRes, copyRes, passportRes].map((r) => r.json().catch(() => ({}))));
+      const allOk = [priceRes, copyRes, passportRes].every((r) => r.ok);
+      if (allOk) {
+        showHint(status, "Product details saved — live on the shop page now.", true);
+        // Other tabs reading the same fields (Pricing/Passport) shouldn't
+        // keep showing stale cached values after this save.
+        productLoaded = false;
+        passportLoaded = false;
+      } else {
+        const firstError = results.find((r) => r?.error)?.error || "Some fields failed to save — check and try again.";
+        showHint(status, firstError, false);
       }
     } catch {
       showHint(status, "Network error.", false);

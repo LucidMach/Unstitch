@@ -19,6 +19,14 @@ import Layout from "../../layouts/Layout.astro";
   </main>
 </Layout>
 
+<script>
+  // The customer's bag + postcode + gift message are still intact
+  // (see cart-client.ts's checkout-prefs persistence) — open the bag
+  // drawer automatically so they can see it's all still there and make
+  // changes without having to dig for the bag icon themselves.
+  window.dispatchEvent(new CustomEvent("cart:open"));
+</script>
+
 <style>
   .order-status {
     min-height: 50vh;

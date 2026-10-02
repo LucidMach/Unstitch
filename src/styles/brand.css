@@ -730,6 +730,32 @@ button { font-family: inherit; cursor: pointer; }
   border-top: 1px dashed #ccc;
   padding-top: 10px;
 }
+.cart-sheet__gift-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #333;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.cart-sheet__gift-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.cart-sheet__gift-message {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius, 6px);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
 
 /* ==========================================================================
    MENU SHEET

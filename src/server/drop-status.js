@@ -3,11 +3,15 @@
 // current drop, so static pages (shop.astro, shop-all.astro) can reflect
 // real sold-out state without being server-rendered per request.
 //
-// Read-only and deliberately minimal: just enough for the storefront to
-// disable "Add to Bag" and show "Sold out" when it's actually true. The
-// real stock check that actually prevents overselling still happens
-// server-side in create-checkout-session.js (this endpoint is never
-// trusted for that) — this only controls what the page *shows*.
+// Also returns the product/drop display fields shop.astro renders (name,
+// tagline, price, colour palette, feel, ages, kit contents, drop ref) —
+// the site builds statically (no SSR adapter), so this is how admin edits
+// made in the Pricing/Passport tabs (src/server/admin/product.js) reach
+// the live page without a redeploy: shop.astro ships a static fallback,
+// then overwrites it with this endpoint's response on load. Still
+// read-only: the real stock check that actually prevents overselling
+// happens server-side in create-checkout-session.js (this endpoint is
+// never trusted for that) — this only controls what the page *shows*.
 
 import { sendJson } from '../lib/apiHelper.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
@@ -33,7 +37,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const product = await prisma.product.findUnique({ where: { slug } });
+    const product = await prisma.product.findUnique({
+      where: { slug },
+      include: { costRecipe: { select: { tilesPerKit: true } } },
+    });
     if (!product || !product.isActive) {
       return sendJson(res, 200, { available: false, status: 'NONE', inStock: 0 });
     }
@@ -57,6 +64,18 @@ export default async function handler(req, res) {
       status: drop.status,
       inStock,
       totalUnits: drop.totalUnits,
+      dropCode: drop.dropCode,
+      // Display fields — see header comment above.
+      name: product.name,
+      tagline: product.tagline,
+      basePriceCents: product.basePriceCents,
+      currency: product.currency,
+      colourPalette: product.colourPalette,
+      materialRigidity: product.materialRigidity,
+      ageRangeMin: product.ageRangeMin,
+      ageRangeMax: product.ageRangeMax,
+      kitContents: product.kitContents,
+      tilesPerKit: product.costRecipe?.tilesPerKit ?? null,
     });
   } catch (err) {
     console.error('[drop-status] Lookup failed:', err);

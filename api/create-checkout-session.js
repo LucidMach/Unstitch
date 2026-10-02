@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
   }
 
-  const { slug, quantity, email, postcode } = parseResult.data;
+  const { slug, quantity, email, postcode, giftWrap, giftMessage } = parseResult.data;
 
   // Single query instead of the previous product.findUnique -> drop.findFirst
   // pair: pull the product and its one candidate live drop together. Still
@@ -173,6 +173,26 @@ export default async function handler(req, res) {
           },
           quantity: 1,
         },
+        // Gift message as its own zero-cost line item (rather than
+        // `custom_text`) so it shows up in Stripe's LEFT-hand order-summary
+        // panel, right under the product and delivery lines — `custom_text`
+        // can only place content in the right-hand form column, which isn't
+        // where the customer expects to see it confirmed.
+        ...(giftWrap && giftMessage
+          ? [
+              {
+                price_data: {
+                  currency: product.currency.toLowerCase(),
+                  product_data: {
+                    name: '🎁 Gift message',
+                    description: giftMessage,
+                  },
+                  unit_amount: 0,
+                },
+                quantity: 1,
+              },
+            ]
+          : []),
       ],
       customer_email: email,
       shipping_address_collection: { allowed_countries: ['AU'] },
@@ -187,6 +207,10 @@ export default async function handler(req, res) {
         quantity: String(quantity),
         deliveryZoneId: deliveryZone.id,
         deliveryFeeCents: String(deliveryZone.feeCents),
+        // Stripe metadata values must be strings — read back out in
+        // api/stripe-webhook.js and written onto the created Order.
+        giftWrap: String(!!giftWrap),
+        giftMessage: giftMessage || '',
       },
     });
 

@@ -407,6 +407,7 @@ export default async function handler(req, res) {
         expectedShipAt: true,
         shippedAt: true,
         internalNote: true,
+        giftWrap: true,
         customer: { select: { email: true, name: true } },
         items: { select: { id: true } },
         payments: { select: { status: true } },

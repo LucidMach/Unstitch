@@ -71,6 +71,10 @@ const PassportSchema = z.object({
   colourPalette: z.array(z.string()).optional(),
   tileMaterial: z.string().nullable().optional(),
   materialRigidity: z.string().nullable().optional(),
+  // Free-text display copy for the shop page's "Ages" spec (e.g. "4" /
+  // "100+") — not used in any numeric logic, see schema.prisma.
+  ageRangeMin: z.string().trim().max(20).nullable().optional(),
+  ageRangeMax: z.string().trim().max(20).nullable().optional(),
   kitContents: z.array(z.string()).optional(),
   wrapBuildDimensions: z.string().nullable().optional(),
   designs: z.array(z.string()).optional(),
@@ -165,7 +169,7 @@ export default async function handler(req, res) {
       // the "copy" section's pattern above), so saving one card never wipes
       // fields that belong to a different card.
       for (const key of [
-        'tileMaterial', 'materialRigidity', 'wrapBuildDimensions', 'careVideoUrl',
+        'tileMaterial', 'materialRigidity', 'ageRangeMin', 'ageRangeMax', 'wrapBuildDimensions', 'careVideoUrl',
         'carePdfUrl', 'designsGuidePdfUrl', 'snapShareCopy', 'registerIntroCopy',
         'reviewCopyTemplate', 'scanAgainCopy',
       ]) {
