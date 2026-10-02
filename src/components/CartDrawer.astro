@@ -75,6 +75,8 @@
     cartSubtotalCents,
     cartCount,
     formatPriceCents,
+    getCheckoutPrefs,
+    saveCheckoutPrefs,
     type CartItem,
   } from "../lib/cart-client";
 
@@ -91,6 +93,17 @@
   // the fetch for the new one hasn't resolved yet (see updateDeliveryQuote).
   let currentQuote: { postcode: string; feeCents: number; zoneName: string } | null = null;
   let quoteRequestId = 0;
+
+  function persistCheckoutPrefs() {
+    const postcodeInput = document.querySelector<HTMLInputElement>("[data-cart-postcode]");
+    const giftToggle = document.querySelector<HTMLInputElement>("[data-cart-gift-toggle]");
+    const giftMessageEl = document.querySelector<HTMLTextAreaElement>("[data-cart-gift-message]");
+    saveCheckoutPrefs({
+      postcode: postcodeInput?.value ?? "",
+      giftWrap: !!giftToggle?.checked,
+      giftMessage: giftMessageEl?.value ?? "",
+    });
+  }
 
   function setCheckoutEnabled(enabled: boolean) {
     const checkoutBtn = document.querySelector<HTMLButtonElement>("[data-cart-checkout]");
@@ -314,16 +327,36 @@
       if (!giftMessageEl) return;
       giftMessageEl.hidden = !giftToggle.checked;
       if (!giftToggle.checked) giftMessageEl.value = "";
+      persistCheckoutPrefs();
     });
+    giftMessageEl?.addEventListener("input", () => persistCheckoutPrefs());
 
     const postcodeInput = document.querySelector<HTMLInputElement>("[data-cart-postcode]");
     let postcodeDebounce: ReturnType<typeof setTimeout> | undefined;
     postcodeInput?.addEventListener("input", () => {
       const value = postcodeInput.value.replace(/\D/g, "").slice(0, 4);
       postcodeInput.value = value;
+      persistCheckoutPrefs();
       clearTimeout(postcodeDebounce);
       postcodeDebounce = setTimeout(() => updateDeliveryQuote(value), 300);
     });
+
+    // Restore postcode + gift message from a previous visit (e.g. the
+    // customer went to Stripe and clicked back) so they don't have to
+    // re-enter them. Re-run the delivery quote so checkout re-enables
+    // once the postcode resolves, same as if they'd just typed it.
+    const savedPrefs = getCheckoutPrefs();
+    if (postcodeInput && savedPrefs.postcode) {
+      postcodeInput.value = savedPrefs.postcode;
+      updateDeliveryQuote(savedPrefs.postcode);
+    }
+    if (giftToggle && savedPrefs.giftWrap) {
+      giftToggle.checked = true;
+      if (giftMessageEl) {
+        giftMessageEl.hidden = false;
+        giftMessageEl.value = savedPrefs.giftMessage;
+      }
+    }
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeCart();
     });

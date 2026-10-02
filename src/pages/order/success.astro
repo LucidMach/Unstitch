@@ -90,7 +90,7 @@ import Layout from "../../layouts/Layout.astro";
 </style>
 
 <script>
-  import { clearCart } from "../../lib/cart-client";
+  import { clearCart, clearCheckoutPrefs } from "../../lib/cart-client";
 
   function formatCents(cents: number, currency: string) {
     return `${currency.toUpperCase()} $${(cents / 100).toFixed(2)}`;
@@ -130,6 +130,7 @@ import Layout from "../../layouts/Layout.astro";
           if (numberEl) numberEl.textContent = data.order.orderNumber;
           if (totalEl) totalEl.textContent = formatCents(data.order.totalCents, data.order.currency);
           clearCart();
+          clearCheckoutPrefs();
           return;
         }
 
