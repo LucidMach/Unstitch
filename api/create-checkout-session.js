@@ -173,21 +173,32 @@ export default async function handler(req, res) {
           },
           quantity: 1,
         },
+        // Gift message as its own zero-cost line item (rather than
+        // `custom_text`) so it shows up in Stripe's LEFT-hand order-summary
+        // panel, right under the product and delivery lines — `custom_text`
+        // can only place content in the right-hand form column, which isn't
+        // where the customer expects to see it confirmed.
+        ...(giftWrap && giftMessage
+          ? [
+              {
+                price_data: {
+                  currency: product.currency.toLowerCase(),
+                  product_data: {
+                    name: '🎁 Gift message',
+                    description: giftMessage,
+                  },
+                  unit_amount: 0,
+                },
+                quantity: 1,
+              },
+            ]
+          : []),
       ],
       customer_email: email,
       shipping_address_collection: { allowed_countries: ['AU'] },
       expires_at: Math.floor(Date.now() / 1000) + SESSION_HOLD_SECONDS,
       success_url: `${origin}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/order/cancelled`,
-      // Metadata (below) is never shown to the customer — it's internal
-      // bookkeeping only. Echo the gift message back on Stripe's own
-      // hosted page, next to the shipping address fields (where it's
-      // contextually relevant — this is going with the parcel, not the
-      // payment) so the customer gets visible confirmation it was
-      // actually captured before they pay.
-      custom_text: giftWrap && giftMessage
-        ? { shipping_address: { message: `🎁 Gift message: ${giftMessage}` } }
-        : undefined,
       metadata: {
         productId: product.id,
         productSlug: product.slug,
