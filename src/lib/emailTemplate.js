@@ -301,6 +301,44 @@ export function passportTransferConfirmationEmail({ productName, unitSerial, new
  * @param {{orderNumber: string, lookupLink: string}} opts
  * @returns {{html: string, text: string}}
  */
+/**
+ * Sent to a gift-giver once an admin has reviewed and manually approved a
+ * gift claim from the admin Passport tab (api/admin/inventory.js, action:
+ * "send-gift-ack") — never automatically, since the giver's name/email is
+ * customer-typed and unverified at registration time (see
+ * Unit.giftGiverEmail in prisma/schema.prisma).
+ * @param {object} opts
+ * @param {string} opts.giverName
+ * @param {string} opts.productName
+ * @param {string} opts.unitSerial
+ * @param {string} [opts.recipientName]
+ * @returns {{html: string, text: string}}
+ */
+export function giftAcknowledgementEmail({ giverName, productName, unitSerial, recipientName }) {
+  const recipientBit = recipientName ? esc(recipientName) : 'the person you gave it to';
+  const bodyHtml = `
+    <p style="margin:0 0 14px;">Hi ${esc(giverName)},</p>
+    <p style="margin:0 0 14px;">Just a note to say thank you — the Unstitch kit you gave (<strong>${esc(productName)}</strong>, passport code <strong>${esc(unitSerial)}</strong>) has been registered by ${recipientBit}. That was a lovely gift.</p>
+    <p style="margin:0;">We just wanted you to know it arrived safely and is officially theirs now.</p>`;
+  const html = brandedEmailHtml({
+    eyebrow: 'Thank you',
+    heading: 'Your gift has been registered',
+    bodyHtml,
+  });
+  const text = [
+    'Your gift has been registered',
+    '',
+    `Hi ${giverName},`,
+    '',
+    `Just a note to say thank you \u2014 the Unstitch kit you gave (${productName}, passport code ${unitSerial}) has been registered by ${recipientName || 'the person you gave it to'}. That was a lovely gift.`,
+    '',
+    'We just wanted you to know it arrived safely and is officially theirs now.',
+    '',
+    'Unstitch \u2014 Naarm, Melbourne Australia',
+  ].join('\n');
+  return { html, text };
+}
+
 export function orderShippedEmail({ orderNumber, lookupLink }) {
   const html = brandedEmailHtml({
     eyebrow: 'On its way',

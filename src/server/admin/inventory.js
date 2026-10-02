@@ -55,12 +55,19 @@
 //         Caution: if this unit's serial was already printed on a real
 //         QR tag/postcard, changing it breaks that physical tag's link —
 //         only meant for units that haven't gone out yet.
+//   action: "send-gift-ack" -> manually sends the gift-acknowledgement
+//         thank-you email (src/lib/emailTemplate.js) to Unit.giftGiverEmail,
+//         once an admin has reviewed the claim in the Passport tab. Never
+//         automatic — see the gift fields on Unit in prisma/schema.prisma
+//         for why. Refuses if there's no gift-giver email on file, or if
+//         one was already sent for this unit.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
 import { releaseUnits } from '../../lib/inventory.js';
+import { giftAcknowledgementEmail } from '../../lib/emailTemplate.js';
 
 // Mirrors SESSION_HOLD_SECONDS in api/create-checkout-session.js — a real
 // in-progress checkout never holds a reservation longer than this, so
@@ -69,7 +76,7 @@ const STALE_RESERVATION_MS = 30 * 60 * 1000;
 
 const InventoryActionSchema = z.object({
   dropId: z.string().uuid(),
-  action: z.enum(['restock', 'void', 'release-stale', 'undo-void', 'delete-void', 'edit-unit']).default('restock'),
+  action: z.enum(['restock', 'void', 'release-stale', 'undo-void', 'delete-void', 'edit-unit', 'send-gift-ack']).default('restock'),
   // Required for restock/void/undo-void; ignored for release-stale and
   // delete-void, which always act on every eligible unit on the drop —
   // there's no "which ones" to choose between for either.
@@ -104,6 +111,30 @@ function fillEditionGaps(existingUnits, count) {
   return picked;
 }
 
+/** Best-effort send, mirrors api/passport.js's sendPassportTransferEmail pattern (dev-mode console.log fallback, Resend shared-sender fallback if the configured from-address isn't verified). Never throws — a failed send shouldn't stop the admin action or leave giftAcknowledgementSentAt unset in a confusing half-sent state, so the caller only commits that timestamp once this resolves without throwing. */
+async function sendGiftAcknowledgement({ toEmail, giverName, productName, unitSerial, recipientName }) {
+  const { html, text } = giftAcknowledgementEmail({ giverName, productName, unitSerial, recipientName });
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[admin/inventory] Dev/mock gift acknowledgement email:', { toEmail, unitSerial, giverName });
+    return;
+  }
+  const { Resend } = await import('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+  const send = (from) =>
+    resend.emails.send({ from, to: toEmail, subject: `Thank you for your Unstitch gift (${unitSerial})`, html, text });
+  let result = await send(fromEmail);
+  if (
+    result.error &&
+    (result.error.message?.toLowerCase().includes('not verified') ||
+      result.error.statusCode === 403 ||
+      result.error.name === 'validation_error')
+  ) {
+    result = await send('Unstitch Studio <onboarding@resend.dev>');
+  }
+  if (result.error) throw new Error(result.error.message || 'Resend send failed');
+}
+
 export default async function handler(req, res) {
   if (!prisma) return sendJson(res, 503, { error: 'Not configured' });
 
@@ -121,7 +152,11 @@ export default async function handler(req, res) {
       include: {
         product: { select: { id: true, name: true, slug: true, sku: true, imageUrl: true } },
         units: {
-          select: { id: true, serial: true, editionNumber: true, status: true },
+          select: {
+            id: true, serial: true, editionNumber: true, status: true,
+            isGift: true, giftGiverName: true, giftGiverEmail: true, giftAcknowledgementSentAt: true,
+            currentOwner: { select: { name: true, email: true } },
+          },
           orderBy: { editionNumber: 'asc' },
         },
       },
@@ -166,6 +201,9 @@ export default async function handler(req, res) {
   }
   if (action === 'edit-unit' && (!unitId || editionNumber === undefined)) {
     return sendJson(res, 400, { error: 'unitId and editionNumber are required for this action.' });
+  }
+  if (action === 'send-gift-ack' && !unitId) {
+    return sendJson(res, 400, { error: 'unitId is required for this action.' });
   }
 
   try {
@@ -293,6 +331,41 @@ export default async function handler(req, res) {
         unitsDeleted: voidUnits.length,
         deletedSerials: voidUnits.map((u) => u.serial),
       });
+    }
+
+    if (action === 'send-gift-ack') {
+      const unit = await prisma.unit.findUnique({
+        where: { id: unitId },
+        include: { product: { select: { name: true } }, currentOwner: { select: { name: true } } },
+      });
+      if (!unit || unit.dropId !== dropId) {
+        return sendJson(res, 404, { error: 'Unit not found on this drop.' });
+      }
+      if (!unit.isGift || !unit.giftGiverEmail) {
+        return sendJson(res, 400, { error: 'This unit has no gift-giver email on file.' });
+      }
+      if (unit.giftAcknowledgementSentAt) {
+        return sendJson(res, 400, { error: 'A thank-you email was already sent for this unit.' });
+      }
+
+      try {
+        await sendGiftAcknowledgement({
+          toEmail: unit.giftGiverEmail,
+          giverName: unit.giftGiverName || 'there',
+          productName: unit.product.name,
+          unitSerial: unit.serial,
+          recipientName: unit.currentOwner?.name || null,
+        });
+      } catch (err) {
+        console.error('[admin/inventory] Gift acknowledgement send failed:', err);
+        return sendJson(res, 502, { error: "Couldn't send the email. Please try again." });
+      }
+
+      const updated = await prisma.unit.update({
+        where: { id: unitId },
+        data: { giftAcknowledgementSentAt: new Date() },
+      });
+      return sendJson(res, 200, { unit: updated });
     }
 
     if (action === 'edit-unit') {

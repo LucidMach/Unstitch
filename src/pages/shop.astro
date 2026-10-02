@@ -179,7 +179,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
       </div>
       <div class="reviews__empty">
         <p>No reviews yet — Slow Bloom just dropped.</p>
-        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of 10").</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of {product.totalUnits}").</p>
       </div>
     </section>
 
@@ -273,7 +273,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
 
           <label class="review-check">
             <input type="checkbox" name="showPassport" checked />
-            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of 10")</span>
+            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of {product.totalUnits}")</span>
           </label>
 
           <p class="review-form__note">Your review will show your first name and the date you posted it. Reviews are checked before they appear.</p>

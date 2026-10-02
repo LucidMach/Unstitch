@@ -329,6 +329,52 @@ model Product {
   // a second SKU with its own photo exists.
   imageUrl String? @default("/SlowBloom.png") @map("image_url")
 
+  // Digital passport content (src/pages/passport.astro) — all editable from
+  // the admin "Passport" tab (src/server/admin/product.js, section:
+  // "passport"). Kept as plain Product fields (like tagline/description
+  // above) rather than a separate table since there's one product at a
+  // time and this is just more of the same "customer-facing copy" the
+  // Pricing tab's "Product copy" card already edits.
+  //
+  // Kit specs (the passport's "Your kit" card):
+  wrapBuildDimensions String? @map("wrap_build_dimensions") @db.VarChar(200) // e.g. "45cm x 45cm furoshiki wrap, unfolds to a 3x3 tile grid"
+  designs             Json    @default("[]") @map("designs") // pattern names this kit can make, e.g. ["Reusable cup warmer", "Flower", "Turtle"]
+  techniques          Json    @default("[]") @map("techniques") // assembly techniques used, e.g. ["Lock", "Roll", "Stuff"]
+
+  // Assembly & care (bullet points) + optional richer media, replacing the
+  // placeholder constants that used to live directly in passport.astro.
+  careSteps    Json    @default("[]") @map("care_steps")
+  careVideoUrl String? @map("care_video_url")
+  carePdfUrl   String? @map("care_pdf_url")
+
+  // Safety precautions (bullet points) — shown on the passport, separate
+  // from care steps since these are warnings, not instructions.
+  safetyNotes Json @default("[]") @map("safety_notes")
+
+  // "Designs & instructions" section — the actual build/instructions
+  // content is wired up separately; this is just the downloadable layout
+  // guide link, kept editable here for consistency with everything else.
+  designsGuidePdfUrl String? @map("designs_guide_pdf_url")
+
+  // Interactive step-by-step build viewer, exported from the Unstitch
+  // passport-viewer design tool as a single "unstitch-instructions" JSON
+  // package (format, title, overview SVG, steps[] with diagrams/cues/etc).
+  // Stored as-is and rendered live on the passport page (passport.astro) —
+  // null means no interactive viewer has been uploaded yet, in which case
+  // the page falls back to designsGuidePdfUrl above.
+  passportDesigns Json? @map("passport_designs")
+
+  // Snap & Share
+  snapShareCopy     String? @map("snap_share_copy")
+  snapShareHashtags Json    @default("[]") @map("snap_share_hashtags")
+
+  // Editable copy for the remaining static-text passport sections, so none
+  // of it needs a code change + redeploy to update. Left null = the page's
+  // existing built-in default copy is used (see passport.astro).
+  registerIntroCopy String? @map("register_intro_copy")
+  reviewCopyTemplate String? @map("review_copy_template") // supports {productName} {edition} {totalUnits} {ownerStatus} placeholders
+  scanAgainCopy     String? @map("scan_again_copy")
+
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -421,6 +467,17 @@ model Unit {
   currentOwnerCustomerId String?   @db.Uuid @map("current_owner_customer_id")
   currentOwner           Customer? @relation(fields: [currentOwnerCustomerId], references: [id])
   registeredAt           DateTime? @map("registered_at")
+
+  // Gift acknowledgement — captured at registration time (api/passport.js)
+  // when the person registering checks "this was a gift" and names who
+  // gave it. Deliberately NOT auto-emailed: giftGiverEmail is customer-
+  // typed and unverified, so an admin reviews it in the Passport tab and
+  // sends the thank-you manually (action: "send-gift-ack" in
+  // api/admin/inventory.js), which is what sets giftAcknowledgementSentAt.
+  isGift                    Boolean   @default(false) @map("is_gift")
+  giftGiverName             String?   @map("gift_giver_name") @db.VarChar(200)
+  giftGiverEmail            String?   @map("gift_giver_email") @db.VarChar(320)
+  giftAcknowledgementSentAt DateTime? @map("gift_acknowledgement_sent_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")

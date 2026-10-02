@@ -43,6 +43,7 @@ import Layout from "../../layouts/Layout.astro";
       <button class="admin__tab is-active" data-tab="orders">Orders</button>
       <button class="admin__tab" data-tab="inventory">Inventory</button>
       <button class="admin__tab" data-tab="pricing">Pricing</button>
+      <button class="admin__tab" data-tab="passport">Passport</button>
       <button class="admin__tab" data-tab="customers">Customers</button>
       <button class="admin__tab" data-tab="events">Events</button>
       <button class="admin__tab" data-tab="batch-drops">Batch Drops</button>
@@ -267,6 +268,115 @@ import Layout from "../../layouts/Layout.astro";
           </div>
           <button id="recipe-save" class="btn-primary">Recalculate &amp; save</button>
           <p id="recipe-status" class="admin__hint" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASSPORT CONTENT -->
+    <section data-panel="passport" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <div>
+          <h2>Digital Passport Content</h2>
+          <p class="admin-muted" style="margin-top: 4px;">Everything shown on a customer's passport page when they scan their kit's QR code — edit any card below and save it on its own.</p>
+        </div>
+      </div>
+
+      <p id="passport-loading">Loading passport content…</p>
+
+      <div id="passport-content" hidden>
+        <div class="admin-card">
+          <h2>Your kit</h2>
+          <label for="pp-colour-palette">Colour palette (hex codes, one per line or comma-separated)</label>
+          <textarea id="pp-colour-palette" rows="3" placeholder="#A36E93, #C9A66B, #5B4A42"></textarea>
+          <label for="pp-material">Material</label>
+          <input id="pp-material" type="text" placeholder="Curtain and polar fleece" />
+          <label for="pp-material-rigidity">Material rigidity</label>
+          <input id="pp-material-rigidity" type="text" placeholder="Semi-rigid" />
+          <label for="pp-wrap-dims">Wrap &amp; build dimensions</label>
+          <input id="pp-wrap-dims" type="text" placeholder="45cm x 45cm furoshiki wrap, builds a 3x3 tile grid" />
+          <label for="pp-designs">Designs (one per line)</label>
+          <textarea id="pp-designs" rows="3" placeholder="Reusable cup warmer&#10;Flower&#10;Turtle"></textarea>
+          <label for="pp-techniques">Technique (one per line)</label>
+          <textarea id="pp-techniques" rows="3" placeholder="Lock&#10;Roll&#10;Stuff"></textarea>
+          <label for="pp-kit-contents">What's in the kit (one per line)</label>
+          <textarea id="pp-kit-contents" rows="3" placeholder="1 furoshiki wrap&#10;33 fabric tiles&#10;1 instruction postcard"></textarea>
+          <button id="pp-kit-save" class="btn-primary">Save kit specs</button>
+          <p id="pp-kit-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Made</h2>
+          <p class="admin-muted">Edits the currently active drop — the one this passport page actually reads from.</p>
+          <label for="pp-made-location">Made location</label>
+          <input id="pp-made-location" type="text" placeholder="Melbourne" />
+          <label for="pp-made-year">Made year</label>
+          <input id="pp-made-year" type="number" step="1" min="2000" max="2100" />
+          <button id="pp-made-save" class="btn-primary">Save made details</button>
+          <p id="pp-made-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Assembly &amp; care</h2>
+          <label for="pp-care-steps">Steps (one per line, shown as a numbered list — leave a line blank to add a gap, e.g. between build steps and care instructions)</label>
+          <textarea id="pp-care-steps" rows="5"></textarea>
+          <label for="pp-care-video">Care video URL (optional, embeddable)</label>
+          <input id="pp-care-video" type="text" placeholder="https://www.youtube.com/embed/..." />
+          <label for="pp-care-pdf">Care guide PDF URL (optional)</label>
+          <input id="pp-care-pdf" type="text" placeholder="https://.../care-guide.pdf" />
+          <button id="pp-care-save" class="btn-primary">Save assembly &amp; care</button>
+          <p id="pp-care-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Safety precautions</h2>
+          <label for="pp-safety-notes">Notes (one per line, shown as a bullet list)</label>
+          <textarea id="pp-safety-notes" rows="4" placeholder="Small parts — not suitable for children under 3"></textarea>
+          <button id="pp-safety-save" class="btn-primary">Save safety precautions</button>
+          <p id="pp-safety-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Snap &amp; Share</h2>
+          <label for="pp-snapshare-copy">Prompt copy</label>
+          <textarea id="pp-snapshare-copy" rows="2" placeholder="Show us your build!"></textarea>
+          <label for="pp-snapshare-hashtags">Hashtags / mentions (one per line)</label>
+          <textarea id="pp-snapshare-hashtags" rows="3" placeholder="#unstitchmade&#10;@unstitch.studio"></textarea>
+          <button id="pp-snapshare-save" class="btn-primary">Save Snap &amp; Share</button>
+          <p id="pp-snapshare-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Page copy</h2>
+          <label for="pp-register-intro">"Register this kit" intro</label>
+          <textarea id="pp-register-intro" rows="2"></textarea>
+          <label for="pp-review-template">"Show it off" review copy</label>
+          <textarea id="pp-review-template" rows="2"></textarea>
+          <p class="admin__hint" style="margin-top: -4px;">Placeholders: <code>{"{productName}"}</code> <code>{"{edition}"}</code> <code>{"{totalUnits}"}</code> <code>{"{ownerStatus}"}</code></p>
+          <label for="pp-scan-again">"Scan again anytime" copy</label>
+          <textarea id="pp-scan-again" rows="2"></textarea>
+          <label for="pp-designs-guide">Designs &amp; instructions guide PDF URL (optional)</label>
+          <input id="pp-designs-guide" type="text" placeholder="https://.../designs-guide.pdf" />
+          <button id="pp-copy-save" class="btn-primary">Save page copy</button>
+          <p id="pp-copy-status" class="admin__hint" hidden></p>
+        </div>
+
+        <div class="admin-card">
+          <h2>Instructions (step-by-step viewer)</h2>
+          <p class="admin-muted">Upload one <code>.passport.json</code> package per design (exported from the Unstitch passport-viewer design tool) — one row below per entry in the "Designs" list above. While at least one design has a package, it replaces the plain PDF link above with an interactive step-by-step build guide on the live passport page; with more than one uploaded, visitors get tabs to switch between them.</p>
+          <div id="pp-design-rows"></div>
+        </div>
+
+        <div class="admin-card">
+          <h2>Pending gift acknowledgements</h2>
+          <p class="admin-muted">Someone registering a kit can mark it as a gift and name who gave it. Nothing is emailed automatically — review each claim below and send the thank-you yourself once you're satisfied it's genuine.</p>
+          <table class="admin-table">
+            <thead>
+              <tr><th>Unit</th><th>Registered by</th><th>Gift from</th><th></th></tr>
+            </thead>
+            <tbody id="pp-gifts-tbody">
+              <tr><td colspan="4" class="admin-table__empty">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -2231,6 +2341,7 @@ import Layout from "../../layouts/Layout.astro";
     });
     if (target === "pricing") loadProduct();
     if (target === "inventory") loadInventory();
+    if (target === "passport") loadPassport();
     if (target === "customers") loadCustomers();
     if (target === "events") loadEvents();
     if (target === "batch-drops") loadBatchDrops();
@@ -4381,6 +4492,397 @@ import Layout from "../../layouts/Layout.astro";
       }
     } catch {
       showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Passport content ---
+  function linesToArray(text: string): string[] {
+    return text.split("\n").map((s) => s.trim()).filter(Boolean);
+  }
+  function arrayToLines(arr: string[] | null | undefined): string {
+    return (arr || []).join("\n");
+  }
+  // Colour palette is naturally typed as a comma-separated list ("#fff,
+  // #000, #123") as often as one-per-line, so accept either — plain
+  // linesToArray left a comma-separated entry as a single invalid CSS
+  // colour string, which rendered as an invisible swatch.
+  function colourPaletteToArray(text: string): string[] {
+    return text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  }
+  // Care steps intentionally keep blank lines (unlike every other
+  // textarea here) — passport.astro's renderCareSteps() renders a blank
+  // entry as a spacer row instead of a numbered item, so an admin can
+  // separate "how to build it" from "how to wash it" with an empty line.
+  // Only trims the leading/trailing edges of the whole field, not every
+  // line, so interior blank lines survive.
+  function careStepsToArray(text: string): string[] {
+    return text.trim().split("\n").map((s) => s.trim());
+  }
+  // kitContents predates the admin editor and started life in prisma/seed.ts
+  // as [{ item: "..." }] rather than plain strings — normalize so an
+  // un-resaved legacy row shows as text here instead of "[object Object]".
+  function kitContentsToLines(arr: unknown[] | null | undefined): string {
+    return (arr || [])
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry === "object" && "item" in (entry as Record<string, unknown>)) {
+          return String((entry as Record<string, unknown>).item);
+        }
+        return String(entry);
+      })
+      .join("\n");
+  }
+
+  let passportLoaded = false;
+  async function loadPassport(force = false) {
+    if (passportLoaded && !force) return;
+    try {
+      const res = await api("/api/admin/product");
+      if (!res.ok) throw new Error("Failed to load product");
+      const { product, activeDrop } = await res.json();
+      passportLoaded = true;
+      (document.getElementById("passport-loading") as HTMLElement).hidden = true;
+      (document.getElementById("passport-content") as HTMLElement).hidden = false;
+
+      (document.getElementById("pp-colour-palette") as HTMLTextAreaElement).value = arrayToLines(product.colourPalette);
+      (document.getElementById("pp-material") as HTMLInputElement).value = product.tileMaterial || "";
+      (document.getElementById("pp-material-rigidity") as HTMLInputElement).value = product.materialRigidity || "";
+      (document.getElementById("pp-wrap-dims") as HTMLInputElement).value = product.wrapBuildDimensions || "";
+      (document.getElementById("pp-designs") as HTMLTextAreaElement).value = arrayToLines(product.designs);
+      (document.getElementById("pp-techniques") as HTMLTextAreaElement).value = arrayToLines(product.techniques);
+      (document.getElementById("pp-kit-contents") as HTMLTextAreaElement).value = kitContentsToLines(product.kitContents);
+
+      if (activeDrop) {
+        (document.getElementById("pp-made-location") as HTMLInputElement).value = activeDrop.madeLocation || "";
+        (document.getElementById("pp-made-year") as HTMLInputElement).value = String(activeDrop.madeYear || "");
+      } else {
+        (document.getElementById("pp-made-status") as HTMLElement).hidden = false;
+        showHint(document.getElementById("pp-made-status") as HTMLElement, "No drop exists yet for this product.", false);
+      }
+
+      (document.getElementById("pp-care-steps") as HTMLTextAreaElement).value = arrayToLines(product.careSteps);
+      (document.getElementById("pp-care-video") as HTMLInputElement).value = product.careVideoUrl || "";
+      (document.getElementById("pp-care-pdf") as HTMLInputElement).value = product.carePdfUrl || "";
+
+      (document.getElementById("pp-safety-notes") as HTMLTextAreaElement).value = arrayToLines(product.safetyNotes);
+
+      (document.getElementById("pp-snapshare-copy") as HTMLTextAreaElement).value = product.snapShareCopy || "";
+      (document.getElementById("pp-snapshare-hashtags") as HTMLTextAreaElement).value = arrayToLines(product.snapShareHashtags);
+
+      (document.getElementById("pp-register-intro") as HTMLTextAreaElement).value = product.registerIntroCopy || "";
+      (document.getElementById("pp-review-template") as HTMLTextAreaElement).value = product.reviewCopyTemplate || "";
+      (document.getElementById("pp-scan-again") as HTMLTextAreaElement).value = product.scanAgainCopy || "";
+      (document.getElementById("pp-designs-guide") as HTMLInputElement).value = product.designsGuidePdfUrl || "";
+
+      renderDesignUploadRows(product.designs || [], product.passportDesigns || null);
+
+      await loadPendingGifts();
+    } catch {
+      (document.getElementById("passport-loading") as HTMLElement).textContent = "Couldn't load passport content.";
+    }
+  }
+
+  function ppEsc(s: unknown) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // One row per Passport.designs entry, each with its own upload/remove —
+  // see the "passport-design" section in api/admin/product.js, which
+  // merges each upload into Product.passportDesigns (a JSON object keyed
+  // by design name) rather than replacing the whole field.
+  function renderDesignUploadRows(designs: string[], passportDesigns: Record<string, any> | null) {
+    const container = document.getElementById("pp-design-rows") as HTMLElement;
+    if (!designs || !designs.length) {
+      container.innerHTML = '<p class="admin-muted">Add designs in "Designs" above first, then come back here to upload each one\u2019s instructions.</p>';
+      return;
+    }
+    container.innerHTML = designs
+      .map((name) => {
+        const pkg = passportDesigns ? passportDesigns[name] : null;
+        const hasPkg = pkg && Array.isArray(pkg.steps) && pkg.steps.length;
+        const statusText = hasPkg
+          ? `${ppEsc(pkg.title || "Untitled design")} — ${pkg.steps.length} step${pkg.steps.length === 1 ? "" : "s"} uploaded`
+          : "No package uploaded yet";
+        return `
+        <div class="pp-design-row" data-design="${ppEsc(name)}" style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+          <p class="admin-muted"><strong>${ppEsc(name)}</strong> — <span class="pp-design-row__status">${statusText}</span></p>
+          <label>Package file<input type="file" accept=".json,application/json" class="pp-design-row__file" /></label>
+          <div style="margin-top: 8px; display: flex; gap: 8px;">
+            <button type="button" class="btn-primary pp-design-row__upload">Upload package</button>
+            <button type="button" class="btn-ghost pp-design-row__remove" ${hasPkg ? "" : "disabled"}>Remove</button>
+          </div>
+          <p class="pp-design-row__msg admin__hint" hidden></p>
+        </div>`;
+      })
+      .join("");
+  }
+
+  document.getElementById("pp-design-rows")?.addEventListener("click", async (e) => {
+    const target = e.target as HTMLElement;
+    const row = target.closest(".pp-design-row") as HTMLElement | null;
+    if (!row) return;
+    const design = row.dataset.design || "";
+    const msg = row.querySelector(".pp-design-row__msg") as HTMLElement;
+
+    function refreshAfter(data: any, successText: string) {
+      renderDesignUploadRows(data.product.designs || [], data.product.passportDesigns || null);
+      const refreshedMsg = document.querySelector(
+        `.pp-design-row[data-design="${CSS.escape(design)}"] .pp-design-row__msg`
+      ) as HTMLElement | null;
+      if (refreshedMsg) showHint(refreshedMsg, successText, true);
+    }
+
+    if (target.classList.contains("pp-design-row__upload")) {
+      const fileInput = row.querySelector(".pp-design-row__file") as HTMLInputElement;
+      const file = fileInput.files?.[0];
+      if (!file) {
+        showHint(msg, "Choose a .passport.json file first.", false);
+        return;
+      }
+
+      // Reading/parsing the file and sending it to the server are kept in
+      // separate try/catches on purpose — lumping them together previously
+      // meant a real server error (e.g. a Prisma schema mismatch) showed
+      // up to the admin as "That file isn't valid JSON", which was just
+      // wrong and sent debugging in the wrong direction.
+      let parsed: any;
+      try {
+        const text = await file.text();
+        parsed = JSON.parse(text);
+      } catch {
+        showHint(msg, "That file isn't valid JSON.", false);
+        return;
+      }
+      if (parsed?.format !== "unstitch-instructions" || !Array.isArray(parsed.steps) || !parsed.steps.length) {
+        showHint(msg, "That doesn't look like a passport-viewer package (unexpected format).", false);
+        return;
+      }
+
+      try {
+        const res = await api("/api/admin/product", {
+          method: "POST",
+          body: JSON.stringify({ section: "passport-design", design, passportDesign: parsed }),
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data) {
+          refreshAfter(data, "Design uploaded.");
+        } else {
+          showHint(msg, (data && data.error) || `Server error (${res.status}) — couldn't save that package.`, false);
+        }
+      } catch {
+        showHint(msg, "Network error — couldn't reach the server.", false);
+      }
+      return;
+    }
+
+    if (target.classList.contains("pp-design-row__remove")) {
+      try {
+        const res = await api("/api/admin/product", {
+          method: "POST",
+          body: JSON.stringify({ section: "passport-design", design, clear: true }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          refreshAfter(data, "Design removed.");
+        } else {
+          showHint(msg, data.error || "Couldn't remove that package.", false);
+        }
+      } catch {
+        showHint(msg, "Network error.", false);
+      }
+      return;
+    }
+  });
+
+  document.getElementById("pp-kit-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-kit-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "passport",
+          colourPalette: colourPaletteToArray((document.getElementById("pp-colour-palette") as HTMLTextAreaElement).value),
+          tileMaterial: (document.getElementById("pp-material") as HTMLInputElement).value,
+          materialRigidity: (document.getElementById("pp-material-rigidity") as HTMLInputElement).value,
+          wrapBuildDimensions: (document.getElementById("pp-wrap-dims") as HTMLInputElement).value,
+          designs: linesToArray((document.getElementById("pp-designs") as HTMLTextAreaElement).value),
+          techniques: linesToArray((document.getElementById("pp-techniques") as HTMLTextAreaElement).value),
+          kitContents: linesToArray((document.getElementById("pp-kit-contents") as HTMLTextAreaElement).value),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(status, "Kit specs updated.", true);
+        renderDesignUploadRows(data.product.designs || [], data.product.passportDesigns || null);
+      } else {
+        showHint(status, data.error || "Failed to update.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("pp-made-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-made-status") as HTMLElement;
+    const madeLocation = (document.getElementById("pp-made-location") as HTMLInputElement).value.trim();
+    const madeYear = Number((document.getElementById("pp-made-year") as HTMLInputElement).value);
+    if (!madeLocation || !Number.isInteger(madeYear)) return showHint(status, "Enter a location and a valid year.", false);
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({ section: "drop", madeLocation, madeYear }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Made details updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("pp-care-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-care-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "passport",
+          careSteps: careStepsToArray((document.getElementById("pp-care-steps") as HTMLTextAreaElement).value),
+          careVideoUrl: (document.getElementById("pp-care-video") as HTMLInputElement).value,
+          carePdfUrl: (document.getElementById("pp-care-pdf") as HTMLInputElement).value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Assembly & care updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("pp-safety-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-safety-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "passport",
+          safetyNotes: linesToArray((document.getElementById("pp-safety-notes") as HTMLTextAreaElement).value),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Safety precautions updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("pp-snapshare-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-snapshare-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "passport",
+          snapShareCopy: (document.getElementById("pp-snapshare-copy") as HTMLTextAreaElement).value,
+          snapShareHashtags: linesToArray((document.getElementById("pp-snapshare-hashtags") as HTMLTextAreaElement).value),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Snap & Share updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("pp-copy-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("pp-copy-status") as HTMLElement;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "passport",
+          registerIntroCopy: (document.getElementById("pp-register-intro") as HTMLTextAreaElement).value,
+          reviewCopyTemplate: (document.getElementById("pp-review-template") as HTMLTextAreaElement).value,
+          scanAgainCopy: (document.getElementById("pp-scan-again") as HTMLTextAreaElement).value,
+          designsGuidePdfUrl: (document.getElementById("pp-designs-guide") as HTMLInputElement).value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, "Page copy updated.", true);
+      else showHint(status, data.error || "Failed to update.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  async function loadPendingGifts() {
+    const tbody = document.getElementById("pp-gifts-tbody") as HTMLElement;
+    try {
+      const res = await api("/api/admin/inventory");
+      if (!res.ok) throw new Error("Failed to load inventory");
+      const { drops } = await res.json();
+      type GiftUnit = {
+        id: string; serial: string; dropId: string;
+        isGift: boolean; giftGiverName: string | null; giftGiverEmail: string | null;
+        giftAcknowledgementSentAt: string | null;
+        currentOwner: { name: string | null; email: string } | null;
+      };
+      const pending: (GiftUnit & { dropId: string })[] = [];
+      for (const drop of drops) {
+        for (const unit of drop.units as GiftUnit[]) {
+          if (unit.isGift && !unit.giftAcknowledgementSentAt) pending.push({ ...unit, dropId: drop.id });
+        }
+      }
+      if (pending.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">No pending gift acknowledgements.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = pending
+        .map((u) => {
+          const registeredBy = u.currentOwner ? esc(u.currentOwner.name || u.currentOwner.email) : "—";
+          const giftFrom = u.giftGiverEmail
+            ? `${esc(u.giftGiverName || "Unnamed")} &lt;${esc(u.giftGiverEmail)}&gt;`
+            : `${esc(u.giftGiverName || "Unnamed")} <span class="admin-muted">(no email on file)</span>`;
+          const disabled = u.giftGiverEmail ? "" : "disabled";
+          return `<tr data-gift-row="${u.id}"><td>${esc(u.serial)}</td><td>${registeredBy}</td><td>${giftFrom}</td><td><button type="button" class="admin-link-btn" data-send-gift-ack="${u.id}" data-drop-id="${u.dropId}" ${disabled}>Send thank-you</button></td></tr>`;
+        })
+        .join("");
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">Couldn't load gift acknowledgements.</td></tr>`;
+    }
+  }
+
+  document.getElementById("pp-gifts-tbody")?.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest("[data-send-gift-ack]") as HTMLButtonElement | null;
+    if (!btn) return;
+    const unitId = btn.dataset.sendGiftAck as string;
+    const dropId = btn.dataset.dropId as string;
+    btn.disabled = true;
+    btn.textContent = "Sending\u2026";
+    try {
+      const res = await api("/api/admin/inventory", {
+        method: "POST",
+        body: JSON.stringify({ dropId, action: "send-gift-ack", unitId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await loadPendingGifts();
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Send thank-you";
+        alert(data.error || "Couldn't send the email.");
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "Send thank-you";
+      alert("Network error.");
     }
   });
 

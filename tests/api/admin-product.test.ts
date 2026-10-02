@@ -120,9 +120,20 @@ describe('admin/product API handler — price/copy edit happy paths', () => {
 
   it('GET returns the product with its cost recipe when authenticated', async () => {
     vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({
+      id: 'product_1',
       slug: 'slow-bloom',
       basePriceCents: 12000,
       costRecipe: { materialSource: {} },
+    } as any);
+    // The handler also looks up the active drop (for the Passport tab's
+    // "Made" field prefill) via prisma.drop.findFirst — unmocked, this spy
+    // falls through to the real Prisma Client, which tries to actually
+    // reach the database using CI's fake DATABASE_URL and throws
+    // PrismaClientKnownRequestError. Mock it the same way as product above.
+    vi.spyOn(prisma.drop, 'findFirst').mockResolvedValue({
+      id: 'drop_1',
+      status: 'LIVE',
+      createdAt: new Date('2026-01-01'),
     } as any);
 
     const req = { method: 'GET', headers: { cookie: adminCookieHeader() } };

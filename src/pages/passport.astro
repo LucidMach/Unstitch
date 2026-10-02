@@ -57,7 +57,14 @@ import Layout from "../layouts/Layout.astro";
           <p id="p-serial-row" class="passport-hero__serial"></p>
         </div>
 
-        <section class="passport-card">
+        <!-- Sticky jump-nav: built client-side in buildToc() from whichever
+             sections below actually end up visible for this unit (safety,
+             designs/instructions, and snap&share are conditionally hidden
+             depending on the product's data), so it never links to a
+             section that isn't there. -->
+        <nav id="p-toc" class="passport-toc" hidden aria-label="Jump to section"></nav>
+
+        <section class="passport-card" id="p-section-kit">
           <h2>Your kit</h2>
           <div class="passport-specs">
             <div>
@@ -76,6 +83,50 @@ import Layout from "../layouts/Layout.astro";
               <span class="passport-specs__label">Status</span>
               <span id="p-status" class="passport-specs__value"></span>
             </div>
+            <div id="p-wrap-dims-row" hidden>
+              <span class="passport-specs__label">Wrap &amp; build</span>
+              <span id="p-wrap-dims" class="passport-specs__value"></span>
+            </div>
+          </div>
+          <div id="p-designs-row" class="passport-specs__list-row" hidden>
+            <span class="passport-specs__label">Designs</span>
+            <p id="p-designs" class="passport-specs__value"></p>
+          </div>
+          <div id="p-techniques-row" class="passport-specs__list-row" hidden>
+            <span class="passport-specs__label">Technique</span>
+            <p id="p-techniques" class="passport-specs__value"></p>
+          </div>
+          <div id="p-kit-contents-row" class="passport-specs__list-row" hidden>
+            <span class="passport-specs__label">What's in the kit</span>
+            <ul id="p-kit-contents" class="passport-steps"></ul>
+          </div>
+        </section>
+
+        <section id="passport-register" class="passport-card passport-card--accent">
+          <div id="p-register-form-wrap">
+            <h2>Register this kit</h2>
+            <p class="passport__body" id="p-register-intro">
+              Claim your passport with your email. We'll let you know about care tips and future drops, and your reviews will show as verified.
+            </p>
+            <form id="passport-register-form" class="passport__form passport__form--stacked">
+              <input id="p-register-name" type="text" placeholder="Name (optional)" autocomplete="name" />
+              <input id="p-register-email" type="email" placeholder="you@example.com" required autocomplete="email" />
+              <label class="passport-gift-toggle">
+                <input id="p-register-is-gift" type="checkbox" />
+                This kit was a gift
+              </label>
+              <div id="p-gift-fields" class="passport-gift-fields" hidden>
+                <input id="p-gift-giver-name" type="text" placeholder="Who gave it to you?" autocomplete="off" />
+                <input id="p-gift-giver-email" type="email" placeholder="Their email (optional — so we can say thanks)" autocomplete="off" />
+              </div>
+              <button type="submit" class="btn btn-filled">Register</button>
+            </form>
+            <p id="p-register-status" class="passport__body" hidden></p>
+          </div>
+          <div id="p-registered-wrap" hidden>
+            <h2>Registered</h2>
+            <p id="p-registered-message" class="passport__body"></p>
+            <p id="p-registered-gift-note" class="passport__body" hidden></p>
           </div>
         </section>
 
@@ -85,10 +136,15 @@ import Layout from "../layouts/Layout.astro";
              data attribute is filled in (see PASSPORT_CARE_MEDIA below),
              so this section is ready for whichever format is decided on
              without another round of page changes. -->
-        <section class="passport-card">
+        <section class="passport-card" id="p-section-care">
           <h2>Assembly &amp; care</h2>
           <ol id="p-care-steps" class="passport-steps"></ol>
           <div id="p-care-media"></div>
+        </section>
+
+        <section id="p-safety-section" class="passport-card" hidden>
+          <h2>Safety precautions</h2>
+          <ul id="p-safety-notes" class="passport-steps"></ul>
         </section>
 
         <!-- Separate from "Assembly & care" above (which is how to build
@@ -100,38 +156,33 @@ import Layout from "../layouts/Layout.astro";
              to be swapped out later. -->
         <section id="p-designs-section" class="passport-card" hidden>
           <h2>Designs &amp; instructions</h2>
-          <p class="passport__body">A layout guide for this kit's designs.</p>
+          <p class="passport__body" id="p-designs-intro">A layout guide for this kit's designs.</p>
+          <div class="passport-design-tabs" id="p-designs-tabs" role="tablist" aria-label="Design" hidden></div>
           <div id="p-designs-media"></div>
         </section>
 
-        <section id="passport-register" class="passport-card passport-card--accent">
-          <div id="p-register-form-wrap">
-            <h2>Register this kit</h2>
-            <p class="passport__body">
-              Claim your passport with your email. We'll let you know about care tips and future drops, and your reviews will show as verified.
-            </p>
-            <form id="passport-register-form" class="passport__form passport__form--stacked">
-              <input id="p-register-name" type="text" placeholder="Name (optional)" autocomplete="name" />
-              <input id="p-register-email" type="email" placeholder="you@example.com" required autocomplete="email" />
-              <button type="submit" class="btn btn-filled">Register</button>
-            </form>
-            <p id="p-register-status" class="passport__body" hidden></p>
-          </div>
-          <div id="p-registered-wrap" hidden>
-            <h2>Registered</h2>
-            <p id="p-registered-message" class="passport__body"></p>
-          </div>
+        <section id="p-snapshare-section" class="passport-card passport-card--center" hidden>
+          <h2>Snap &amp; Share</h2>
+          <p id="p-snapshare-copy" class="passport__body"></p>
+          <p id="p-snapshare-hashtags" class="passport-hashtags"></p>
         </section>
 
-        <section class="passport-card passport-card--center">
+        <section class="passport-card passport-card--center" id="p-section-review">
           <h2>Show it off</h2>
           <p id="p-review-copy" class="passport__body"></p>
           <a href="/shop" class="btn btn-filled">Write a verified review</a>
         </section>
 
-        <section class="passport-card">
+        <section class="passport-card" id="p-section-scan">
           <h2>Scan again anytime</h2>
-          <p class="passport__body">
+          <!-- Rendered client-side by renderScanAgainQr() once the unit's
+               serial is known — this is the *same* code already printed on
+               the Unstitch Mail postcard (see p-scan-again-copy below), not
+               a new one, so screenshotting it works just as well as the
+               physical card. Hidden until the QR draws in (or stays hidden
+               for good if the CDN import fails — see its catch block). -->
+          <div id="p-scan-again-qr" class="passport-scan-qr" hidden></div>
+          <p class="passport__body" id="p-scan-again-copy">
             This same code is printed on your Unstitch Mail postcard. Scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.
           </p>
         </section>
@@ -143,7 +194,7 @@ import Layout from "../layouts/Layout.astro";
     </section>
   </main>
 
-<style>
+<style is:global>
   .passport { min-height: 50vh; padding-top: 40px; padding-bottom: 60px; }
   .passport__panel { max-width: 480px; margin: 0 auto; text-align: center; }
   .passport__eyebrow {
@@ -172,24 +223,142 @@ import Layout from "../layouts/Layout.astro";
 
   .passport-card {
     max-width: 560px; margin: 20px auto; border: 1px solid #eee; border-radius: 10px; padding: 22px;
+    /* Keeps an anchor-jumped-to card from landing underneath the sticky
+       .passport-toc bar below — see buildToc(). */
+    scroll-margin-top: 68px;
   }
   .passport-card h2 { font-family: var(--font-display); font-size: 1rem; margin: 0 0 14px; }
   .passport-card--accent { background: var(--accent-pale); border-color: transparent; }
-  .passport-card--center { text-align: center; background: #fafafa; }
+  /* Only "Show it off" and "Snap & Share" use this modifier, and both are
+     now left-aligned like every other card — kept the tinted background as
+     the one thing that still sets them apart. */
+  .passport-card--center { background: #fafafa; }
+
+  /* Sticky jump-nav (built in buildToc()) so a long passport page doesn't
+     force a blind scroll to find Care, Instructions, Register, etc.
+     top: var(--header-h) (not 0) because .site-header is itself
+     position: sticky with z-index: 60 (see brand.css) above 768px wide —
+     sticking this nav at top: 0 put it directly behind the opaque header
+     (still technically "stuck", just invisible). Below 768px, .site-header
+     switches to position: static (brand.css's own responsive breakpoint),
+     so this nav gets the media query below to go back to top: 0 there,
+     matching the header no longer occupying that space. */
+  .passport-toc {
+    position: sticky; top: var(--header-h); z-index: 5;
+    max-width: 560px; margin: 0 auto 10px; padding: 10px 4px;
+    background: var(--paper, #fff);
+    display: flex; gap: 8px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  @media (max-width: 768px) {
+    .passport-toc { top: 0; }
+  }
+  .passport-toc::-webkit-scrollbar { display: none; }
+  .passport-toc::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: #eee;
+  }
+  .passport-toc__link {
+    flex: 0 0 auto; font-family: var(--font-body); font-size: 0.8rem; font-weight: 600;
+    color: var(--ink); text-decoration: none; white-space: nowrap;
+    padding: 7px 14px; border-radius: 999px; background: var(--accent-pale, #f3eef1);
+    border: 1px solid transparent; transition: border-color 0.15s ease;
+  }
+  .passport-toc__link:hover, .passport-toc__link:focus-visible { border-color: var(--accent); }
+
+  .passport-design-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+  .passport-design-tabs__btn {
+    font-family: var(--font-body); font-size: 0.8rem; font-weight: 600;
+    color: var(--ink); text-decoration: none; cursor: pointer;
+    padding: 7px 14px; border-radius: 999px; background: var(--accent-pale, #f3eef1);
+    border: 1px solid transparent; transition: border-color 0.15s ease;
+  }
+  .passport-design-tabs__btn:hover, .passport-design-tabs__btn:focus-visible { border-color: var(--accent); }
+  .passport-design-tabs__btn[aria-selected="true"] { border-color: var(--accent); background: var(--accent-pale-strong, #ece2e7); }
 
   .passport-specs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .passport-specs__label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 4px; }
-  .passport-specs__value { font-weight: 600; font-size: 0.92rem; }
+  .passport-specs__value { font-weight: 600; font-size: 0.92rem; margin: 0; }
   .passport-specs__swatches { display: flex; gap: 6px; }
-  .passport-swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); display: inline-block; }
+  .passport-swatch { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--ink); display: inline-block; }
+  .passport-specs__list-row { margin-top: 16px; }
+  .passport-specs__list-row .passport-steps { margin-top: 4px; }
+
+  .passport-hashtags { font-weight: 600; color: var(--accent); word-break: break-word; }
+
+  .passport-gift-toggle {
+    display: flex; align-items: center; gap: 8px; font-size: 0.86rem; color: #444; cursor: pointer;
+  }
+  .passport-gift-toggle input { flex: none; width: auto; }
+  .passport-gift-fields { display: flex; flex-direction: column; gap: 8px; }
 
   .passport-steps { margin: 0; padding-left: 20px; }
   .passport-steps li { margin-bottom: 10px; font-size: 0.92rem; }
+  .passport-steps__spacer { list-style: none; height: 10px; margin: 0 0 10px; }
   .passport-care-media { margin-top: 14px; }
   .passport-care-media iframe, .passport-care-media video { width: 100%; border-radius: 8px; border: none; }
   .passport-care-media a.btn { margin-top: 4px; }
 
+  .passport-scan-qr canvas { display: block; border-radius: 8px; margin-bottom: 14px; }
   .passport-footer { text-align: center; margin: 40px 0 20px; }
+
+  /* Interactive step-by-step build viewer (mountPassportViewer, below) —
+     rendered from an uploaded "unstitch-instructions" design package
+     (admin Passport tab > Instructions > passport-design). Namespaced
+     with a pv- prefix since it's built from a shared JSON format rather
+     than markup native to this page. */
+  .pv-viewer { margin-top: 6px; }
+  .pv-dots { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+  .pv-dots::-webkit-scrollbar { display: none; }
+  .pv-dot {
+    flex: 0 0 auto; min-width: 38px; padding: 6px 10px; font-family: var(--font-body); font-size: 0.8rem;
+    border: 1px solid #ccc; background: #fff; border-radius: var(--radius); cursor: pointer; position: relative;
+  }
+  .pv-dot[aria-current="step"] { background: #000; color: #fff; border-color: #000; }
+  .pv-dot.pv-done:not([aria-current="step"]) { border-color: var(--accent); color: var(--accent); }
+  .pv-dot .pv-play {
+    display: inline-block; width: 0; height: 0; border-left: 6px solid currentColor;
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent; margin-left: 6px; vertical-align: middle;
+  }
+  .pv-bar { height: 2px; background: #eee; margin: 2px 0 16px; }
+  .pv-bar i { display: block; height: 2px; background: var(--accent); transition: width 0.25s; }
+  .pv-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 0.78rem; }
+  .pv-badge { font-family: var(--font-body); border: 1px solid #ccc; padding: 3px 8px; border-radius: var(--radius); }
+  .pv-badge.pv-dyn { border-color: var(--accent); color: var(--accent); }
+  .pv-note { font-size: 0.85rem; color: #888; }
+  .pv-tabs { display: flex; gap: 0; margin-bottom: -1px; }
+  .pv-tabs button {
+    border: 1px solid #ccc; border-bottom: none; margin-right: -1px; font-size: 0.78rem; min-height: 34px;
+    padding: 6px 12px; background: #fff; cursor: pointer; font-family: var(--font-body);
+  }
+  .pv-tabs button[aria-selected="true"] { background: #000; color: #fff; border-color: #000; }
+  .pv-paper {
+    background: #fff; border: 1px solid #ccc; min-height: 200px; display: flex; align-items: center;
+    justify-content: center; padding: 12px; touch-action: pan-y; border-radius: var(--radius);
+  }
+  .pv-paper svg { display: block; width: 100%; height: auto; max-height: 50vh; }
+  .pv-paper video { display: block; width: 100%; max-height: 50vh; background: #000; }
+  .pv-ph {
+    width: 100%; aspect-ratio: 4 / 3; max-height: 50vh; border: 1px dashed #999; display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #555;
+    text-align: center; padding: 16px;
+  }
+  .pv-cap { font-size: 0.95rem; line-height: 1.4; margin: 14px 0 6px; }
+  .pv-cap b { font-family: var(--font-body); font-weight: 700; color: var(--accent); margin-right: 6px; }
+  .pv-cues { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; }
+  .pv-cue { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #eee; padding: 4px 10px; font-size: 0.8rem; border-radius: var(--radius); }
+  .pv-nav { display: flex; gap: 10px; margin-top: 16px; }
+  .pv-nav button {
+    flex: 1; font: inherit; font-size: 0.88rem; border: 1px solid #000; background: #fff; padding: 10px 14px;
+    min-height: 40px; border-radius: var(--radius); cursor: pointer;
+  }
+  .pv-nav button.pv-primary { background: #000; color: #fff; }
+  .pv-sec { margin-top: 28px; }
+  .pv-sec h3 { font-family: var(--font-display); font-weight: 400; font-size: 0.9rem; margin: 0 0 10px; }
+  .pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .pv-grid button { padding: 8px; text-align: left; background: #fff; border: 1px solid #eee; border-radius: var(--radius); cursor: pointer; }
+  .pv-grid svg { width: 100%; height: 90px; display: block; }
+  .pv-grid span { display: block; font-size: 0.75rem; margin-top: 4px; }
+  .pv-hide { display: none !important; }
 </style>
 
 <script>
@@ -199,6 +368,8 @@ import Layout from "../layouts/Layout.astro";
     status: string;
     registered: boolean;
     registeredOwnerName: string | null;
+    isGift: boolean;
+    giftGiverName: string | null;
     drop: { dropCode: string; totalUnits: number; madeLocation: string; madeYear: number };
     product: {
       name: string;
@@ -207,8 +378,22 @@ import Layout from "../layouts/Layout.astro";
       colourPalette: string[];
       tileMaterial: string | null;
       materialRigidity: string | null;
-      kitContents: string[];
+      kitContents: unknown[];
       imageUrl: string | null;
+      wrapBuildDimensions: string | null;
+      designs: string[];
+      techniques: string[];
+      careSteps: string[];
+      careVideoUrl: string | null;
+      carePdfUrl: string | null;
+      safetyNotes: string[];
+      designsGuidePdfUrl: string | null;
+      passportDesigns: Record<string, Record<string, unknown>> | null;
+      snapShareCopy: string | null;
+      snapShareHashtags: string[];
+      registerIntroCopy: string | null;
+      reviewCopyTemplate: string | null;
+      scanAgainCopy: string | null;
     };
   };
 
@@ -220,23 +405,57 @@ import Layout from "../layouts/Layout.astro";
     RETURNED: "Returned",
   };
 
-  // Placeholder written steps until the real assembly/care copy (and a
-  // decision on photos/video/PDF — flagged separately) replaces this —
-  // same placeholder-and-flag approach as the earlier static mock.
+  // Fallback copy used only when the admin Passport tab hasn't set the
+  // real content yet (src/server/admin/product.js, section: "passport") —
+  // keeps the page useful out of the box instead of showing an empty card.
   const DEFAULT_CARE_STEPS = [
     "Unfold the Furoshiki wrap flat and lay out all your tiles by colour.",
     "Follow the fold guide on your Unstitch Mail postcard to interlock the first row.",
     "Hand wash cold, lay flat to dry (avoid the tumble dryer).",
     "Re-fold along the original stitch lines when storing between uses.",
   ];
+  const DEFAULT_REGISTER_INTRO =
+    "Claim your passport with your email. We'll let you know about care tips and future drops, and your reviews will show as verified.";
+  const DEFAULT_SCAN_AGAIN_COPY =
+    "This same code is printed on your Unstitch Mail postcard. Scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.";
 
-  // Optional richer care media — leave both blank to show just the written
-  // steps above. Fill in once a format (photos/video/PDF) is decided:
-  //   PASSPORT_CARE_VIDEO_URL: an embeddable video URL (e.g. a YouTube/
-  //     Vimeo embed link, or a direct .mp4) shown inline below the steps.
-  //   PASSPORT_CARE_PDF_URL: a link to a downloadable/printable care guide.
-  const PASSPORT_CARE_VIDEO_URL = "";
-  const PASSPORT_CARE_PDF_URL = "";
+  // Same CDN "+esm" import pattern as admin/index.astro's loadQrCodeModule
+  // (see its comment for why: the qrcode package's own browser bundle is
+  // raw CommonJS and throws if loaded as a plain <script>). Kept as its own
+  // copy rather than shared code since this page and the admin page are
+  // two separate Astro routes with no shared client-side module today.
+  let qrModulePromise: Promise<any> | null = null;
+  function loadQrCodeModule() {
+    if (!qrModulePromise) {
+      // @ts-expect-error — browser-native dynamic import of a full https://
+      // URL; tsc has no module type to resolve for that specifier.
+      qrModulePromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
+    }
+    return qrModulePromise;
+  }
+
+  // Draws this unit's own passport URL as a QR code — the exact thing
+  // "Scan again anytime" below is talking about — so the claim is backed
+  // by an actual scannable (or screenshot-able) code, not just text.
+  async function renderScanAgainQr(serial: string) {
+    const holder = document.getElementById("p-scan-again-qr") as HTMLElement;
+    try {
+      const mod = await loadQrCodeModule();
+      const toCanvas: (canvas: HTMLCanvasElement, text: string, opts: any) => Promise<void> =
+        mod.toCanvas || mod.default?.toCanvas;
+      const url = `${window.location.origin}/passport/${encodeURIComponent(serial)}`;
+      const canvas = document.createElement("canvas");
+      await toCanvas(canvas, url, { width: 160, margin: 1 });
+      holder.innerHTML = "";
+      holder.appendChild(canvas);
+      holder.hidden = false;
+    } catch {
+      // Quietly leave it hidden — the paragraph below still explains the
+      // physical postcard code, so a blocked/offline CDN isn't fatal.
+      qrModulePromise = null;
+      holder.hidden = true;
+    }
+  }
 
   function els() {
     return {
@@ -253,35 +472,463 @@ import Layout from "../layouts/Layout.astro";
     for (const el of [search, loading, error, result]) el.hidden = el !== which;
   }
 
-  function renderCareSteps() {
+  function renderCareSteps(product: PassportUnit["product"]) {
+    const steps = product.careSteps?.length ? product.careSteps : DEFAULT_CARE_STEPS;
     const list = document.getElementById("p-care-steps") as HTMLOListElement;
-    list.innerHTML = DEFAULT_CARE_STEPS.map((s) => `<li>${s}</li>`).join("");
+    // A blank entry (admin left a line empty in the Care steps field, e.g.
+    // to separate build steps from wash/care instructions) renders as a
+    // plain spacer row instead of an empty numbered list item.
+    list.innerHTML = steps
+      .map((s) => (s.trim() ? `<li>${s}</li>` : `<li class="passport-steps__spacer" aria-hidden="true"></li>`))
+      .join("");
     const mediaEl = document.getElementById("p-care-media") as HTMLElement;
     const parts: string[] = [];
-    if (PASSPORT_CARE_VIDEO_URL) {
-      parts.push(`<div class="passport-care-media"><iframe src="${PASSPORT_CARE_VIDEO_URL}" allowfullscreen loading="lazy" height="315"></iframe></div>`);
+    if (product.careVideoUrl) {
+      parts.push(`<div class="passport-care-media"><iframe src="${product.careVideoUrl}" allowfullscreen loading="lazy" height="315"></iframe></div>`);
     }
-    if (PASSPORT_CARE_PDF_URL) {
-      parts.push(`<div class="passport-care-media"><a class="btn btn-outline" href="${PASSPORT_CARE_PDF_URL}" target="_blank" rel="noopener">Download the care guide (PDF)</a></div>`);
+    if (product.carePdfUrl) {
+      parts.push(`<div class="passport-care-media"><a class="btn btn-outline" href="${product.carePdfUrl}" target="_blank" rel="noopener">Download the care guide (PDF)</a></div>`);
     }
     mediaEl.innerHTML = parts.join("");
   }
 
-  // Empty by default — the "Designs & instructions" section stays hidden
-  // (see the <section hidden> in the markup above) until this is filled
-  // in, since there's no placeholder content worth showing for it yet.
-  // Fill in once the real guide exists (a PDF is the likely format).
-  const PASSPORT_DESIGNS_PDF_URL = "";
-
-  function renderDesignsSection() {
-    const section = document.getElementById("p-designs-section") as HTMLElement;
-    if (!PASSPORT_DESIGNS_PDF_URL) {
+  function renderSafetySection(product: PassportUnit["product"]) {
+    const section = document.getElementById("p-safety-section") as HTMLElement;
+    if (!product.safetyNotes?.length) {
       section.hidden = true;
       return;
     }
     section.hidden = false;
-    (document.getElementById("p-designs-media") as HTMLElement).innerHTML =
-      `<a class="btn btn-outline" href="${PASSPORT_DESIGNS_PDF_URL}" target="_blank" rel="noopener">Download the design &amp; instructions guide (PDF)</a>`;
+    (document.getElementById("p-safety-notes") as HTMLElement).innerHTML =
+      product.safetyNotes.map((s) => `<li>${s}</li>`).join("");
+  }
+
+  function renderKitSpecs(product: PassportUnit["product"]) {
+    const dimsRow = document.getElementById("p-wrap-dims-row") as HTMLElement;
+    dimsRow.hidden = !product.wrapBuildDimensions;
+    if (product.wrapBuildDimensions) {
+      (document.getElementById("p-wrap-dims") as HTMLElement).textContent = product.wrapBuildDimensions;
+    }
+
+    const designsRow = document.getElementById("p-designs-row") as HTMLElement;
+    designsRow.hidden = !product.designs?.length;
+    if (product.designs?.length) {
+      (document.getElementById("p-designs") as HTMLElement).textContent = product.designs.join(", ");
+    }
+
+    const techniquesRow = document.getElementById("p-techniques-row") as HTMLElement;
+    techniquesRow.hidden = !product.techniques?.length;
+    if (product.techniques?.length) {
+      (document.getElementById("p-techniques") as HTMLElement).textContent = product.techniques.join(", ");
+    }
+
+    const kitContentsRow = document.getElementById("p-kit-contents-row") as HTMLElement;
+    kitContentsRow.hidden = !product.kitContents?.length;
+    if (product.kitContents?.length) {
+      (document.getElementById("p-kit-contents") as HTMLElement).innerHTML =
+        product.kitContents.map((s) => `<li>${pvEsc(kitContentLabel(s))}</li>`).join("");
+    }
+  }
+
+  function renderSnapShare(product: PassportUnit["product"]) {
+    const section = document.getElementById("p-snapshare-section") as HTMLElement;
+    if (!product.snapShareCopy && !product.snapShareHashtags?.length) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    (document.getElementById("p-snapshare-copy") as HTMLElement).textContent = product.snapShareCopy || "";
+    (document.getElementById("p-snapshare-hashtags") as HTMLElement).textContent =
+      (product.snapShareHashtags || []).join("  ");
+  }
+
+  // --- Interactive step-by-step build viewer -------------------------
+  // Renders an uploaded "unstitch-instructions" design package (see
+  // Product.passportDesigns / admin Passport tab, section: "passport-design")
+  // inline, in place of the plain PDF-link fallback below. Ported from the
+  // standalone passport-viewer tool; namespaced with pv- ids/classes since
+  // it's mounted inside a page that already has its own ids.
+  const PV_DYNAMIC_TECHNIQUES: Record<string, 1> = { Roll: 1, Tie: 1 };
+
+  function pvEsc(s: unknown) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function pvSafeSvg(str: string | undefined) {
+    if (!str) return "";
+    try {
+      const doc = new DOMParser().parseFromString(str, "image/svg+xml");
+      const root = doc.documentElement;
+      if (!root || root.nodeName.toLowerCase() !== "svg" || doc.getElementsByTagName("parsererror").length) return "";
+      root.querySelectorAll("script,foreignObject,iframe,object,embed,image,a").forEach((n) => n.remove());
+      root.querySelectorAll("*").forEach((n) => {
+        Array.from(n.attributes).forEach((a) => {
+          if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) n.removeAttribute(a.name);
+        });
+      });
+      root.removeAttribute("width");
+      root.removeAttribute("height");
+      return new XMLSerializer().serializeToString(root);
+    } catch {
+      return "";
+    }
+  }
+  function pvSafeVideo(u: string) {
+    try {
+      const x = new URL(u);
+      return x.protocol === "https:" ? x.href : "";
+    } catch {
+      return "";
+    }
+  }
+  function pvIsDyn(step: any) {
+    return !!(step.video || PV_DYNAMIC_TECHNIQUES[step.tech]);
+  }
+
+  // Only one viewer is ever mounted at a time on this page (there's a
+  // single Instructions section) — a module-level pointer lets a single
+  // document-level keyboard listener stay bound across re-renders (e.g.
+  // after registering) instead of accumulating a new listener each time.
+  let pvActive: { step: (delta: number) => void } | null = null;
+  let pvKeyboardBound = false;
+  function pvBindKeyboardOnce() {
+    if (pvKeyboardBound) return;
+    pvKeyboardBound = true;
+    document.addEventListener("keydown", (e) => {
+      if (!pvActive) return;
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key === "ArrowRight") pvActive.step(1);
+      if (e.key === "ArrowLeft") pvActive.step(-1);
+    });
+  }
+
+  function mountPassportViewer(container: HTMLElement, pkg: any, storageKeyPrefix: string) {
+    if (!pkg || pkg.format !== "unstitch-instructions" || !Array.isArray(pkg.steps) || !pkg.steps.length) {
+      throw new Error("Not a valid passport-viewer package.");
+    }
+    container.innerHTML = `
+      <div class="pv-viewer">
+        <div class="pv-dots" id="pv-dots" role="tablist" aria-label="Steps"></div>
+        <div class="pv-bar" aria-hidden="true"><i id="pv-prog" style="width:0"></i></div>
+        <section id="pv-stepview">
+          <div class="pv-badges" id="pv-badges"></div>
+          <div class="pv-tabs" id="pv-tabs" role="tablist" aria-label="View"></div>
+          <div class="pv-paper" id="pv-paper"></div>
+          <p class="pv-cap" id="pv-cap" aria-live="polite"></p>
+          <div class="pv-cues" id="pv-cues"></div>
+          <div class="pv-nav">
+            <button id="pv-prev" type="button">&larr; Back</button>
+            <button class="pv-primary" id="pv-next" type="button">Next &rarr;</button>
+          </div>
+        </section>
+        <section id="pv-kitview" class="pv-hide">
+          <div class="pv-paper" id="pv-kitpaper"></div>
+          <p class="pv-note">Everything you need is in the box. Pick a step above to start, or begin with step 1.</p>
+          <div class="pv-nav"><button class="pv-primary" id="pv-begin" type="button">Start step 1 &rarr;</button></div>
+        </section>
+        <div class="pv-sec">
+          <h3>All steps</h3>
+          <div class="pv-grid" id="pv-grid"></div>
+        </div>
+      </div>
+    `;
+    const q = <T extends HTMLElement>(id: string) => container.querySelector(`#${id}`) as T;
+    const storageKey = `unstitch:passport:${storageKeyPrefix}:${pkg.title || ""}`;
+    let i = -1;
+    let tab = "diagram";
+    let done: Record<number, 1> = {};
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (saved && typeof saved.i === "number" && saved.i < pkg.steps.length) {
+        i = saved.i;
+        done = saved.done || {};
+      }
+    } catch {}
+
+    function persist() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ i, done }));
+      } catch {}
+    }
+    function views(step: any) {
+      const v: [string, string][] = [];
+      if (step.svg) v.push(["diagram", "Diagram"]);
+      if (step.iso) v.push(["iso", "3D"]);
+      if (step.section) v.push(["section", "Cross-section"]);
+      if (pvIsDyn(step)) v.push(["watch", "Watch"]);
+      if (!v.length) v.push(["diagram", "Diagram"]);
+      return v;
+    }
+    function watchPanel(step: any) {
+      const u = step.video ? pvSafeVideo(step.video) : "";
+      if (u) {
+        const vid = document.createElement("video");
+        vid.src = u;
+        vid.muted = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.controls = true;
+        vid.preload = "metadata";
+        vid.setAttribute("aria-label", `Video for step ${step.n}`);
+        vid.addEventListener("canplay", () => { vid.play().catch(() => {}); }, { once: true });
+        return vid;
+      }
+      const d = document.createElement("div");
+      d.className = "pv-ph";
+      d.innerHTML = `<div><b>Clip goes here</b><br>A short looping video of the ${pvEsc((step.tech || "technique").toLowerCase())}.</div>`;
+      return d;
+    }
+    function buildDots() {
+      const d = q<HTMLElement>("pv-dots");
+      d.innerHTML = "";
+      const k = document.createElement("button");
+      k.type = "button";
+      k.className = "pv-dot";
+      k.textContent = "Kit";
+      k.setAttribute("role", "tab");
+      k.onclick = () => go(-1);
+      d.appendChild(k);
+      pkg.steps.forEach((st: any, n: number) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "pv-dot";
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-label", `Step ${n + 1}${pvIsDyn(st) ? ", has video" : ""}`);
+        b.innerHTML = `${n + 1}${pvIsDyn(st) ? '<span class="pv-play" aria-hidden="true"></span>' : ""}`;
+        b.onclick = () => go(n);
+        d.appendChild(b);
+      });
+    }
+    function buildGrid() {
+      const g = q<HTMLElement>("pv-grid");
+      g.innerHTML = "";
+      pkg.steps.forEach((st: any, n: number) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("aria-label", `Go to step ${n + 1}`);
+        b.innerHTML = `${pvSafeSvg(st.svg || st.iso || "")}<span>${n + 1}. ${pvEsc(st.caption || "")}</span>`;
+        b.onclick = () => { go(n); container.scrollIntoView({ behavior: "smooth", block: "start" }); };
+        g.appendChild(b);
+      });
+    }
+    function go(n: number) {
+      if (n < -1 || n >= pkg.steps.length) return;
+      if (i >= 0) done[i] = 1;
+      i = n;
+      tab = "diagram";
+      show();
+      persist();
+    }
+    function show() {
+      const n = pkg.steps.length;
+      Array.from(q<HTMLElement>("pv-dots").children).forEach((b, idx) => {
+        const cur = idx - 1 === i;
+        if (cur) b.setAttribute("aria-current", "step");
+        else b.removeAttribute("aria-current");
+        b.setAttribute("aria-selected", String(cur));
+        b.classList.toggle("pv-done", !!done[idx - 1]);
+      });
+      q<HTMLElement>("pv-prog").style.width = `${i < 0 ? 0 : Math.round(((i + 1) / n) * 100)}%`;
+      const kit = i < 0;
+      q<HTMLElement>("pv-stepview").classList.toggle("pv-hide", kit);
+      q<HTMLElement>("pv-kitview").classList.toggle("pv-hide", !kit);
+      if (kit) {
+        q<HTMLElement>("pv-kitpaper").innerHTML = pvSafeSvg(pkg.overview) || `<p class="pv-note">No overview in this package.</p>`;
+        q<HTMLButtonElement>("pv-begin").onclick = () => go(0);
+        return;
+      }
+      const st = pkg.steps[i];
+      let vs = views(st);
+      if (!vs.some((x) => x[0] === tab)) tab = vs[0][0];
+      q<HTMLElement>("pv-badges").innerHTML =
+        `<span class="pv-badge">Step ${i + 1} of ${n}</span>` +
+        (st.tech ? `<span class="pv-badge${pvIsDyn(st) ? " pv-dyn" : ""}">${pvEsc(st.tech)}</span>` : "") +
+        `<span class="pv-note">${pvIsDyn(st) ? "Watch this one. It is about feel, not just shape." : "Follow the diagram."}</span>`;
+      const t = q<HTMLElement>("pv-tabs");
+      t.innerHTML = "";
+      vs.forEach((v) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = v[1];
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", String(v[0] === tab));
+        b.onclick = () => { tab = v[0]; show(); };
+        t.appendChild(b);
+      });
+      const p = q<HTMLElement>("pv-paper");
+      p.innerHTML = "";
+      if (tab === "watch") {
+        p.appendChild(watchPanel(st));
+      } else {
+        const src = tab === "iso" ? st.iso : tab === "section" ? st.section : st.svg;
+        const wrap = document.createElement("div");
+        wrap.style.width = "100%";
+        wrap.setAttribute("role", "img");
+        wrap.setAttribute("aria-label", `Step ${i + 1} ${tab === "iso" ? "3D view" : tab === "section" ? "cross-section" : "diagram"}: ${st.caption || ""}`);
+        wrap.innerHTML = pvSafeSvg(src);
+        p.appendChild(wrap);
+      }
+      q<HTMLElement>("pv-cap").innerHTML = `<b>${i + 1}.</b>${pvEsc(st.caption || "")}`;
+      const cu = q<HTMLElement>("pv-cues");
+      cu.innerHTML = "";
+      (st.cues || []).forEach((c: any) => {
+        const s = document.createElement("span");
+        s.className = "pv-cue";
+        s.innerHTML = `<svg width="18" height="18" viewBox="-14 -14 28 28" aria-hidden="true"><path d="${pvEsc(c.d)}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>${pvEsc(c.label)}`;
+        cu.appendChild(s);
+      });
+      q<HTMLButtonElement>("pv-next").textContent = i === n - 1 ? "Finish" : "Next →";
+    }
+
+    buildDots();
+    buildGrid();
+    show();
+
+    q<HTMLButtonElement>("pv-prev").onclick = () => go(i - 1);
+    q<HTMLButtonElement>("pv-next").onclick = () => {
+      if (i === pkg.steps.length - 1) {
+        done[i] = 1;
+        persist();
+        q<HTMLElement>("pv-cap").textContent = "Nice work. Tag your make #UnstitchZeroWaste.";
+      } else {
+        go(i + 1);
+      }
+    };
+    let sx: number | null = null;
+    const paper = q<HTMLElement>("pv-paper");
+    paper.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
+    paper.addEventListener("touchend", (e) => {
+      if (sx === null) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      sx = null;
+      if (Math.abs(dx) > 60) go(i + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+
+    pvActive = { step: (delta: number) => go(i + delta) };
+    pvBindKeyboardOnce();
+  }
+
+  // A product can have several named designs (Passport.designs, e.g.
+  // "Turtle" / "Flower" / "Reusable cup warmer"), each with its own
+  // optional uploaded instructions package (Product.passportDesigns, a
+  // JSON object keyed by design name — see admin/index.astro's
+  // "Instructions (step-by-step viewer)" card). When more than one design
+  // has a package, show a small tab row so the visitor can switch; with
+  // exactly one, skip the tabs and just show it.
+  function validPassportPackage(pkg: unknown): pkg is Record<string, unknown> {
+    return (
+      !!pkg &&
+      typeof pkg === "object" &&
+      (pkg as Record<string, unknown>).format === "unstitch-instructions" &&
+      Array.isArray((pkg as Record<string, unknown>).steps) &&
+      ((pkg as Record<string, unknown>).steps as unknown[]).length > 0
+    );
+  }
+
+  function renderDesignsSection(product: PassportUnit["product"], storageKeyPrefix: string) {
+    const section = document.getElementById("p-designs-section") as HTMLElement;
+    const media = document.getElementById("p-designs-media") as HTMLElement;
+    const intro = document.getElementById("p-designs-intro") as HTMLElement;
+    const tabs = document.getElementById("p-designs-tabs") as HTMLElement;
+
+    const designs = product.passportDesigns && typeof product.passportDesigns === "object" ? product.passportDesigns : null;
+    const uploaded = designs ? Object.keys(designs).filter((name) => validPassportPackage(designs[name])) : [];
+    // Order tabs to match the admin's "Designs" list order, with any
+    // leftover names (e.g. a design since renamed/removed there) appended.
+    const names = [
+      ...(product.designs || []).filter((name) => uploaded.includes(name)),
+      ...uploaded.filter((name) => !(product.designs || []).includes(name)),
+    ];
+
+    if (names.length) {
+      section.hidden = false;
+      intro.hidden = true;
+
+      const showDesign = (name: string) => {
+        try {
+          mountPassportViewer(media, designs![name], `${storageKeyPrefix}:${name}`);
+        } catch {
+          media.innerHTML = "";
+        }
+        tabs.querySelectorAll<HTMLButtonElement>(".passport-design-tabs__btn").forEach((btn) => {
+          btn.setAttribute("aria-selected", String(btn.dataset.design === name));
+        });
+      };
+
+      if (names.length > 1) {
+        tabs.hidden = false;
+        tabs.innerHTML = names
+          .map((name) => `<button type="button" class="passport-design-tabs__btn" role="tab" data-design="${pvEsc(name)}">${pvEsc(name)}</button>`)
+          .join("");
+        tabs.querySelectorAll<HTMLButtonElement>(".passport-design-tabs__btn").forEach((btn) => {
+          btn.addEventListener("click", () => showDesign(btn.dataset.design || ""));
+        });
+      } else {
+        tabs.hidden = true;
+        tabs.innerHTML = "";
+      }
+
+      showDesign(names[0]);
+      return;
+    }
+
+    tabs.hidden = true;
+    tabs.innerHTML = "";
+    intro.hidden = false;
+    if (!product.designsGuidePdfUrl) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    intro.textContent = "A layout guide for this kit's designs.";
+    media.innerHTML =
+      `<a class="btn btn-outline" href="${product.designsGuidePdfUrl}" target="_blank" rel="noopener">Download the design &amp; instructions guide (PDF)</a>`;
+  }
+
+  // kitContents started life in prisma/seed.ts as [{ item: "..." }] (legacy
+  // shape) before the admin Passport tab made it a plain one-line-per-item
+  // textarea (new shape: string[]). Handle both so old, un-resaved seed
+  // data renders as text instead of "[object Object]".
+  function kitContentLabel(entry: unknown): string {
+    if (typeof entry === "string") return entry;
+    if (entry && typeof entry === "object" && "item" in (entry as Record<string, unknown>)) {
+      return String((entry as Record<string, unknown>).item);
+    }
+    return String(entry);
+  }
+
+  function fillTemplate(template: string, vars: Record<string, string>) {
+    return template.replace(/\{(\w+)\}/g, (m, key) => (key in vars ? vars[key] : m));
+  }
+
+  // Sticky jump-nav (#p-toc, see markup above renderUnit's hero block).
+  // Rebuilt every renderUnit() call since which sections are visible
+  // (safety / designs-instructions / snap&share) depends on this unit's
+  // product data — a pill is only ever shown for a section that's
+  // actually on the page.
+  const TOC_SECTIONS: { id: string; label: string }[] = [
+    { id: "p-section-kit", label: "Your kit" },
+    { id: "passport-register", label: "Register" },
+    { id: "p-section-care", label: "Care" },
+    { id: "p-safety-section", label: "Safety" },
+    { id: "p-designs-section", label: "Instructions" },
+    { id: "p-snapshare-section", label: "Share" },
+    { id: "p-section-review", label: "Reviews" },
+    { id: "p-section-scan", label: "Scan again" },
+  ];
+  function buildToc() {
+    const nav = document.getElementById("p-toc") as HTMLElement;
+    const links = TOC_SECTIONS.map(({ id, label }) => {
+      const section = document.getElementById(id);
+      if (!section || section.hidden) return "";
+      return `<a href="#${id}" class="passport-toc__link">${pvEsc(label)}</a>`;
+    }).join("");
+    nav.innerHTML = links;
+    nav.hidden = !links;
   }
 
   function renderUnit(unit: PassportUnit) {
@@ -298,11 +945,29 @@ import Layout from "../layouts/Layout.astro";
     (document.getElementById("p-made") as HTMLElement).textContent = `${unit.drop.madeLocation}, by hand`;
     (document.getElementById("p-status") as HTMLElement).textContent = STATUS_LABELS[unit.status] || unit.status;
 
-    renderCareSteps();
-    renderDesignsSection();
+    renderKitSpecs(unit.product);
+    renderCareSteps(unit.product);
+    renderSafetySection(unit.product);
+    renderDesignsSection(unit.product, unit.serial);
+    renderSnapShare(unit.product);
 
-    (document.getElementById("p-review-copy") as HTMLElement).textContent =
-      `You're the ${unit.registered ? "verified owner" : "keeper"} of edition ${unit.editionNumber} of ${unit.drop.totalUnits}. Leave a review and it'll show as "Verified: ${unit.product.name} #${unit.editionNumber} of ${unit.drop.totalUnits}."`;
+    (document.getElementById("p-register-intro") as HTMLElement).textContent =
+      unit.product.registerIntroCopy || DEFAULT_REGISTER_INTRO;
+    (document.getElementById("p-scan-again-copy") as HTMLElement).textContent =
+      unit.product.scanAgainCopy || DEFAULT_SCAN_AGAIN_COPY;
+    void renderScanAgainQr(unit.serial);
+
+    const ownerStatus = unit.registered ? "verified owner" : "keeper";
+    const reviewVars = {
+      productName: unit.product.name,
+      edition: String(unit.editionNumber),
+      totalUnits: String(unit.drop.totalUnits),
+      ownerStatus,
+    };
+    const reviewTemplate =
+      unit.product.reviewCopyTemplate ||
+      `You're the {ownerStatus} of edition {edition} of {totalUnits}. Leave a review and it'll show as "Verified: {productName} #{edition} of {totalUnits}."`;
+    (document.getElementById("p-review-copy") as HTMLElement).textContent = fillTemplate(reviewTemplate, reviewVars);
 
     const formWrap = document.getElementById("p-register-form-wrap") as HTMLElement;
     const registeredWrap = document.getElementById("p-registered-wrap") as HTMLElement;
@@ -312,11 +977,21 @@ import Layout from "../layouts/Layout.astro";
       (document.getElementById("p-registered-message") as HTMLElement).textContent = unit.registeredOwnerName
         ? `Registered to ${unit.registeredOwnerName}. Scanning this code again? You can re-register below to move it to a new owner.`
         : "This kit is registered.";
+      const giftNote = document.getElementById("p-registered-gift-note") as HTMLElement;
+      if (unit.isGift) {
+        giftNote.hidden = false;
+        giftNote.textContent = unit.giftGiverName
+          ? `Thanks for letting us know this was a gift from ${unit.giftGiverName} \u2014 we'll be in touch with them ourselves to say thanks.`
+          : "Thanks for letting us know this was a gift \u2014 we'll follow up to say thanks.";
+      } else {
+        giftNote.hidden = true;
+      }
     } else {
       formWrap.hidden = false;
       registeredWrap.hidden = true;
     }
 
+    buildToc();
     showOnly(els().result);
   }
 
@@ -372,11 +1047,19 @@ import Layout from "../layouts/Layout.astro";
     lookupSerial(value);
   });
 
+  document.getElementById("p-register-is-gift")?.addEventListener("change", (e) => {
+    const giftFields = document.getElementById("p-gift-fields") as HTMLElement;
+    giftFields.hidden = !(e.target as HTMLInputElement).checked;
+  });
+
   document.getElementById("passport-register-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("p-register-status") as HTMLElement;
     const name = (document.getElementById("p-register-name") as HTMLInputElement).value.trim();
     const email = (document.getElementById("p-register-email") as HTMLInputElement).value.trim();
+    const isGift = (document.getElementById("p-register-is-gift") as HTMLInputElement).checked;
+    const giftGiverName = (document.getElementById("p-gift-giver-name") as HTMLInputElement).value.trim();
+    const giftGiverEmail = (document.getElementById("p-gift-giver-email") as HTMLInputElement).value.trim();
     if (!email || !currentSerial) return;
     const submitBtn = (e.target as HTMLFormElement).querySelector("button[type=submit]") as HTMLButtonElement;
     submitBtn.disabled = true;
@@ -385,7 +1068,14 @@ import Layout from "../layouts/Layout.astro";
       const res = await fetch("/api/passport", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serial: currentSerial, email, name: name || undefined }),
+        body: JSON.stringify({
+          serial: currentSerial,
+          email,
+          name: name || undefined,
+          isGift,
+          giftGiverName: isGift ? giftGiverName || undefined : undefined,
+          giftGiverEmail: isGift ? giftGiverEmail || undefined : undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
