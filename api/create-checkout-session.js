@@ -179,6 +179,13 @@ export default async function handler(req, res) {
       expires_at: Math.floor(Date.now() / 1000) + SESSION_HOLD_SECONDS,
       success_url: `${origin}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/order/cancelled`,
+      // Metadata (below) is never shown to the customer — it's internal
+      // bookkeeping only. Echo the gift message back on Stripe's own
+      // hosted page (just above the pay button) so the customer gets
+      // visible confirmation it was actually captured before they pay.
+      custom_text: giftWrap && giftMessage
+        ? { submit: { message: `🎁 Gift message: ${giftMessage}` } }
+        : undefined,
       metadata: {
         productId: product.id,
         productSlug: product.slug,
