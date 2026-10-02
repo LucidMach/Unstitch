@@ -82,7 +82,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
           <div class="product-specs" aria-label="Kit specifications">
             <div class="product-specs__col">
               <span class="product-specs__label">Colour palette</span>
-              <span class="product-specs__swatches">
+              <span class="product-specs__swatches" data-ps-swatches>
                 {product.colourPalette.map((hex) => (
                   <span class="product-specs__swatch" style={`background:${hex}`} title={hex}></span>
                 ))}
@@ -90,31 +90,31 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Feel</span>
-              <span class="product-specs__value product-specs__value--stacked">
+              <span class="product-specs__value product-specs__value--stacked" data-ps-feel>
                 {product.feel.map((line) => <span>{line}</span>)}
               </span>
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Ages</span>
-              <span class="product-specs__value">{product.ageRangeMin}–{product.ageRangeMax}</span>
+              <span class="product-specs__value" data-ps-ages>{product.ageRangeMin}–{product.ageRangeMax}</span>
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Pieces</span>
-              <span class="product-specs__value">{product.tilesPerKit}</span>
+              <span class="product-specs__value" data-ps-pieces>{product.tilesPerKit}</span>
             </div>
           </div>
         </div>
 
         <div class="product-hero__info">
-          <p class="section__eyebrow">{product.eyebrow}</p>
-          <h1 class="product-hero__title">{product.name}</h1>
-          <p class="product-hero__ref">Ref: Drop {product.dropCode} <span class="product-qty__note">&middot; Only {product.totalUnits} kits in this batch</span></p>
-          <p class="product-hero__price">AUD {(product.priceCents / 100).toFixed(0)}</p>
+          <p class="section__eyebrow" data-product-eyebrow>{product.eyebrow}</p>
+          <h1 class="product-hero__title" data-product-title>{product.name}</h1>
+          <p class="product-hero__ref">Ref: Drop <span data-ref-dropcode>{product.dropCode}</span> <span class="product-qty__note">&middot; Only <span data-ref-totalunits>{product.totalUnits}</span> kits in this batch</span></p>
+          <p class="product-hero__price" data-product-price-display>AUD {(product.priceCents / 100).toFixed(0)}</p>
 
           <hr class="product-hero__divider" />
 
           <h2 class="product-hero__included-title">What's in your kit</h2>
-          <div class="product-included">
+          <div class="product-included" data-included-grid>
             {included.map((item) => (
               <div class="product-included__item">
                 <div class="product-included__icon" aria-hidden="true">
@@ -228,7 +228,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
         <form class="review-form" data-review-form>
           <label class="review-field">
             <span class="review-field__label">Kit passport / order code</span>
-            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-D001-007" required />
+            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-X000-000" required />
             <span class="review-field__hint">This is what verifies you actually own a kit. Found on your postcard and in your order email.</span>
           </label>
 
@@ -655,6 +655,113 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
     // still happens server-side in create-checkout-session.js regardless —
     // this only controls what the page shows, so it fails safe (leaves
     // buying enabled) if the check itself errors out.
+
+    // Known kit-contents labels -> icon, matching the build-time `included`
+    // list above. Admin-added custom lines (src/server/admin/product.js,
+    // section "passport", field kitContents) fall back to a generic tile
+    // icon rather than needing a matching asset for every possible label.
+    const KIT_CONTENT_ICONS: Record<string, string> = {
+      "3 Designs": "/assets/icons/three-designs.svg",
+      "Wrap Build Mat": "/assets/icons/furoshiki-wrap.svg",
+      "Unstitch Mail": "/assets/icons/mail-postcard.svg",
+      "Tiles": "/assets/icons/tile.svg",
+      "x3 Tile for Change": "/assets/icons/tile-for-change.svg",
+      "Product Passport": "/assets/icons/digital-passport.svg",
+      "Gift Message (optional)": "/assets/icons/gifting-message.svg",
+    };
+    const DEFAULT_KIT_CONTENT_ICON = "/assets/icons/tile.svg";
+
+    // Splits the "Feel" spec into its stacked lines. Accepts either the
+    // newline-separated format the admin Product tab saves going forward,
+    // or the legacy single "Soft / low-rigidity" seed format — see
+    // src/server/admin/product.js (section "passport", field
+    // materialRigidity).
+    function splitFeelLines(value: string): string[] {
+      const byNewline = value.split("\n").map((s) => s.trim()).filter(Boolean);
+      if (byNewline.length > 1) return byNewline;
+      return value.split("/").map((s) => s.trim()).filter(Boolean);
+    }
+
+    function escHtml(s: string): string {
+      return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] || c));
+    }
+
+    // Overwrites the build-time static `product`/`included` content (see
+    // frontmatter above) with the live database row, so a change saved in
+    // the admin Pricing/Passport tabs reaches this statically-built page
+    // without a redeploy. Every field is independently optional/fails
+    // safe: a missing or malformed value just leaves the static fallback
+    // showing for that one field instead of breaking the rest.
+    function applyLiveProductData(data: any) {
+      if (typeof data.name === "string" && data.name) {
+        const titleEl = document.querySelector<HTMLElement>("[data-product-title]");
+        if (titleEl) titleEl.textContent = data.name;
+      }
+      if (typeof data.tagline === "string" && data.tagline) {
+        const eyebrowEl = document.querySelector<HTMLElement>("[data-product-eyebrow]");
+        if (eyebrowEl) eyebrowEl.textContent = data.tagline;
+      }
+      if (typeof data.dropCode === "string" && data.dropCode) {
+        const dropCodeEl = document.querySelector<HTMLElement>("[data-ref-dropcode]");
+        if (dropCodeEl) dropCodeEl.textContent = data.dropCode;
+      }
+      if (typeof data.totalUnits === "number" && data.totalUnits > 0) {
+        const totalUnitsEl = document.querySelector<HTMLElement>("[data-ref-totalunits]");
+        if (totalUnitsEl) totalUnitsEl.textContent = String(data.totalUnits);
+      }
+      if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
+        const priceEl = document.querySelector<HTMLElement>("[data-product-price-display]");
+        if (priceEl) priceEl.textContent = `AUD ${(data.basePriceCents / 100).toFixed(0)}`;
+      }
+      if (typeof data.tilesPerKit === "number" && data.tilesPerKit > 0) {
+        const piecesEl = document.querySelector<HTMLElement>("[data-ps-pieces]");
+        if (piecesEl) piecesEl.textContent = String(data.tilesPerKit);
+      }
+      if ((data.ageRangeMin || data.ageRangeMax)) {
+        const agesEl = document.querySelector<HTMLElement>("[data-ps-ages]");
+        if (agesEl) agesEl.textContent = `${data.ageRangeMin ?? ""}\u2013${data.ageRangeMax ?? ""}`;
+      }
+      if (Array.isArray(data.colourPalette) && data.colourPalette.length) {
+        const swatchesEl = document.querySelector<HTMLElement>("[data-ps-swatches]");
+        if (swatchesEl) {
+          swatchesEl.innerHTML = data.colourPalette
+            .map((hex: string) => `<span class="product-specs__swatch" style="background:${escHtml(hex)}" title="${escHtml(hex)}"></span>`)
+            .join("");
+        }
+      }
+      if (typeof data.materialRigidity === "string" && data.materialRigidity) {
+        const feelEl = document.querySelector<HTMLElement>("[data-ps-feel]");
+        const lines = splitFeelLines(data.materialRigidity);
+        if (feelEl && lines.length) {
+          feelEl.innerHTML = lines.map((line) => `<span>${escHtml(line)}</span>`).join("");
+        }
+      }
+      if (Array.isArray(data.kitContents) && data.kitContents.length) {
+        const gridEl = document.querySelector<HTMLElement>("[data-included-grid]");
+        if (gridEl) {
+          gridEl.innerHTML = data.kitContents
+            .map((entry: unknown) => {
+              const label = typeof entry === "string" ? entry : String((entry as any)?.item ?? entry ?? "");
+              if (!label) return "";
+              const icon = KIT_CONTENT_ICONS[label] || DEFAULT_KIT_CONTENT_ICON;
+              return `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="${icon}" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label">${escHtml(label)}</p></div>`;
+            })
+            .join("");
+        }
+      }
+
+      // Add to Bag / cart-client.ts needs the up-to-date name/price/maxQty
+      // too, so a cart line item always reflects the live price even if an
+      // admin changed it since this page was last built.
+      const addBtnForData = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+      if (addBtnForData) {
+        if (typeof data.name === "string" && data.name) addBtnForData.dataset.productName = data.name;
+        if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
+          addBtnForData.dataset.productPrice = String(data.basePriceCents);
+        }
+      }
+    }
+
     async function checkStockStatus() {
       const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
       const stepper = document.querySelector<HTMLElement>("[data-qty-stepper]");
@@ -665,13 +772,11 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
         if (!res.ok) return;
         const data = await res.json();
 
-        // Batch size (product.totalUnits) is still static build-time
-        // content, same as name/price/included items above — but unlike
-        // those, it drifts every time someone restocks/voids units in the
-        // admin Inventory tab. The "Only N kits" copy next to Ref: Drop
-        // stays static build-time text on purpose (not worth a layout
-        // flicker for), but the actual purchase limits must never lag
-        // behind real stock, so those alone get corrected live. Fails
+        applyLiveProductData(data);
+
+        // The actual purchase limit must never lag behind real stock —
+        // this is what lets admin restocks/voids (Inventory tab) raise or
+        // lower the quantity stepper's max without a redeploy. Fails
         // safe: on error/no data, the static max set at build time keeps
         // showing.
         if (typeof data.totalUnits === "number" && data.totalUnits > 0) {

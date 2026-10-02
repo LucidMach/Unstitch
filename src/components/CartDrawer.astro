@@ -41,6 +41,19 @@
     />
     <p class="cart-sheet__delivery-quote" data-cart-delivery-quote hidden></p>
 
+    <label class="cart-sheet__gift-toggle">
+      <input type="checkbox" data-cart-gift-toggle />
+      <span>Add a gift message</span>
+    </label>
+    <textarea
+      class="cart-sheet__gift-message"
+      data-cart-gift-message
+      placeholder="Write your gift message here…"
+      maxlength="500"
+      rows="3"
+      hidden
+    ></textarea>
+
     <div class="cart-sheet__subtotal cart-sheet__total" data-cart-total-row hidden>
       <span>Total (incl. delivery)</span>
       <span data-cart-total>$0.00</span>
@@ -245,11 +258,16 @@
       return;
     }
 
+    const giftToggle = document.querySelector<HTMLInputElement>("[data-cart-gift-toggle]");
+    const giftMessageEl = document.querySelector<HTMLTextAreaElement>("[data-cart-gift-message]");
+    const giftWrap = !!giftToggle?.checked;
+    const giftMessage = giftWrap ? (giftMessageEl?.value.trim() || undefined) : undefined;
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: item.id, quantity: item.qty, postcode: currentQuote.postcode }),
+        body: JSON.stringify({ slug: item.id, quantity: item.qty, postcode: currentQuote.postcode, giftWrap, giftMessage }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) {
@@ -289,6 +307,14 @@
     closers.forEach((btn) => btn.addEventListener("click", closeCart));
     overlay?.addEventListener("click", closeCart);
     checkoutBtn?.addEventListener("click", () => startCheckout(checkoutBtn));
+
+    const giftToggle = document.querySelector<HTMLInputElement>("[data-cart-gift-toggle]");
+    const giftMessageEl = document.querySelector<HTMLTextAreaElement>("[data-cart-gift-message]");
+    giftToggle?.addEventListener("change", () => {
+      if (!giftMessageEl) return;
+      giftMessageEl.hidden = !giftToggle.checked;
+      if (!giftToggle.checked) giftMessageEl.value = "";
+    });
 
     const postcodeInput = document.querySelector<HTMLInputElement>("[data-cart-postcode]");
     let postcodeDebounce: ReturnType<typeof setTimeout> | undefined;

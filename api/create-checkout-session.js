@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
   }
 
-  const { slug, quantity, email, postcode } = parseResult.data;
+  const { slug, quantity, email, postcode, giftWrap, giftMessage } = parseResult.data;
 
   // Single query instead of the previous product.findUnique -> drop.findFirst
   // pair: pull the product and its one candidate live drop together. Still
@@ -187,6 +187,10 @@ export default async function handler(req, res) {
         quantity: String(quantity),
         deliveryZoneId: deliveryZone.id,
         deliveryFeeCents: String(deliveryZone.feeCents),
+        // Stripe metadata values must be strings — read back out in
+        // api/stripe-webhook.js and written onto the created Order.
+        giftWrap: String(!!giftWrap),
+        giftMessage: giftMessage || '',
       },
     });
 

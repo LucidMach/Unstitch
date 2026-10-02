@@ -227,6 +227,10 @@ async function handleCheckoutCompleted(session) {
         expectedShipAt,
         internalNote: postcodeMismatchNote,
         idempotencyKey: session.id,
+        // Set from the bag drawer's gift-message checkbox, carried through
+        // as Checkout Session metadata by create-checkout-session.js.
+        giftWrap: metadata.giftWrap === 'true',
+        giftMessage: metadata.giftMessage || null,
       },
     });
 

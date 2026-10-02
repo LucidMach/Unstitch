@@ -1,7 +1,20 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { Image } from "astro:assets";
+import { Image, getImage } from "astro:assets";
 import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
+
+// Add to Bag on the homepage needs the same product data (id/name/price/
+// image/maxQty) that shop.astro's own Add to Bag button carries in its
+// data-product-* attributes — see cart-client.ts. Mirrors shop.astro's
+// "slow-bloom" static product constants; keep these two in sync until
+// product data is read from the database instead of hardcoded per-page.
+const homeProduct = {
+  id: "slow-bloom",
+  name: "Slow Bloom",
+  priceCents: 2900,
+  totalUnits: 11,
+};
+const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 700, height: 495, format: "webp" });
 ---
 
 <Layout
@@ -141,8 +154,20 @@ import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
 
         <div class="latest-drop-live__actions">
           <a href="/shop" class="btn btn-outline">View details</a>
-          <a href="/shop" class="btn btn-filled btn-filled--black">Add to Bag</a>
+          <button
+            type="button"
+            class="btn btn-filled btn-filled--black"
+            data-add-to-bag
+            data-product-id={homeProduct.id}
+            data-product-name={homeProduct.name}
+            data-product-price={homeProduct.priceCents}
+            data-product-image={slowBloomAddToBagImage.src}
+            data-product-max={homeProduct.totalUnits}
+          >
+            Add to Bag
+          </button>
         </div>
+        <p class="latest-drop-live__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
       </div>
     </section>
 
@@ -395,6 +420,12 @@ import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
     justify-content: center;
     margin-top: 20px;
   }
+  .latest-drop-live__added {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+  }
 
   .about-blurb { padding-top: 56px; padding-bottom: 32px; }
   .about-blurb__title {
@@ -465,6 +496,59 @@ import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
 </style>
 
 <script>
+  import { addToCart } from "../lib/cart-client";
+
+  // Mirrors shop.astro's own Add to Bag wiring (src/pages/shop.astro) —
+  // this button has no quantity stepper, so it always adds a single unit.
+  function initAddToBag() {
+    const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+    const feedback = document.querySelector<HTMLElement>("[data-add-to-bag-feedback]");
+    if (!addBtn) return;
+
+    // Keep this button's price/name/stock in sync with the database, the
+    // same way shop.astro's own Add to Bag button does (src/pages/shop.astro,
+    // applyLiveProductData) — otherwise an admin price change or sell-out
+    // wouldn't reach the homepage without a redeploy.
+    (async () => {
+      try {
+        const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.name === "string" && data.name) addBtn.dataset.productName = data.name;
+        if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
+          addBtn.dataset.productPrice = String(data.basePriceCents);
+        }
+        if (typeof data.totalUnits === "number" && data.totalUnits > 0) {
+          addBtn.dataset.productMax = String(data.totalUnits);
+        }
+        if (!data.available) {
+          addBtn.disabled = true;
+          addBtn.textContent = "Sold out";
+        }
+      } catch {
+        // Network error — leave the static (assumed-available) fallback as is.
+      }
+    })();
+
+    addBtn.addEventListener("click", () => {
+      addToCart({
+        id: addBtn.dataset.productId!,
+        name: addBtn.dataset.productName!,
+        priceCents: Number(addBtn.dataset.productPrice),
+        image: addBtn.dataset.productImage!,
+        maxQty: Number(addBtn.dataset.productMax),
+        qty: 1,
+      });
+
+      if (feedback) {
+        feedback.hidden = false;
+        window.setTimeout(() => { feedback.hidden = true; }, 2500);
+      }
+
+      window.dispatchEvent(new CustomEvent("cart:open"));
+    });
+  }
+
   function initCountdown() {
     document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => {
       const existingTimer = (el as any)._cdTimer;
@@ -696,10 +780,12 @@ import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
     });
   }
 
+  initAddToBag();
   initCountdown();
   initForms();
   initEvents();
   document.addEventListener('astro:page-load', () => {
+    initAddToBag();
     initCountdown();
     initForms();
     initEvents();
