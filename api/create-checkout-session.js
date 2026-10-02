@@ -181,10 +181,12 @@ export default async function handler(req, res) {
       cancel_url: `${origin}/order/cancelled`,
       // Metadata (below) is never shown to the customer — it's internal
       // bookkeeping only. Echo the gift message back on Stripe's own
-      // hosted page (just above the pay button) so the customer gets
-      // visible confirmation it was actually captured before they pay.
+      // hosted page, next to the shipping address fields (where it's
+      // contextually relevant — this is going with the parcel, not the
+      // payment) so the customer gets visible confirmation it was
+      // actually captured before they pay.
       custom_text: giftWrap && giftMessage
-        ? { submit: { message: `🎁 Gift message: ${giftMessage}` } }
+        ? { shipping_address: { message: `🎁 Gift message: ${giftMessage}` } }
         : undefined,
       metadata: {
         productId: product.id,
