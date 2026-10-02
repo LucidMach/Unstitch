@@ -10,7 +10,7 @@
 //   Never includes `registeredOwnerName` — this endpoint is unauthenticated
 //   and hit by anyone with the (low-entropy, sequential) serial, so the
 //   current registrant's name is never handed to an anonymous scanner.
-// POST /api/passport { serial, email, name? }  -> "Register this kit":
+// POST /api/passport { serial, email, name?, isGift?, giftGiverName?, giftGiverEmail? }  -> "Register this kit":
 //   claims ownership for the scanning customer (find-or-create Customer by
 //   email), sets Unit.currentOwnerCustomerId + registeredAt, and bumps
 //   status to REGISTERED. Only allowed once the unit has actually been
@@ -54,6 +54,12 @@ import prisma from '../lib/prisma.js';
 
 const REGISTERABLE_STATUSES = new Set(['SOLD', 'SHIPPED', 'DELIVERED', 'REGISTERED']);
 
+// Optional "this was a gift" claim: isGift + giftGiverName/giftGiverEmail,
+// entered by the person registering. Stored on the unit as-is but never
+// auto-emailed — see Unit's gift fields in prisma/schema.prisma. An admin
+// reviews it in the admin Passport tab and triggers the actual thank-you
+// send (api/admin/inventory.js, action: "send-gift-ack").
+
 // How long a "confirm this transfer" link mailed to the current registrant
 // stays valid. Short-ish on purpose — unlike an order magic-link (which
 // just needs to keep working for customer support), this one authorizes a
@@ -90,7 +96,35 @@ function serializeUnit(unit, { includeOwnerName = false } = {}) {
       materialRigidity: unit.product.materialRigidity,
       kitContents: unit.product.kitContents,
       imageUrl: unit.product.imageUrl,
+      // Passport content, editable from the admin Passport tab (see
+      // src/server/admin/product.js, section: "passport"). Null/empty
+      // fields fall back to passport.astro's own built-in default copy.
+      wrapBuildDimensions: unit.product.wrapBuildDimensions,
+      designs: unit.product.designs,
+      techniques: unit.product.techniques,
+      careSteps: unit.product.careSteps,
+      careVideoUrl: unit.product.careVideoUrl,
+      carePdfUrl: unit.product.carePdfUrl,
+      safetyNotes: unit.product.safetyNotes,
+      designsGuidePdfUrl: unit.product.designsGuidePdfUrl,
+      // Interactive step-by-step build viewer package (admin Passport tab,
+      // section: "passport-design"). No privacy gating needed — it's just
+      // build instructions, not anything personal. Null until uploaded.
+      passportDesigns: unit.product.passportDesigns ?? null,
+      snapShareCopy: unit.product.snapShareCopy,
+      snapShareHashtags: unit.product.snapShareHashtags,
+      registerIntroCopy: unit.product.registerIntroCopy,
+      reviewCopyTemplate: unit.product.reviewCopyTemplate,
+      scanAgainCopy: unit.product.scanAgainCopy,
     },
+    // Gift info the registrant themselves supplied. Gated behind the same
+    // includeOwnerName flag as registeredOwnerName above and for the same
+    // reason: the public, unauthenticated GET is reachable by anyone who
+    // has (or guesses) the serial, so a gift-giver's name never goes out
+    // there — only in the response to whoever just performed the
+    // registration/update themselves.
+    isGift: includeOwnerName ? unit.isGift : false,
+    giftGiverName: includeOwnerName ? unit.giftGiverName : null,
   };
 }
 
@@ -98,6 +132,13 @@ const RegisterSchema = z.object({
   serial: z.string().trim().min(1),
   email: z.string().trim().toLowerCase().email('Enter a valid email'),
   name: z.string().trim().max(200).optional(),
+  // Optional "this was a gift" fields from the register form. Stored as-is
+  // (unverified customer input) — see the Unit gift fields in
+  // prisma/schema.prisma for why the acknowledgement email is never sent
+  // automatically from here.
+  isGift: z.boolean().optional().default(false),
+  giftGiverName: z.string().trim().max(200).optional(),
+  giftGiverEmail: z.string().trim().toLowerCase().email('Enter a valid gift-giver email').optional().or(z.literal('')),
 });
 
 /** Emails the current registrant a link to confirm (or ignore) a transfer request from a different email. Best-effort — mirrors api/stripe-webhook.js's send pattern (dev-mode console.log fallback when RESEND_API_KEY isn't set, Resend's shared onboarding sender as a fallback if the configured from-address isn't verified). */
@@ -173,7 +214,7 @@ export default async function handler(req, res) {
       const formatted = formatZodError(parseResult.error);
       return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
     }
-    const { serial, email, name } = parseResult.data;
+    const { serial, email, name, isGift, giftGiverName, giftGiverEmail } = parseResult.data;
     try {
       const unit = await prisma.unit.findFirst({
         where: { OR: [{ serial }, { qrSlug: serial }] },
@@ -237,7 +278,16 @@ export default async function handler(req, res) {
 
       const updated = await prisma.unit.update({
         where: { id: unit.id },
-        data: { currentOwnerCustomerId: customer.id, registeredAt: new Date(), status: 'REGISTERED' },
+        data: {
+          currentOwnerCustomerId: customer.id,
+          registeredAt: new Date(),
+          status: 'REGISTERED',
+          // Only ever *set* the gift claim, never clear one that's already
+          // there — so a same-owner "edit my details" resubmit (this branch
+          // also handles that, see the comment above) without the gift
+          // checkbox checked can't silently wipe a claim made earlier.
+          ...(isGift ? { isGift: true, giftGiverName: giftGiverName || null, giftGiverEmail: giftGiverEmail || null } : {}),
+        },
         include: { drop: true, product: true, currentOwner: { select: { name: true } } },
       });
 
