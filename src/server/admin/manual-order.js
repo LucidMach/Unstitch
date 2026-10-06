@@ -110,6 +110,15 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
       console.warn('[admin/manual-order] Order email failed to send:', result.error);
       return false;
     }
+    // See api/stripe-webhook.js's matching update for why this is here —
+    // same "sent, when, Resend's id" metadata, so a manual order's
+    // confirmation shows on the order detail panel too.
+    await prisma.order
+      .update({
+        where: { id: orderId },
+        data: { lastEmailSentAt: new Date(), lastEmailId: result.data?.id || null, lastEmailType: 'confirmation' },
+      })
+      .catch((err) => console.warn('[admin/manual-order] Failed to record email send metadata:', err));
     return true;
   } catch (err) {
     console.warn('[admin/manual-order] Order email threw:', err);

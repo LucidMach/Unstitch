@@ -103,6 +103,17 @@ async function sendOrderConfirmationEmail({
     }
     if (result.error) {
       console.warn('[stripe-webhook] Order confirmation email failed to send:', result.error);
+    } else {
+      // Record just enough about this send (when, Resend's id) to show on
+      // the admin order detail panel without opening the Resend dashboard
+      // — see src/server/admin/orders.js's GET projection and
+      // src/pages/admin/index.astro's "Email customer" section.
+      await prisma.order
+        .update({
+          where: { id: orderId },
+          data: { lastEmailSentAt: new Date(), lastEmailId: result.data?.id || null, lastEmailType: 'confirmation' },
+        })
+        .catch((err) => console.warn('[stripe-webhook] Failed to record email send metadata:', err));
     }
   } catch (err) {
     console.warn('[stripe-webhook] Order confirmation email threw:', err);

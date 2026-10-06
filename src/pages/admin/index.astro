@@ -127,6 +127,8 @@ import Layout from "../../layouts/Layout.astro";
           <p id="tracking-status" class="admin__hint" hidden></p>
 
           <h3>Email customer</h3>
+          <label for="detail-email-template-select">Load from a saved template <span class="admin-muted">(optional — fills in the message below; manage templates in the Send Email tab)</span></label>
+          <select id="detail-email-template-select"><option value="">Standard message (leave blank)</option></select>
           <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
           <textarea id="detail-email-message" rows="3" placeholder="Leave blank to use the standard confirmation message"></textarea>
           <div class="admin-field-row">
@@ -134,6 +136,7 @@ import Layout from "../../layouts/Layout.astro";
             <button id="resend-confirmation" class="btn-primary" title="Emails the order confirmation again">Resend confirmation email</button>
           </div>
           <p id="resend-status" class="admin__hint" hidden></p>
+          <p id="detail-last-email" class="admin-muted" hidden></p>
 
           <h3>Payments</h3>
           <ul id="detail-payments" class="admin-list"></ul>
@@ -665,14 +668,11 @@ import Layout from "../../layouts/Layout.astro";
 
       <div class="admin-card">
         <h2>Email templates</h2>
-        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank).</p>
-        <label for="email-template-default-message">Default order-confirmation message</label>
-        <textarea id="email-template-default-message" rows="4" maxlength="10000"></textarea>
-        <p id="email-template-hint" class="admin-muted"></p>
+        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank). Keep as many named templates as you like — e.g. "Standard", "Workshop pickup", "Delayed restock" — and mark one as the default.</p>
+        <div id="email-template-list"></div>
         <div class="admin-field-row">
-          <button id="email-template-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
-          <button id="email-template-reset" class="btn-ghost btn-ghost--small" type="button">Reset to default</button>
-          <button id="email-template-save" class="btn-primary">Save</button>
+          <button id="email-template-add" class="btn-ghost btn-ghost--small" type="button">+ Add template</button>
+          <button id="email-template-save" class="btn-primary">Save all</button>
         </div>
         <p id="email-template-status" class="admin__hint" hidden></p>
       </div>
@@ -1087,6 +1087,30 @@ import Layout from "../../layouts/Layout.astro";
 
   .admin-field-row input {
     width: 140px;
+  }
+
+  .admin-card--nested {
+    background: #faf9f6;
+    border-color: #ece8e1;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+  }
+
+  #email-template-list input.tpl-name {
+    width: 100%;
+  }
+
+  #email-template-list .admin-field-row input[type="radio"] {
+    width: auto;
+  }
+
+  .admin-field-row__inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    text-transform: none;
+    font-weight: 500;
   }
 
   .admin-grid {
@@ -2757,6 +2781,17 @@ import Layout from "../../layouts/Layout.astro";
       (document.getElementById("detail-tracking") as HTMLInputElement).value = order.trackingNumber || "";
       updateTrackingLink(order.trackingNumber);
 
+      const templateSelect = document.getElementById("detail-email-template-select") as HTMLSelectElement | null;
+      if (templateSelect) templateSelect.value = "";
+      const lastEmailEl = document.getElementById("detail-last-email") as HTMLElement;
+      if (order.lastEmailSentAt) {
+        const typeLabel = order.lastEmailType === "resend" ? "Resent" : "Sent";
+        lastEmailEl.textContent = `${typeLabel} ${new Date(order.lastEmailSentAt).toLocaleString()}${order.lastEmailId ? ` · Resend id ${order.lastEmailId}` : ""}`;
+        lastEmailEl.hidden = false;
+      } else {
+        lastEmailEl.hidden = true;
+      }
+
       const orderSaveBtn = document.getElementById("detail-order-save") as HTMLButtonElement;
       const orderSaveStatus = document.getElementById("order-details-status") as HTMLElement;
       orderSaveStatus.hidden = true;
@@ -2877,8 +2912,14 @@ import Layout from "../../layouts/Layout.astro";
             body: JSON.stringify({ mode: "resend-confirmation", orderId: order.id, ...(message ? { message } : {}) }),
           });
           const data = await r.json();
-          if (r.ok) showHint(resendStatus, "Confirmation email sent.", true);
-          else showHint(resendStatus, data.error || "Failed to send.", false);
+          if (r.ok) {
+            showHint(resendStatus, "Confirmation email sent.", true);
+            const lastEmailEl = document.getElementById("detail-last-email") as HTMLElement;
+            lastEmailEl.textContent = `Resent ${new Date().toLocaleString()}`;
+            lastEmailEl.hidden = false;
+          } else {
+            showHint(resendStatus, data.error || "Failed to send.", false);
+          }
         } catch {
           showHint(resendStatus, "Network error.", false);
         } finally {
@@ -5397,59 +5438,129 @@ import Layout from "../../layouts/Layout.astro";
     }
   });
 
-  // --- Email templates (the admin-editable default order-confirmation message) ---
-  let defaultOrderMessageFallback = "";
+  // --- Email templates (named library of order-confirmation messages) ---
+  let emailTemplates: { id: string; name: string; message: string }[] = [];
+  let emailTemplatesDefaultId = "";
+
+  function renderEmailTemplateList() {
+    const list = document.getElementById("email-template-list") as HTMLElement;
+    list.innerHTML = emailTemplates
+      .map(
+        (t, idx) => `
+        <div class="admin-card admin-card--nested" data-template-idx="${idx}">
+          <div class="admin-field-row">
+            <label style="flex:1">Name<input type="text" class="tpl-name" value="${t.name.replace(/"/g, "&quot;")}" maxlength="200" /></label>
+            <label class="admin-field-row__inline"><input type="radio" name="tpl-default" class="tpl-default" ${t.id === emailTemplatesDefaultId ? "checked" : ""} /> Default</label>
+          </div>
+          <label>Message<textarea class="tpl-message" rows="4" maxlength="10000">${t.message.replace(/</g, "&lt;")}</textarea></label>
+          <div class="admin-field-row">
+            <button type="button" class="btn-ghost btn-ghost--small tpl-preview">Preview</button>
+            <button type="button" class="btn-danger btn-danger--small tpl-delete" ${emailTemplates.length <= 1 ? "disabled title=\"At least one template is required\"" : ""}>Delete</button>
+          </div>
+        </div>`,
+      )
+      .join("");
+
+    list.querySelectorAll<HTMLButtonElement>(".tpl-preview").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const card = btn.closest("[data-template-idx]") as HTMLElement;
+        const message = (card.querySelector(".tpl-message") as HTMLTextAreaElement).value.trim();
+        const status = document.getElementById("email-template-status") as HTMLElement;
+        try {
+          const res = await api("/api/admin/settings", {
+            method: "POST",
+            body: JSON.stringify({ previewMessage: message || "Preview" }),
+          });
+          const data = await res.json();
+          if (res.ok && data.html) openEmailPreview(data.html);
+          else showHint(status, data.error || "Failed to build preview.", false);
+        } catch {
+          showHint(status, "Network error.", false);
+        }
+      });
+    });
+
+    list.querySelectorAll<HTMLButtonElement>(".tpl-delete").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest("[data-template-idx]") as HTMLElement;
+        const idx = Number(card.getAttribute("data-template-idx"));
+        const removed = emailTemplates[idx];
+        emailTemplates.splice(idx, 1);
+        if (removed && removed.id === emailTemplatesDefaultId && emailTemplates.length) {
+          emailTemplatesDefaultId = emailTemplates[0].id;
+        }
+        renderEmailTemplateList();
+      });
+    });
+  }
+
+  function collectEmailTemplatesFromForm() {
+    const cards = Array.from(document.querySelectorAll("#email-template-list [data-template-idx]"));
+    const templates = cards.map((card, idx) => ({
+      id: emailTemplates[idx]?.id,
+      name: (card.querySelector(".tpl-name") as HTMLInputElement).value,
+      message: (card.querySelector(".tpl-message") as HTMLTextAreaElement).value,
+    }));
+    const defaultIdx = cards.findIndex((card) => (card.querySelector(".tpl-default") as HTMLInputElement).checked);
+    const defaultId = defaultIdx >= 0 ? emailTemplates[defaultIdx]?.id : templates[0]?.id;
+    return { templates, defaultId };
+  }
+
+  // Populates the order-detail "load from a saved template" dropdown.
+  function renderDetailTemplateSelect() {
+    const select = document.getElementById("detail-email-template-select") as HTMLSelectElement | null;
+    if (!select) return;
+    select.innerHTML =
+      '<option value="">Standard message (leave blank)</option>' +
+      emailTemplates
+        .map((t) => `<option value="${t.id}">${t.name.replace(/</g, "&lt;")}${t.id === emailTemplatesDefaultId ? " (default)" : ""}</option>`)
+        .join("");
+  }
+
   async function loadEmailTemplateSettings() {
-    const textarea = document.getElementById("email-template-default-message") as HTMLTextAreaElement;
-    const hint = document.getElementById("email-template-hint") as HTMLElement;
     try {
       const res = await api("/api/admin/settings");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load.");
-      textarea.value = data.defaultOrderMessage;
-      defaultOrderMessageFallback = data.fallback;
-      hint.textContent = data.isCustom
-        ? 'This replaces the built-in default below — click "Reset to default" to go back to it.'
-        : "This is the built-in default — editing and saving here overrides it for every future send.";
+      emailTemplates = data.templates || [];
+      emailTemplatesDefaultId = data.defaultId || emailTemplates[0]?.id || "";
+      renderEmailTemplateList();
+      renderDetailTemplateSelect();
     } catch {
-      hint.textContent = "Couldn't load the saved template — showing may be out of date.";
+      const status = document.getElementById("email-template-status") as HTMLElement;
+      showHint(status, "Couldn't load the saved templates — showing may be out of date.", false);
     }
   }
 
-  document.getElementById("email-template-reset")?.addEventListener("click", () => {
-    (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value = defaultOrderMessageFallback;
-  });
-
-  document.getElementById("email-template-preview")?.addEventListener("click", async () => {
-    const status = document.getElementById("email-template-status") as HTMLElement;
-    const message = (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value.trim();
-    try {
-      const res = await api("/api/admin/settings", {
-        method: "POST",
-        body: JSON.stringify({ previewMessage: message || defaultOrderMessageFallback }),
-      });
-      const data = await res.json();
-      if (res.ok && data.html) openEmailPreview(data.html);
-      else showHint(status, data.error || "Failed to build preview.", false);
-    } catch {
-      showHint(status, "Network error.", false);
-    }
+  document.getElementById("email-template-add")?.addEventListener("click", () => {
+    const { templates, defaultId } = collectEmailTemplatesFromForm();
+    emailTemplates = templates;
+    emailTemplatesDefaultId = defaultId;
+    emailTemplates.push({ id: "", name: `Template ${emailTemplates.length + 1}`, message: "" });
+    renderEmailTemplateList();
   });
 
   document.getElementById("email-template-save")?.addEventListener("click", async () => {
     const status = document.getElementById("email-template-status") as HTMLElement;
     const btn = document.getElementById("email-template-save") as HTMLButtonElement;
-    const message = (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value;
+    const { templates, defaultId } = collectEmailTemplatesFromForm();
+    if (!templates.length) {
+      showHint(status, "At least one template is required.", false);
+      return;
+    }
     btn.disabled = true;
     try {
       const res = await api("/api/admin/settings", {
         method: "POST",
-        body: JSON.stringify({ defaultOrderMessage: message }),
+        body: JSON.stringify({ templates, defaultId }),
       });
       const data = await res.json();
       if (res.ok) {
-        showHint(status, data.isCustom ? "Saved." : "Saved — matches the built-in default, so this just resets it.", true);
-        loadEmailTemplateSettings();
+        showHint(status, "Saved.", true);
+        emailTemplates = data.templates || [];
+        emailTemplatesDefaultId = data.defaultId || "";
+        renderEmailTemplateList();
+        renderDetailTemplateSelect();
       } else {
         showHint(status, data.error || "Failed to save.", false);
       }
@@ -5458,6 +5569,17 @@ import Layout from "../../layouts/Layout.astro";
     } finally {
       btn.disabled = false;
     }
+  });
+
+  document.getElementById("detail-email-template-select")?.addEventListener("change", (e) => {
+    const id = (e.target as HTMLSelectElement).value;
+    const textarea = document.getElementById("detail-email-message") as HTMLTextAreaElement;
+    if (!id) {
+      textarea.value = "";
+      return;
+    }
+    const match = emailTemplates.find((t) => t.id === id);
+    if (match) textarea.value = match.message;
   });
 
   loadOrders();

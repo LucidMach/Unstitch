@@ -700,6 +700,18 @@ model Order {
   // manual confirmation, same pattern as shippedAt above.
   deliveredAt DateTime? @map("delivered_at")
 
+  // Metadata about the most recent order-confirmation-type email sent for
+  // this order (the original checkout confirmation, a manual-order
+  // confirmation, or an admin "resend confirmation") — just enough to show
+  // "sent, when, Resend's id" on the order detail panel without having to
+  // open the Resend dashboard. Overwritten by each new send; not a full
+  // history/log. lastEmailType is one of 'confirmation' (first send) or
+  // 'resend' (admin resend-confirmation action). See api/stripe-webhook.js,
+  // src/server/admin/manual-order.js, src/server/admin/send-email.js.
+  lastEmailSentAt DateTime? @map("last_email_sent_at")
+  lastEmailId     String?   @map("last_email_id") @db.VarChar(100)
+  lastEmailType   String?   @map("last_email_type") @db.VarChar(20)
+
   // Idempotency: one key per checkout attempt from the client, enforced
   // unique so retried/double-submitted requests can't create duplicate
   // orders. Pair with Stripe's own idempotency-key header on the charge call.

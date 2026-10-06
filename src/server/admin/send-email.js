@@ -286,6 +286,15 @@ export default async function handler(req, res) {
         console.error('[admin/send-email] Resend-confirmation failed:', result.error);
         return sendJson(res, 502, { error: `Resend rejected the email: ${result.error.message || result.error.name || 'unknown reason'}` });
       }
+      // See api/stripe-webhook.js's matching update for why this is here
+      // — same "sent, when, Resend's id" metadata as the original send,
+      // so a resend shows up on the order detail panel too.
+      await prisma.order
+        .update({
+          where: { id: order.id },
+          data: { lastEmailSentAt: new Date(), lastEmailId: result.data?.id || null, lastEmailType: 'resend' },
+        })
+        .catch((err) => console.warn('[admin/send-email] Failed to record email send metadata:', err));
       return sendJson(res, 200, { ok: true });
     }
 
