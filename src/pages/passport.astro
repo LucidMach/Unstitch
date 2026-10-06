@@ -332,11 +332,12 @@ import Layout from "../layouts/Layout.astro";
   }
   .pv-tabs button[aria-selected="true"] { background: #000; color: #fff; border-color: #000; }
   .pv-paper {
-    background: #fff; border: 1px solid #ccc; min-height: 200px; display: flex; align-items: center;
-    justify-content: center; padding: 12px; touch-action: pan-y; border-radius: var(--radius);
+    background: #fff; border: 1px solid #ccc; width: 100%; aspect-ratio: 1 / 1; max-height: 70vh; display: flex; align-items: center;
+    justify-content: center; padding: 12px; touch-action: pan-y; border-radius: var(--radius); overflow: hidden;
   }
-  .pv-paper svg { display: block; width: 100%; height: auto; max-height: 50vh; }
-  .pv-paper video { display: block; width: 100%; max-height: 50vh; background: #000; }
+  .pv-paper > div, .pv-paper > iframe { width: 100%; height: 100%; }
+  .pv-paper svg { display: block; width: 100%; height: 100%; }
+  .pv-paper video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
   .pv-ph {
     width: 100%; aspect-ratio: 4 / 3; max-height: 50vh; border: 1px dashed #999; display: flex;
     flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #555;
@@ -522,11 +523,19 @@ import Layout from "../layouts/Layout.astro";
       (document.getElementById("p-techniques") as HTMLElement).textContent = product.techniques.join(", ");
     }
 
+    // Checkout add-ons such as "Gift Message (optional)" are shown on the
+    // shop page (where they're something you can choose to add) but don't
+    // belong in the passport's "what's in the kit" list, which describes
+    // the physical unit itself — so anything flagged "(optional)" in its
+    // label is filtered out here rather than hard-coding "gift message".
     const kitContentsRow = document.getElementById("p-kit-contents-row") as HTMLElement;
-    kitContentsRow.hidden = !product.kitContents?.length;
-    if (product.kitContents?.length) {
+    const kitContentsForPassport = (product.kitContents ?? []).filter(
+      (s) => !/\(optional\)/i.test(kitContentLabel(s))
+    );
+    kitContentsRow.hidden = !kitContentsForPassport.length;
+    if (kitContentsForPassport.length) {
       (document.getElementById("p-kit-contents") as HTMLElement).innerHTML =
-        product.kitContents.map((s) => `<li>${pvEsc(kitContentLabel(s))}</li>`).join("");
+        kitContentsForPassport.map((s) => `<li>${pvEsc(kitContentLabel(s))}</li>`).join("");
     }
   }
 
@@ -576,12 +585,46 @@ import Layout from "../layouts/Layout.astro";
       return "";
     }
   }
-  function pvSafeVideo(u: string) {
+  // Turns a pasted video link into something actually embeddable.
+  // youtu.be / youtube.com / vimeo.com / drive.google.com links become an
+  // {embed} iframe URL (a raw <video src> pointed at a youtu.be page does
+  // not work — YouTube does not serve a playable video file at that URL,
+  // only its web player does, which is why step videos silently failed to
+  // play before this). Anything else (e.g. Dropbox, or a direct .mp4) is
+  // treated as a {file} URL for a real <video> element; Dropbox's share
+  // link is rewritten to its raw-content host so the browser gets actual
+  // video bytes instead of Dropbox's preview page.
+  function pvVideoInfo(u: string): { embed?: string; file?: string; page: string } | null {
     try {
       const x = new URL(u);
-      return x.protocol === "https:" ? x.href : "";
+      if (x.protocol !== "https:") return null;
+      const h = x.hostname.replace(/^www\./, "");
+      let m: string | null;
+      if (h === "youtu.be") {
+        m = x.pathname.slice(1);
+        return { embed: `https://www.youtube.com/embed/${encodeURIComponent(m)}?loop=1&playlist=${encodeURIComponent(m)}&rel=0`, page: x.href };
+      }
+      if (h === "youtube.com" || h === "m.youtube.com") {
+        m = x.searchParams.get("v") || (x.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/) || [])[1];
+        if (m) return { embed: `https://www.youtube.com/embed/${encodeURIComponent(m)}?loop=1&playlist=${encodeURIComponent(m)}&rel=0`, page: x.href };
+      }
+      if (h === "vimeo.com") {
+        const vm = x.pathname.match(/\/(\d+)/);
+        if (vm) return { embed: `https://player.vimeo.com/video/${vm[1]}?loop=1`, page: x.href };
+      }
+      if (h === "drive.google.com") {
+        const dm = x.pathname.match(/\/file\/d\/([^/]+)/) || [null, x.searchParams.get("id")];
+        if (dm[1]) return { embed: `https://drive.google.com/file/d/${dm[1]}/preview`, page: x.href };
+      }
+      if (h === "dropbox.com" || h === "www.dropbox.com") {
+        x.hostname = "dl.dropboxusercontent.com";
+        x.searchParams.delete("dl");
+        x.searchParams.set("raw", "1");
+        return { file: x.href, page: u };
+      }
+      return { file: x.href, page: x.href };
     } catch {
-      return "";
+      return null;
     }
   }
   function pvIsDyn(step: any) {
@@ -657,30 +700,90 @@ import Layout from "../layouts/Layout.astro";
     function views(step: any) {
       const v: [string, string][] = [];
       if (step.svg) v.push(["diagram", "Diagram"]);
-      if (step.iso) v.push(["iso", "3D"]);
+      if (step.iso) v.push(["iso", step.foldAnim && step.foldAnim.length ? "3D ▶" : "3D"]);
       if (step.section) v.push(["section", "Cross-section"]);
       if (pvIsDyn(step)) v.push(["watch", "Watch"]);
       if (!v.length) v.push(["diagram", "Diagram"]);
       return v;
     }
     function watchPanel(step: any) {
-      const u = step.video ? pvSafeVideo(step.video) : "";
-      if (u) {
+      const info = step.video ? pvVideoInfo(step.video) : null;
+      if (info && info.embed) {
+        const fr = document.createElement("iframe");
+        fr.src = info.embed;
+        fr.title = `Video for step ${step.n}`;
+        fr.referrerPolicy = "strict-origin-when-cross-origin";
+        fr.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        fr.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        fr.allowFullscreen = true;
+        fr.style.cssText = "display:block;width:100%;height:100%;border:0;background:#000";
+        return fr;
+      }
+      if (info && info.file) {
+        const wrap = document.createElement("div");
         const vid = document.createElement("video");
-        vid.src = u;
+        vid.src = info.file;
         vid.muted = true;
         vid.loop = true;
         vid.playsInline = true;
         vid.controls = true;
-        vid.preload = "metadata";
+        vid.preload = "auto";
         vid.setAttribute("aria-label", `Video for step ${step.n}`);
         vid.addEventListener("canplay", () => { vid.play().catch(() => {}); }, { once: true });
-        return vid;
+        vid.addEventListener("error", () => {
+          const n = document.createElement("p");
+          n.style.cssText = "margin:8px 0 0;font-size:14px";
+          n.innerHTML = `This video could not be loaded here. <a href="${pvEsc(info.page)}" target="_blank" rel="noopener">Open it in a new tab</a>.`;
+          wrap.appendChild(n);
+        }, { once: true });
+        wrap.appendChild(vid);
+        return wrap;
       }
       const d = document.createElement("div");
       d.className = "pv-ph";
       d.innerHTML = `<div><b>Clip goes here</b><br>A short looping video of the ${pvEsc((step.tech || "technique").toLowerCase())}.</div>`;
       return d;
+    }
+    function isoPanel(step: any) {
+      if (step.foldAnim && step.foldAnim.length) {
+        const box = document.createElement("div");
+        box.style.position = "relative";
+        box.style.width = "100%";
+        box.style.height = "100%";
+        const stage = document.createElement("div");
+        stage.style.cssText = "width:100%;height:100%";
+        stage.setAttribute("role", "img");
+        stage.setAttribute("aria-label", `Step ${i + 1} folding in 3D: ${step.caption || ""}`);
+        box.appendChild(stage);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "Pause";
+        btn.style.cssText = "position:absolute;top:6px;right:6px;font-size:0.72rem;padding:4px 8px;min-height:0;background:#fff;color:#000;border:1px solid #000;border-radius:var(--radius);";
+        box.appendChild(btn);
+        const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const frames: string[] = step.foldAnim;
+        let k = 0, dir = 1, playing = !reduce, timer: ReturnType<typeof setInterval> | null = null;
+        const draw = () => { stage.innerHTML = pvSafeSvg(frames[k]); };
+        const tick = () => {
+          k += dir;
+          if (k >= frames.length - 1) { k = frames.length - 1; dir = -1; }
+          else if (k <= 0) { k = 0; dir = 1; }
+          draw();
+        };
+        const start = () => { if (timer) return; timer = setInterval(tick, 90); playing = true; btn.textContent = "Pause"; };
+        const stop = () => { if (timer) { clearInterval(timer); timer = null; } playing = false; btn.textContent = "Play"; };
+        btn.onclick = () => { playing ? stop() : start(); };
+        draw();
+        if (playing) start(); else btn.textContent = "Play";
+        return box;
+      }
+      const wrap = document.createElement("div");
+      wrap.style.width = "100%";
+      wrap.style.height = "100%";
+      wrap.setAttribute("role", "img");
+      wrap.setAttribute("aria-label", `Step ${i + 1} 3D view: ${step.caption || ""}`);
+      wrap.innerHTML = pvSafeSvg(step.iso);
+      return wrap;
     }
     function buildDots() {
       const d = q<HTMLElement>("pv-dots");
@@ -747,7 +850,7 @@ import Layout from "../layouts/Layout.astro";
       q<HTMLElement>("pv-badges").innerHTML =
         `<span class="pv-badge">Step ${i + 1} of ${n}</span>` +
         (st.tech ? `<span class="pv-badge${pvIsDyn(st) ? " pv-dyn" : ""}">${pvEsc(st.tech)}</span>` : "") +
-        `<span class="pv-note">${pvIsDyn(st) ? "Watch this one. It is about feel, not just shape." : "Follow the diagram."}</span>`;
+        `<span class="pv-note">${pvIsDyn(st) ? "Watch to unlock a new technique." : "Follow the diagram."}</span>`;
       const t = q<HTMLElement>("pv-tabs");
       t.innerHTML = "";
       vs.forEach((v) => {
@@ -763,12 +866,15 @@ import Layout from "../layouts/Layout.astro";
       p.innerHTML = "";
       if (tab === "watch") {
         p.appendChild(watchPanel(st));
+      } else if (tab === "iso") {
+        p.appendChild(isoPanel(st));
       } else {
-        const src = tab === "iso" ? st.iso : tab === "section" ? st.section : st.svg;
+        const src = tab === "section" ? st.section : st.svg;
         const wrap = document.createElement("div");
         wrap.style.width = "100%";
+        wrap.style.height = "100%";
         wrap.setAttribute("role", "img");
-        wrap.setAttribute("aria-label", `Step ${i + 1} ${tab === "iso" ? "3D view" : tab === "section" ? "cross-section" : "diagram"}: ${st.caption || ""}`);
+        wrap.setAttribute("aria-label", `Step ${i + 1} ${tab === "section" ? "cross-section" : "diagram"}: ${st.caption || ""}`);
         wrap.innerHTML = pvSafeSvg(src);
         p.appendChild(wrap);
       }
@@ -793,7 +899,7 @@ import Layout from "../layouts/Layout.astro";
       if (i === pkg.steps.length - 1) {
         done[i] = 1;
         persist();
-        q<HTMLElement>("pv-cap").textContent = "Nice work. Tag your make #UnstitchZeroWaste.";
+        q<HTMLElement>("pv-cap").textContent = "Nice work. Tag your built #unstitchxmade.";
       } else {
         go(i + 1);
       }

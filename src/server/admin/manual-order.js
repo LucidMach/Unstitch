@@ -37,10 +37,9 @@
 // sendEmail is on) in the confirmation email's "Shipping to" line.
 //
 // Expected ship date: auto-computed from today (see src/lib/shipping.js)
-// unless expectedShipAtOverride is set — useful for a commission that's
-// agreed to take longer than the standard estimate. Always floored at
-// MIN_PRODUCTION_DAYS business days out, same floor used when editing an
-// existing order's date from the order detail panel.
+// unless expectedShipAtOverride is set — a deliberate admin override,
+// no floor or ceiling enforced, same as editing an existing order's date
+// from the order detail panel.
 //
 // Customer email: off by default (sendEmail: false) — most manual orders
 // (a cash sale at a market, a straightforward giveaway) don't need one.
@@ -54,12 +53,13 @@ import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
 import { reserveUnitsForDrop, releaseUnits, markUnitsSold, InsufficientStockError } from '../../lib/inventory.js';
-import { computeExpectedShipDate, addBusinessDays, MIN_PRODUCTION_DAYS, deliveryMethodLabel } from '../../lib/shipping.js';
+import { computeExpectedShipDate, deliveryMethodLabel } from '../../lib/shipping.js';
 import { generateOrderNumber } from '../../lib/orderNumber.js';
 import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../lib/deliveryZones.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import { orderConfirmationEmail } from '../../lib/emailTemplate.js';
+import { getDefaultOrderMessage } from '../../lib/settings.js';
 
 const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
@@ -81,6 +81,10 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
     const lookupToken = sign({ kind: 'order-lookup', orderId }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
     const lookupLink = `${getSiteOrigin()}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
+    // No custom message typed on the manual-order form -> falls back to
+    // the admin-editable default (Send Email tab -> Email templates),
+    // same as a real Stripe checkout's confirmation email.
+    const resolvedMessage = message || (await getDefaultOrderMessage());
     const { html, text } = orderConfirmationEmail({
       orderNumber,
       totalCents,
@@ -90,7 +94,7 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
       deliveryMethodLabel: methodLabel,
       deliveryFeeCents,
       deliveryAddress,
-      message,
+      message: resolvedMessage,
       signatureName,
       signatureRole,
     });
@@ -105,6 +109,15 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
       console.warn('[admin/manual-order] Order email failed to send:', result.error);
       return false;
     }
+    // See api/stripe-webhook.js's matching update for why this is here —
+    // same "sent, when, Resend's id" metadata, so a manual order's
+    // confirmation shows on the order detail panel too.
+    await prisma.order
+      .update({
+        where: { id: orderId },
+        data: { lastEmailSentAt: new Date(), lastEmailId: result.data?.id || null, lastEmailType: 'confirmation' },
+      })
+      .catch((err) => console.warn('[admin/manual-order] Failed to record email send metadata:', err));
     return true;
   } catch (err) {
     console.warn('[admin/manual-order] Order email threw:', err);
@@ -180,10 +193,11 @@ const ManualOrderSchema = z.object({
   // the "Mark as paid" action on the order once payment actually arrives.
   paymentStatus: z.enum(['PAID', 'UNPAID']).default('PAID'),
   // Leave unset to auto-compute from today + the studio's production time
-  // (src/lib/shipping.js). Set to override for a specific order (e.g. a
-  // commission that'll genuinely take longer) — still floored at
-  // MIN_PRODUCTION_DAYS business days from today, same as editing an
-  // existing order's date from the order detail panel.
+  // (src/lib/shipping.js). Set to override for a specific order — a
+  // commission that'll take longer, or one the admin knows can ship sooner
+  // than the standard turnaround (a kit already on hand, a confirmed
+  // rush). Any valid date is accepted; it's an admin override, not a
+  // promise the system double-checks.
   expectedShipAtOverride: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a date in YYYY-MM-DD form.')
@@ -245,12 +259,9 @@ export default async function handler(req, res) {
     if (Number.isNaN(candidate.getTime())) {
       return sendJson(res, 400, { error: 'Invalid expected ship date.' });
     }
-    const minDate = addBusinessDays(new Date(), MIN_PRODUCTION_DAYS);
-    if (candidate.getTime() < minDate.getTime()) {
-      return sendJson(res, 400, {
-        error: `Expected ship date must be at least ${MIN_PRODUCTION_DAYS} business days out (${minDate.toLocaleDateString('en-AU')} or later).`,
-      });
-    }
+    // No floor here — see the field comment above. An admin typing a
+    // specific date is making a deliberate override, sooner or later than
+    // the standard turnaround.
     resolvedShipDate = candidate;
   }
 

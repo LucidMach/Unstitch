@@ -24,6 +24,7 @@ import { computeExpectedShipDate, deliveryMethodLabel } from '../src/lib/shippin
 import { generateOrderNumber } from '../src/lib/orderNumber.js';
 import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../src/lib/deliveryZones.js';
 import { orderConfirmationEmail } from '../src/lib/emailTemplate.js';
+import { getDefaultOrderMessage } from '../src/lib/settings.js';
 
 // How long an order's magic link (mailed in the confirmation email) stays
 // valid — matches the link issued by api/order-lookup-request.js so both
@@ -53,6 +54,7 @@ async function sendOrderConfirmationEmail({
   deliveryMethodLabel: methodLabel,
   deliveryFeeCents,
   deliveryAddress,
+  message,
 }) {
   // Every order gets a magic link back to its own status page — no
   // account/password needed (see api/order-lookup.js). Reuses the same
@@ -78,6 +80,7 @@ async function sendOrderConfirmationEmail({
       deliveryMethodLabel: methodLabel,
       deliveryFeeCents,
       deliveryAddress,
+      message,
     });
 
     const send = (from) =>
@@ -100,6 +103,17 @@ async function sendOrderConfirmationEmail({
     }
     if (result.error) {
       console.warn('[stripe-webhook] Order confirmation email failed to send:', result.error);
+    } else {
+      // Record just enough about this send (when, Resend's id) to show on
+      // the admin order detail panel without opening the Resend dashboard
+      // — see src/server/admin/orders.js's GET projection and
+      // src/pages/admin/index.astro's "Email customer" section.
+      await prisma.order
+        .update({
+          where: { id: orderId },
+          data: { lastEmailSentAt: new Date(), lastEmailId: result.data?.id || null, lastEmailType: 'confirmation' },
+        })
+        .catch((err) => console.warn('[stripe-webhook] Failed to record email send metadata:', err));
     }
   } catch (err) {
     console.warn('[stripe-webhook] Order confirmation email threw:', err);
@@ -270,6 +284,13 @@ async function handleCheckoutCompleted(session) {
     return order;
   });
 
+  // Checked out through Stripe, so there's no admin present at this
+  // moment to type a one-off message — uses whatever the admin has saved
+  // as the default order-confirmation message (Send Email tab -> Email
+  // templates), falling back to the hardcoded constant if nothing's been
+  // saved. See src/lib/settings.js.
+  const defaultMessage = await getDefaultOrderMessage().catch(() => undefined);
+
   await sendOrderConfirmationEmail({
     email,
     orderId: order.id,
@@ -288,6 +309,7 @@ async function handleCheckoutCompleted(session) {
           postcode: shipping.address.postal_code || '',
         }
       : null,
+    message: defaultMessage,
   }).catch(() => {});
 }
 

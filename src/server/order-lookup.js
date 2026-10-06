@@ -13,19 +13,20 @@ import { sendJson } from '../lib/apiHelper.js';
 import { verify } from '../lib/signedToken.js';
 import prisma from '../lib/prisma.js';
 
-const ORDER_INCLUDE = {
+export const ORDER_INCLUDE = {
   items: { include: { product: { select: { name: true } } } },
   deliveryAddress: true,
 };
 
 /** @param {any} order */
-function sanitizeOrder(order) {
+export function sanitizeOrder(order) {
   return {
     orderNumber: order.orderNumber,
     status: order.status,
     totalCents: order.totalCents,
     currency: order.currency,
     createdAt: order.createdAt,
+    trackingNumber: order.trackingNumber || null,
     items: order.items.map((it) => ({
       productName: it.product?.name || 'Item',
       quantity: it.quantity,

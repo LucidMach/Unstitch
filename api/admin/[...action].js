@@ -1,11 +1,13 @@
 // api/admin/[...action].js
-// Catch-all dispatcher for the 8 admin-panel endpoints, consolidated into a
+// Catch-all dispatcher for the admin-panel endpoints, consolidated into a
 // single Vercel Serverless Function. Vercel's Hobby plan caps a deployment
 // at 12 Serverless Functions; this repo previously shipped 20 files under
 // api/, one function each. Admin has a single internal user and no
-// traffic-shape sensitivity, so bundling all 8 admin handlers behind one
+// traffic-shape sensitivity, so bundling all admin handlers behind one
 // catch-all function is safe (unlike checkout/stripe-webhook, which stay
 // standalone — see api/create-checkout-session.js / api/stripe-webhook.js).
+// New admin endpoints register here (ROUTES below) rather than as their
+// own api/ file, to stay under that function cap.
 //
 // Parses the path itself rather than relying on Vercel's automatic
 // `req.query` population for catch-all routes — this reuses the same
@@ -28,6 +30,7 @@ import product from '../../src/server/admin/product.js';
 import sendEmail from '../../src/server/admin/send-email.js';
 import events from '../../src/server/admin/events.js';
 import batchDrops from '../../src/server/admin/batch-drops.js';
+import settings from '../../src/server/admin/settings.js';
 
 const ROUTES = {
   customers,
@@ -40,6 +43,7 @@ const ROUTES = {
   'send-email': sendEmail,
   events,
   'batch-drops': batchDrops,
+  settings,
 };
 
 export default async function handler(req, res) {

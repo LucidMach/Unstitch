@@ -3,9 +3,14 @@ import Layout from "../../layouts/Layout.astro";
 
 /**
  * Customer-facing order lookup — the lightweight alternative to full
- * accounts (see api/order-lookup-request.js / api/order-lookup.js).
- * With no ?token= in the URL, shows an email-request form. With a
- * ?token=, fetches and displays the order(s) it unlocks.
+ * accounts. Two ways in:
+ *  - Email a magic link (api/order-lookup-request.js + api/order-lookup.js)
+ *    — with no ?token= in the URL, shows this form; with a ?token=,
+ *    fetches and displays the order(s) it unlocks.
+ *  - Order number + email, looked up directly with no email round trip
+ *    (api/order-lookup-by-number.js) — for someone who already has their
+ *    order number (e.g. from the confirmation email) and wants the status
+ *    right now rather than waiting on another email.
  */
 ---
 
@@ -19,14 +24,33 @@ import Layout from "../../layouts/Layout.astro";
       <div id="lookup-request" class="order-lookup__panel">
         <p class="order-lookup__eyebrow">Track your order</p>
         <h1 class="order-lookup__title">Where's my order?</h1>
-        <p class="order-lookup__body">
-          Enter the email you used at checkout and we'll send you a link to check its status.
-        </p>
-        <form id="lookup-form" class="order-lookup__form">
-          <input id="lookup-email" type="email" placeholder="you@example.com" required />
-          <button type="submit" class="btn btn-filled">Send me the link</button>
-        </form>
-        <p id="lookup-message" class="order-lookup__body" hidden></p>
+        <div class="order-lookup__tabs" role="tablist">
+          <button type="button" id="lookup-tab-email" class="order-lookup__tab is-active" role="tab" aria-selected="true">Email me a link</button>
+          <button type="button" id="lookup-tab-number" class="order-lookup__tab" role="tab" aria-selected="false">I have my order number</button>
+        </div>
+
+        <div id="lookup-panel-email">
+          <p class="order-lookup__body">
+            Enter the email you used at checkout and we'll send you a link to check its status.
+          </p>
+          <form id="lookup-form" class="order-lookup__form">
+            <input id="lookup-email" type="email" placeholder="you@example.com" required />
+            <button type="submit" class="btn btn-filled">Send me the link</button>
+          </form>
+          <p id="lookup-message" class="order-lookup__body" hidden></p>
+        </div>
+
+        <div id="lookup-panel-number" hidden>
+          <p class="order-lookup__body">
+            Enter your order number (e.g. UX-2026-000123) and the email you used at checkout to see its status right away — no email link needed.
+          </p>
+          <form id="lookup-form-number" class="order-lookup__form order-lookup__form--stacked">
+            <input id="lookup-order-number" type="text" placeholder="UX-2026-000123" required />
+            <input id="lookup-order-email" type="email" placeholder="you@example.com" required />
+            <button type="submit" class="btn btn-filled">Find my order</button>
+          </form>
+          <p id="lookup-number-message" class="order-lookup__body" hidden></p>
+        </div>
       </div>
 
       <div id="lookup-results" class="order-lookup__panel" hidden>
@@ -92,6 +116,36 @@ import Layout from "../../layouts/Layout.astro";
     border-radius: 6px;
     font-size: 1rem;
   }
+
+  .order-lookup__tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .order-lookup__tab {
+    font: inherit;
+    font-size: 0.85rem;
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    color: #555;
+  }
+  .order-lookup__tab.is-active {
+    background: #111;
+    border-color: #111;
+    color: #fff;
+  }
+  .order-lookup__form--stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .order-lookup__form--stacked input {
+    flex: 1 1 auto;
+  }
   .order-card {
     border: 1px solid #ddd;
     border-radius: 10px;
@@ -137,6 +191,52 @@ import Layout from "../../layouts/Layout.astro";
     return `${currency} $${(cents / 100).toFixed(2)}`;
   }
 
+  function renderOrderCards(orders: any[]) {
+    return orders
+      .map(
+        (o: any) => `
+      <div class="order-card">
+        <h2>Order ${o.orderNumber}</h2>
+        <span class="order-card__status">${o.status.replace(/_/g, " ")}</span>
+        <ul class="order-card__items">
+          ${o.items
+            .map((it: any) => `<li>${it.quantity} × ${it.productName}: ${money(it.lineTotalCents, o.currency)}</li>`)
+            .join("")}
+        </ul>
+        <p class="order-card__meta">Total: ${money(o.totalCents, o.currency)} · Placed ${new Date(o.createdAt).toLocaleDateString()}</p>
+        ${
+          o.deliveryAddress
+            ? `<p class="order-card__meta">Delivering to: ${o.deliveryAddress.recipientName}, ${o.deliveryAddress.suburb} ${o.deliveryAddress.state} ${o.deliveryAddress.postcode}</p>`
+            : ""
+        }
+        <p class="order-card__meta">${
+          o.trackingNumber
+            ? `Tracking: <a href="https://auspost.com.au/mypost/track/#/details/${encodeURIComponent(o.trackingNumber)}" target="_blank" rel="noopener">${o.trackingNumber} ↗</a>`
+            : "Tracking number not yet available — we'll update this once your order ships."
+        }</p>
+      </div>`,
+      )
+      .join("");
+  }
+
+  // --- Tab switcher between the two request panels ---
+  const tabEmail = document.getElementById("lookup-tab-email") as HTMLButtonElement;
+  const tabNumber = document.getElementById("lookup-tab-number") as HTMLButtonElement;
+  const panelEmail = document.getElementById("lookup-panel-email") as HTMLDivElement;
+  const panelNumber = document.getElementById("lookup-panel-number") as HTMLDivElement;
+
+  function selectTab(which: "email" | "number") {
+    const isEmail = which === "email";
+    panelEmail.hidden = !isEmail;
+    panelNumber.hidden = isEmail;
+    tabEmail.classList.toggle("is-active", isEmail);
+    tabNumber.classList.toggle("is-active", !isEmail);
+    tabEmail.setAttribute("aria-selected", String(isEmail));
+    tabNumber.setAttribute("aria-selected", String(!isEmail));
+  }
+  tabEmail?.addEventListener("click", () => selectTab("email"));
+  tabNumber?.addEventListener("click", () => selectTab("number"));
+
   const token = new URLSearchParams(window.location.search).get("token");
 
   if (token) {
@@ -169,6 +269,42 @@ import Layout from "../../layouts/Layout.astro";
         btn.disabled = false;
       }
     });
+
+    // --- Order number + email: looks the order up directly, no email round trip ---
+    const formNumber = document.getElementById("lookup-form-number") as HTMLFormElement;
+    const numberMessage = document.getElementById("lookup-number-message") as HTMLParagraphElement;
+    formNumber?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const orderNumber = (document.getElementById("lookup-order-number") as HTMLInputElement).value.trim();
+      const email = (document.getElementById("lookup-order-email") as HTMLInputElement).value.trim();
+      const btn = formNumber.querySelector("button") as HTMLButtonElement;
+      btn.disabled = true;
+      numberMessage.hidden = true;
+      try {
+        const res = await fetch("/api/order-lookup-by-number", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderNumber, email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.orders?.length) {
+          numberMessage.textContent = data.error || "We couldn't find a matching order.";
+          numberMessage.hidden = false;
+          return;
+        }
+        requestPanel.hidden = true;
+        resultsPanel.hidden = false;
+        (document.getElementById("lookup-loading") as HTMLDivElement).hidden = true;
+        const ordersEl = document.getElementById("lookup-orders") as HTMLDivElement;
+        ordersEl.innerHTML = renderOrderCards(data.orders);
+        ordersEl.hidden = false;
+      } catch {
+        numberMessage.textContent = "Something went wrong. Please try again in a moment.";
+        numberMessage.hidden = false;
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   async function loadOrders(token: string) {
@@ -191,26 +327,7 @@ import Layout from "../../layouts/Layout.astro";
         errorEl.hidden = false;
         return;
       }
-      ordersEl.innerHTML = orders
-        .map(
-          (o: any) => `
-        <div class="order-card">
-          <h2>Order ${o.orderNumber}</h2>
-          <span class="order-card__status">${o.status.replace(/_/g, " ")}</span>
-          <ul class="order-card__items">
-            ${o.items
-              .map((it: any) => `<li>${it.quantity} × ${it.productName}: ${money(it.lineTotalCents, o.currency)}</li>`)
-              .join("")}
-          </ul>
-          <p class="order-card__meta">Total: ${money(o.totalCents, o.currency)} · Placed ${new Date(o.createdAt).toLocaleDateString()}</p>
-          ${
-            o.deliveryAddress
-              ? `<p class="order-card__meta">Delivering to: ${o.deliveryAddress.recipientName}, ${o.deliveryAddress.suburb} ${o.deliveryAddress.state} ${o.deliveryAddress.postcode}</p>`
-              : ""
-          }
-        </div>`,
-        )
-        .join("");
+      ordersEl.innerHTML = renderOrderCards(orders);
       ordersEl.hidden = false;
     } catch {
       loading.hidden = true;
