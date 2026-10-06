@@ -523,11 +523,19 @@ import Layout from "../layouts/Layout.astro";
       (document.getElementById("p-techniques") as HTMLElement).textContent = product.techniques.join(", ");
     }
 
+    // Checkout add-ons such as "Gift Message (optional)" are shown on the
+    // shop page (where they're something you can choose to add) but don't
+    // belong in the passport's "what's in the kit" list, which describes
+    // the physical unit itself — so anything flagged "(optional)" in its
+    // label is filtered out here rather than hard-coding "gift message".
     const kitContentsRow = document.getElementById("p-kit-contents-row") as HTMLElement;
-    kitContentsRow.hidden = !product.kitContents?.length;
-    if (product.kitContents?.length) {
+    const kitContentsForPassport = (product.kitContents ?? []).filter(
+      (s) => !/\(optional\)/i.test(kitContentLabel(s))
+    );
+    kitContentsRow.hidden = !kitContentsForPassport.length;
+    if (kitContentsForPassport.length) {
       (document.getElementById("p-kit-contents") as HTMLElement).innerHTML =
-        product.kitContents.map((s) => `<li>${pvEsc(kitContentLabel(s))}</li>`).join("");
+        kitContentsForPassport.map((s) => `<li>${pvEsc(kitContentLabel(s))}</li>`).join("");
     }
   }
 
@@ -842,7 +850,7 @@ import Layout from "../layouts/Layout.astro";
       q<HTMLElement>("pv-badges").innerHTML =
         `<span class="pv-badge">Step ${i + 1} of ${n}</span>` +
         (st.tech ? `<span class="pv-badge${pvIsDyn(st) ? " pv-dyn" : ""}">${pvEsc(st.tech)}</span>` : "") +
-        `<span class="pv-note">${pvIsDyn(st) ? "Watch this one. It is about feel, not just shape." : "Follow the diagram."}</span>`;
+        `<span class="pv-note">${pvIsDyn(st) ? "Watch to unlock a new technique." : "Follow the diagram."}</span>`;
       const t = q<HTMLElement>("pv-tabs");
       t.innerHTML = "";
       vs.forEach((v) => {
@@ -891,7 +899,7 @@ import Layout from "../layouts/Layout.astro";
       if (i === pkg.steps.length - 1) {
         done[i] = 1;
         persist();
-        q<HTMLElement>("pv-cap").textContent = "Nice work. Tag your make #UnstitchZeroWaste.";
+        q<HTMLElement>("pv-cap").textContent = "Nice work. Tag your built #unstitchxmade.";
       } else {
         go(i + 1);
       }
