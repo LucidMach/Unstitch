@@ -145,26 +145,61 @@ export default async function handler(req, res) {
       const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
       const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
 
-      const fullMessage = `${message}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
-      // message may be multiple \n\n-separated paragraphs — keep that
-      // structure in the HTML version rather than collapsing it to one block.
-      const bodyHtml = message
-        .split(/\n{2,}/)
-        .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
-        .join('');
-      const html = brandedEmailHtml({
-        heading: subject,
-        bodyHtml,
-        gifUrl,
-        signatureName: finalSignatureName,
-        signatureRole: finalSignatureRole,
-      });
+      // Parsed up front -- even for a preview -- so a {name} in the
+      // message can be previewed against a real address instead of only
+      // resolving once the send actually happens.
+      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
 
-      if (preview) {
-        return sendJson(res, 200, { ok: true, preview: true, html, text: fullMessage });
+      // One batched lookup covers every recipient who's an existing
+      // customer; anyone not found (a one-off contact, not a customer
+      // yet) falls back to the part of their address before the @, same
+      // fallback the single-order sends use.
+      const customersByEmail = recipients.length && prisma
+        ? new Map(
+            (
+              await prisma.customer.findMany({
+                where: { email: { in: recipients } },
+                select: { email: true, name: true },
+              })
+            ).map((c) => [c.email, c.name]),
+          )
+        : new Map();
+      const nameForRecipient = (email) => customersByEmail.get(email) || email.split('@')[0];
+
+      // Renders this send for one specific recipient name -- {name} (in
+      // either the subject or the message) is filled in before the
+      // signature is appended and the HTML is built, so each recipient's
+      // copy is personalized rather than one shared render reused for
+      // everyone.
+      function renderFor(name) {
+        const filledSubject = fillMessageVars(subject, { name });
+        const filledMessage = fillMessageVars(message, { name });
+        const fullMessage = `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
+        // message may be multiple \n\n-separated paragraphs — keep that
+        // structure in the HTML version rather than collapsing it to one block.
+        const bodyHtml = filledMessage
+          .split(/\n{2,}/)
+          .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
+          .join('');
+        const html = brandedEmailHtml({
+          heading: filledSubject,
+          bodyHtml,
+          gifUrl,
+          signatureName: finalSignatureName,
+          signatureRole: finalSignatureRole,
+        });
+        return { subject: filledSubject, html, text: fullMessage };
       }
 
-      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
+      if (preview) {
+        // Preview as it'll actually render for the first recognized
+        // recipient, so a {name} placeholder shows a real resolved value;
+        // with no recipients typed yet, fall back to a generic "there"
+        // rather than failing the preview.
+        const sampleName = recipients.length ? nameForRecipient(recipients[0]) : 'there';
+        const { html, text } = renderFor(sampleName);
+        return sendJson(res, 200, { ok: true, preview: true, html, text });
+      }
 
       if (recipients.length === 0) {
         return sendJson(res, 400, {
@@ -179,8 +214,9 @@ export default async function handler(req, res) {
 
       const results = await Promise.all(
         recipients.map(async (recipient) => {
+          const { subject: recipientSubject, html, text } = renderFor(nameForRecipient(recipient));
           try {
-            const result = await resend.emails.send({ from: fromEmail, to: recipient, subject, html, text: fullMessage });
+            const result = await resend.emails.send({ from: fromEmail, to: recipient, subject: recipientSubject, html, text });
             if (result.error) {
               return { email: recipient, ok: false, error: result.error.message || result.error.name || 'unknown reason' };
             }

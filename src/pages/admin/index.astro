@@ -652,6 +652,7 @@ import Layout from "../../layouts/Layout.astro";
         <input id="email-subject" type="text" maxlength="200" />
         <label for="email-message">Message</label>
         <textarea id="email-message" rows="6" maxlength="10000"></textarea>
+        <p class="admin-muted">Use <code>{name}</code> in the subject or message (e.g. "Hi {name},") and each recipient gets their own saved name filled in automatically — no need to send one at a time to personalize it. Falls back to the part of their email before the @ for anyone who isn't a saved customer yet.</p>
         <p class="admin-muted">Your sign-off (Astra, Designer at Unstitch, with website/LinkedIn/Instagram) is added automatically. Sends as a branded HTML email, with a plain-text fallback.</p>
         <label for="email-gif-url">Sign-off gif URL <span class="admin-muted">(optional: e.g. for a workshop or new-contact welcome note)</span></label>
         <input id="email-gif-url" type="url" placeholder="https://unstitchx.com/…/welcome.gif" />
@@ -5411,6 +5412,7 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("email-preview")?.addEventListener("click", async () => {
     const status = document.getElementById("email-status") as HTMLElement;
+    const to = (document.getElementById("email-to") as HTMLTextAreaElement).value.trim();
     const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
     const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
     const gifUrl = (document.getElementById("email-gif-url") as HTMLInputElement).value.trim();
@@ -5422,6 +5424,11 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           mode: "custom",
+          // Included (even though a preview never emails anyone) so a
+          // {name} placeholder resolves against the first recipient
+          // that's actually typed in, rather than always previewing
+          // with a generic placeholder.
+          to: to || undefined,
           subject,
           message,
           gifUrl: gifUrl || undefined,
