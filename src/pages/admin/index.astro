@@ -116,17 +116,36 @@ import Layout from "../../layouts/Layout.astro";
           <textarea id="detail-note" rows="2"></textarea>
           <button id="detail-order-save" class="btn-ghost btn-ghost--small" type="button">Save address &amp; note</button>
           <p id="order-details-status" class="admin__hint" hidden></p>
+
+          <h3>Tracking <span class="admin-muted">(entered by hand — there's no carrier integration)</span></h3>
+          <div class="admin-field-row">
+            <label for="detail-tracking">AusPost tracking number</label>
+            <input id="detail-tracking" type="text" maxlength="50" placeholder="e.g. 36APXXXXXXXXX" />
+            <button id="detail-tracking-save" class="btn-ghost btn-ghost--small" type="button">Save</button>
+          </div>
+          <p id="detail-tracking-link" hidden><a id="detail-tracking-link-anchor" href="#" target="_blank" rel="noopener">Track this order on AusPost ↗</a></p>
+          <p id="tracking-status" class="admin__hint" hidden></p>
+
+          <h3>Email customer</h3>
+          <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
+          <textarea id="detail-email-message" rows="3" placeholder="Leave blank to use the standard confirmation message"></textarea>
+          <div class="admin-field-row">
+            <button id="detail-email-preview" class="btn-ghost btn-ghost--small" type="button">Preview email</button>
+            <button id="resend-confirmation" class="btn-primary" title="Emails the order confirmation again">Resend confirmation email</button>
+          </div>
+          <p id="resend-status" class="admin__hint" hidden></p>
+
           <h3>Payments</h3>
           <ul id="detail-payments" class="admin-list"></ul>
           <div class="admin__actions">
             <button id="mark-paid" class="btn-primary" title="Records payment for this quote and moves it to Paid" hidden>Mark as paid</button>
-            <button id="resend-confirmation" class="btn-primary" title="Emails the order confirmation again">Resend confirmation email</button>
             <button id="mark-shipped" class="btn-primary btn-primary--ship" title="Records today as the ship date">Mark as shipped</button>
+            <button id="mark-delivered" class="btn-primary btn-primary--ship" title="Records today as the delivered date, once you've confirmed it arrived (e.g. via AusPost tracking)">Mark as delivered</button>
             <button id="delete-test-order" class="btn-danger" title="Permanently deletes this order and reverts any numbered units it sold back to in-stock">Delete order (test data)</button>
           </div>
           <p id="paid-status" class="admin__hint" hidden></p>
-          <p id="resend-status" class="admin__hint" hidden></p>
           <p id="ship-status" class="admin__hint" hidden></p>
+          <p id="delivered-status" class="admin__hint" hidden></p>
           <p id="delete-order-status" class="admin__hint" hidden></p>
         </div>
       </div>
@@ -637,8 +656,25 @@ import Layout from "../../layouts/Layout.astro";
           <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="email-sig-name" type="text" placeholder="Astra" /></label>
           <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="email-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
-        <button id="email-send" class="btn-primary">Send</button>
+        <div class="admin-field-row">
+          <button id="email-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
+          <button id="email-send" class="btn-primary">Send</button>
+        </div>
         <p id="email-status" class="admin__hint" hidden></p>
+      </div>
+
+      <div class="admin-card">
+        <h2>Email templates</h2>
+        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank).</p>
+        <label for="email-template-default-message">Default order-confirmation message</label>
+        <textarea id="email-template-default-message" rows="4" maxlength="10000"></textarea>
+        <p id="email-template-hint" class="admin-muted"></p>
+        <div class="admin-field-row">
+          <button id="email-template-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
+          <button id="email-template-reset" class="btn-ghost btn-ghost--small" type="button">Reset to default</button>
+          <button id="email-template-save" class="btn-primary">Save</button>
+        </div>
+        <p id="email-template-status" class="admin__hint" hidden></p>
       </div>
     </section>
 
@@ -785,11 +821,17 @@ import Layout from "../../layouts/Layout.astro";
     gap: 24px;
     align-items: start;
   }
-  @media (min-width: 1040px) {
-    .admin__panel-split:has(#order-detail:not([hidden])) {
-      grid-template-columns: 1.15fr 0.85fr;
-      align-items: start;
-    }
+
+  /* The order detail panel reads better as a full-width card sitting above
+     the orders table than squeezed into a narrow side column — so unlike
+     the Customers/Events/Batch Drops detail panels (which share the same
+     .admin__order-detail class and keep their sticky sidebar layout), this
+     one stays single-column and is reordered above the list via `order`. */
+  #order-detail {
+    order: -1;
+    position: static;
+    max-height: none;
+    width: 100%;
   }
   .admin__panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
   .admin__panel-header h2 { font-family: var(--font-display, 'Space Grotesk', sans-serif); font-size: 1.18rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
@@ -2272,6 +2314,8 @@ import Layout from "../../layouts/Layout.astro";
     createdAt: string;
     expectedShipAt?: string | null;
     shippedAt?: string | null;
+    deliveredAt?: string | null;
+    trackingNumber?: string | null;
     internalNote?: string | null;
     giftWrap?: boolean;
     customer: { email: string; name: string | null };
@@ -2388,6 +2432,21 @@ import Layout from "../../layouts/Layout.astro";
     el.classList.toggle("is-error", !ok);
   }
 
+  // Opens a rendered email's HTML in a new tab, exactly like it'll look in
+  // an inbox — same window.open + document.write pattern printQrSheet()
+  // already uses for the hangtag sheet, just for an email instead of a
+  // print sheet. Shared by the order detail panel's "Preview email" and
+  // the Send Email tab's "Preview" button.
+  function openEmailPreview(html: string) {
+    const win = window.open("", "_blank");
+    if (!win) {
+      window.alert("Please allow popups to preview the email.");
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+  }
+
   function showGlobalError(message: string) {
     const el = document.getElementById("global-error") as HTMLParagraphElement;
     el.textContent = message;
@@ -2409,6 +2468,7 @@ import Layout from "../../layouts/Layout.astro";
     if (target === "customers") loadCustomers();
     if (target === "events") loadEvents();
     if (target === "batch-drops") loadBatchDrops();
+    if (target === "email") loadEmailTemplateSettings();
   }
   document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab as string));
@@ -2472,11 +2532,13 @@ import Layout from "../../layouts/Layout.astro";
         : "";
     const giftFlag = o.giftWrap ? ` <span class="admin-flag admin-flag--muted" title="Gift message included — see order detail">🎁 gift</span>` : "";
     const overdue = !o.shippedAt && o.expectedShipAt && new Date(o.expectedShipAt).getTime() <= Date.now();
-    const shipByCell = o.shippedAt
-      ? `<span class="admin-muted" style="font-size: 0.82rem;">Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}</span>`
-      : o.expectedShipAt
-        ? `<span class="${overdue ? "admin-shipby--overdue" : "admin-shipby--due"}">${overdue ? "⚠️ Overdue · " : ""}${esc(new Date(o.expectedShipAt).toLocaleDateString())}</span>`
-        : `<span class="admin-muted">—</span>`;
+    const shipByCell = o.deliveredAt
+      ? `<span class="admin-muted" style="font-size: 0.82rem;">Delivered ${esc(new Date(o.deliveredAt).toLocaleDateString())}</span>`
+      : o.shippedAt
+        ? `<span class="admin-muted" style="font-size: 0.82rem;">Shipped ${esc(new Date(o.shippedAt).toLocaleDateString())}</span>`
+        : o.expectedShipAt
+          ? `<span class="${overdue ? "admin-shipby--overdue" : "admin-shipby--due"}">${overdue ? "⚠️ Overdue · " : ""}${esc(new Date(o.expectedShipAt).toLocaleDateString())}</span>`
+          : `<span class="admin-muted">—</span>`;
     const id = esc(o.id);
     const custName = o.customer?.name ? esc(o.customer.name) : "";
     const custEmail = o.customer?.email ? esc(o.customer.email) : "—";
@@ -2637,6 +2699,25 @@ import Layout from "../../layouts/Layout.astro";
     activateTab("email");
   });
 
+  // AusPost's public tracking lookup — kept in sync with the same URL
+  // shape src/lib/emailTemplate.js's auspostTrackingUrl() builds for the
+  // "shipped" email, so the admin panel and the email always point the
+  // same place.
+  function auspostTrackingUrl(trackingNumber: string) {
+    return `https://auspost.com.au/mypost/track/#/details/${encodeURIComponent(trackingNumber)}`;
+  }
+
+  function updateTrackingLink(trackingNumber: string | null | undefined) {
+    const wrap = document.getElementById("detail-tracking-link") as HTMLElement;
+    const anchor = document.getElementById("detail-tracking-link-anchor") as HTMLAnchorElement;
+    if (trackingNumber) {
+      anchor.href = auspostTrackingUrl(trackingNumber);
+      wrap.hidden = false;
+    } else {
+      wrap.hidden = true;
+    }
+  }
+
   async function openOrderDetail(id: string) {
     const detail = document.getElementById("order-detail") as HTMLDivElement;
     try {
@@ -2651,6 +2732,7 @@ import Layout from "../../layouts/Layout.astro";
         <dt>Total</dt><dd><strong class="admin-amount">${money(order.totalCents, order.currency)}</strong></dd>
         <dt>Placed</dt><dd>${new Date(order.createdAt).toLocaleString()}</dd>
         <dt>Shipped</dt><dd>${order.shippedAt ? new Date(order.shippedAt).toLocaleString() : '<span class="admin-muted">Not yet dispatched</span>'}</dd>
+        <dt>Delivered</dt><dd>${order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : '<span class="admin-muted">Not yet confirmed</span>'}</dd>
         ${order.giftWrap ? `<dt>Gift message</dt><dd>🎁 ${esc(order.giftMessage || "(no message text)")}</dd>` : ""}
       `;
       (document.getElementById("detail-items") as HTMLElement).innerHTML = order.items
@@ -2668,6 +2750,12 @@ import Layout from "../../layouts/Layout.astro";
       (document.getElementById("detail-addr-state") as HTMLInputElement).value = addr?.state || "";
       (document.getElementById("detail-addr-postcode") as HTMLInputElement).value = addr?.postcode || "";
       (document.getElementById("detail-note") as HTMLTextAreaElement).value = order.internalNote || "";
+      // Always starts blank — this is a per-send note, not a saved field,
+      // so there's nothing from the last send to carry over.
+      (document.getElementById("detail-email-message") as HTMLTextAreaElement).value = "";
+
+      (document.getElementById("detail-tracking") as HTMLInputElement).value = order.trackingNumber || "";
+      updateTrackingLink(order.trackingNumber);
 
       const orderSaveBtn = document.getElementById("detail-order-save") as HTMLButtonElement;
       const orderSaveStatus = document.getElementById("order-details-status") as HTMLElement;
@@ -2775,15 +2863,18 @@ import Layout from "../../layouts/Layout.astro";
         }
       };
 
+      const emailMessageEl = document.getElementById("detail-email-message") as HTMLTextAreaElement;
+
       const resendBtn = document.getElementById("resend-confirmation") as HTMLButtonElement;
       const resendStatus = document.getElementById("resend-status") as HTMLElement;
       resendStatus.hidden = true;
       resendBtn.onclick = async () => {
         resendBtn.disabled = true;
         try {
+          const message = emailMessageEl.value.trim();
           const r = await api("/api/admin/send-email", {
             method: "POST",
-            body: JSON.stringify({ mode: "resend-confirmation", orderId: order.id }),
+            body: JSON.stringify({ mode: "resend-confirmation", orderId: order.id, ...(message ? { message } : {}) }),
           });
           const data = await r.json();
           if (r.ok) showHint(resendStatus, "Confirmation email sent.", true);
@@ -2792,6 +2883,51 @@ import Layout from "../../layouts/Layout.astro";
           showHint(resendStatus, "Network error.", false);
         } finally {
           resendBtn.disabled = false;
+        }
+      };
+
+      const previewBtn = document.getElementById("detail-email-preview") as HTMLButtonElement;
+      previewBtn.onclick = async () => {
+        previewBtn.disabled = true;
+        try {
+          const message = emailMessageEl.value.trim();
+          const r = await api("/api/admin/send-email", {
+            method: "POST",
+            body: JSON.stringify({ mode: "resend-confirmation", orderId: order.id, preview: true, ...(message ? { message } : {}) }),
+          });
+          const data = await r.json();
+          if (r.ok && data.html) openEmailPreview(data.html);
+          else showHint(resendStatus, data.error || "Failed to build preview.", false);
+        } catch {
+          showHint(resendStatus, "Network error.", false);
+        } finally {
+          previewBtn.disabled = false;
+        }
+      };
+
+      const trackingInput = document.getElementById("detail-tracking") as HTMLInputElement;
+      const trackingSaveBtn = document.getElementById("detail-tracking-save") as HTMLButtonElement;
+      const trackingStatus = document.getElementById("tracking-status") as HTMLElement;
+      trackingStatus.hidden = true;
+      trackingSaveBtn.onclick = async () => {
+        trackingSaveBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "update-tracking", orderId: order.id, trackingNumber: trackingInput.value.trim() }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(trackingStatus, "Tracking number saved.", true);
+            updateTrackingLink(data.order.trackingNumber);
+            patchOrderRow(data.order);
+          } else {
+            showHint(trackingStatus, data.error || "Failed to save.", false);
+          }
+        } catch {
+          showHint(trackingStatus, "Network error.", false);
+        } finally {
+          trackingSaveBtn.disabled = false;
         }
       };
 
@@ -2820,6 +2956,34 @@ import Layout from "../../layouts/Layout.astro";
         } catch {
           showHint(shipStatus, "Network error.", false);
           shipBtn.disabled = false;
+        }
+      };
+
+      const deliveredBtn = document.getElementById("mark-delivered") as HTMLButtonElement;
+      const deliveredStatus = document.getElementById("delivered-status") as HTMLElement;
+      deliveredStatus.hidden = true;
+      deliveredBtn.disabled = !!order.deliveredAt;
+      deliveredBtn.textContent = order.deliveredAt ? "Already marked delivered" : "Mark as delivered";
+      deliveredBtn.onclick = async () => {
+        deliveredBtn.disabled = true;
+        try {
+          const r = await api("/api/admin/orders", {
+            method: "POST",
+            body: JSON.stringify({ action: "mark-delivered", orderId: order.id }),
+          });
+          const data = await r.json();
+          if (r.ok) {
+            showHint(deliveredStatus, "Marked as delivered.", true);
+            deliveredBtn.textContent = "Already marked delivered";
+            openOrderDetail(order.id);
+            patchOrderRow(data.order);
+          } else {
+            showHint(deliveredStatus, data.error || "Failed to update.", false);
+            deliveredBtn.disabled = false;
+          }
+        } catch {
+          showHint(deliveredStatus, "Network error.", false);
+          deliveredBtn.disabled = false;
         }
       };
 
@@ -5201,6 +5365,98 @@ import Layout from "../../layouts/Layout.astro";
       }
     } catch {
       showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("email-preview")?.addEventListener("click", async () => {
+    const status = document.getElementById("email-status") as HTMLElement;
+    const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
+    const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
+    const gifUrl = (document.getElementById("email-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("email-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("email-sig-role") as HTMLInputElement).value.trim();
+    if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
+    try {
+      const res = await api("/api/admin/send-email", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "custom",
+          subject,
+          message,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+          preview: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.html) openEmailPreview(data.html);
+      else showHint(status, data.error || "Failed to build preview.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Email templates (the admin-editable default order-confirmation message) ---
+  let defaultOrderMessageFallback = "";
+  async function loadEmailTemplateSettings() {
+    const textarea = document.getElementById("email-template-default-message") as HTMLTextAreaElement;
+    const hint = document.getElementById("email-template-hint") as HTMLElement;
+    try {
+      const res = await api("/api/admin/settings");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load.");
+      textarea.value = data.defaultOrderMessage;
+      defaultOrderMessageFallback = data.fallback;
+      hint.textContent = data.isCustom
+        ? 'This replaces the built-in default below — click "Reset to default" to go back to it.'
+        : "This is the built-in default — editing and saving here overrides it for every future send.";
+    } catch {
+      hint.textContent = "Couldn't load the saved template — showing may be out of date.";
+    }
+  }
+
+  document.getElementById("email-template-reset")?.addEventListener("click", () => {
+    (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value = defaultOrderMessageFallback;
+  });
+
+  document.getElementById("email-template-preview")?.addEventListener("click", async () => {
+    const status = document.getElementById("email-template-status") as HTMLElement;
+    const message = (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value.trim();
+    try {
+      const res = await api("/api/admin/settings", {
+        method: "POST",
+        body: JSON.stringify({ previewMessage: message || defaultOrderMessageFallback }),
+      });
+      const data = await res.json();
+      if (res.ok && data.html) openEmailPreview(data.html);
+      else showHint(status, data.error || "Failed to build preview.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("email-template-save")?.addEventListener("click", async () => {
+    const status = document.getElementById("email-template-status") as HTMLElement;
+    const btn = document.getElementById("email-template-save") as HTMLButtonElement;
+    const message = (document.getElementById("email-template-default-message") as HTMLTextAreaElement).value;
+    btn.disabled = true;
+    try {
+      const res = await api("/api/admin/settings", {
+        method: "POST",
+        body: JSON.stringify({ defaultOrderMessage: message }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showHint(status, data.isCustom ? "Saved." : "Saved — matches the built-in default, so this just resets it.", true);
+        loadEmailTemplateSettings();
+      } else {
+        showHint(status, data.error || "Failed to save.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    } finally {
+      btn.disabled = false;
     }
   });
 

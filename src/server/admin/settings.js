@@ -18,11 +18,19 @@ import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
-import { DEFAULT_ORDER_MESSAGE } from '../../lib/emailTemplate.js';
+import { DEFAULT_ORDER_MESSAGE, orderConfirmationEmail } from '../../lib/emailTemplate.js';
 import { SETTING_KEYS, getSetting, setSetting } from '../../lib/settings.js';
 
 const UpdateSettingsSchema = z.object({
   defaultOrderMessage: z.string().max(10000).optional().default(''),
+});
+
+const PreviewSettingsSchema = z.object({
+  // Renders a sample order-confirmation email with this message, without
+  // saving anything — powers the "Preview" button on the Email templates
+  // card. Sample/placeholder order data stands in for a real order since
+  // this isn't tied to one.
+  previewMessage: z.string().max(10000),
 });
 
 export default async function handler(req, res) {
@@ -45,6 +53,32 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const body = parseRequestBody(req);
+
+    if (typeof body?.previewMessage === 'string') {
+      const previewParse = PreviewSettingsSchema.safeParse(body);
+      if (!previewParse.success) {
+        const formatted = formatZodError(previewParse.error);
+        return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+      }
+      const { html, text } = orderConfirmationEmail({
+        orderNumber: 'UX-2026-000000',
+        totalCents: 2900,
+        currency: 'AUD',
+        lookupLink: 'https://unstitchx.com/order/lookup',
+        items: [{ name: 'Slow Bloom', quantity: 1 }],
+        deliveryMethodLabel: 'Self-delivery',
+        deliveryFeeCents: 0,
+        deliveryAddress: {
+          line1: '123 Example Street',
+          suburb: 'Southbank',
+          state: 'VIC',
+          postcode: '3006',
+        },
+        message: previewParse.data.previewMessage,
+      });
+      return sendJson(res, 200, { ok: true, preview: true, html, text });
+    }
+
     const parseResult = UpdateSettingsSchema.safeParse(body);
     if (!parseResult.success) {
       const formatted = formatZodError(parseResult.error);
