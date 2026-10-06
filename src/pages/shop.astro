@@ -2,6 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import { Image, getImage } from "astro:assets";
 import SlowBloomHeroImage from "../assets/slow-bloom-hero.png";
+import SlowBloomMushroomImage from "../assets/slow-bloom-mushroom.png";
+import SlowBloomCupWarmerImage from "../assets/slow-bloom-cup-warmer.png";
+import SlowBloomTurtleLifestyleImage from "../assets/slow-bloom-turtle-lifestyle.png";
 
 /**
  * HERO PRODUCT PAGE — one of three product-page templates in this repo:
@@ -49,6 +52,19 @@ const included = [
 // get an optimized, hashed URL instead of pointing either at the old raw
 // /SlowBloom.png public path.
 const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700, height: 495, format: "webp" });
+
+// Product photo gallery — the kit builds 3 different designs from the same
+// tile set (see "3 Designs" in `included` above), so the gallery leads with
+// the turtle, then the other two buildable designs, then a lifestyle shot
+// of the finished turtle. Swapped client-side by the thumbnail strip below
+// (see the gallery script further down) — no carousel library needed for 4
+// static photos.
+const galleryImages = [
+  { src: SlowBloomHeroImage, alt: "Slow Bloom — the turtle design, assembled" },
+  { src: SlowBloomMushroomImage, alt: "Slow Bloom — the mushroom design, assembled" },
+  { src: SlowBloomCupWarmerImage, alt: "Slow Bloom — the cup warmer design, assembled" },
+  { src: SlowBloomTurtleLifestyleImage, alt: "Slow Bloom turtle shown in a home setting" },
+];
 ---
 
 <Layout
@@ -70,8 +86,34 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
                now imported from src/assets/SlowBloom.png (see the frontmatter
                above), served through astro:assets' <Image> component. -->
           <div class="product-hero__image-wrap">
-            <div class="product-hero__image" style="aspect-ratio: 1 / 1;">
-              <Image src={SlowBloomHeroImage} width={900} height={900} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-full object-cover" onerror="this.style.display='none'" />
+            <div class="product-hero__image" style="aspect-ratio: 1 / 1;" data-gallery-stage>
+              {galleryImages.map((img, idx) => (
+                <Image
+                  src={img.src}
+                  width={900}
+                  height={900}
+                  format="webp"
+                  alt={img.alt}
+                  class="w-full h-full object-cover product-gallery__slide"
+                  data-gallery-slide
+                  data-gallery-index={idx}
+                  hidden={idx !== 0}
+                  onerror="this.style.display='none'"
+                />
+              ))}
+            </div>
+            <div class="product-gallery__thumbs" data-gallery-thumbs role="tablist" aria-label="Product photos">
+              {galleryImages.map((img, idx) => (
+                <button
+                  type="button"
+                  class="product-gallery__thumb"
+                  data-gallery-thumb={idx}
+                  aria-label={img.alt}
+                  aria-selected={idx === 0 ? "true" : "false"}
+                >
+                  <Image src={img.src} width={120} height={120} format="webp" alt="" />
+                </button>
+              ))}
             </div>
           </div>
 
@@ -301,7 +343,16 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
   }
 
   .product-hero__image-wrap { position: relative; }
-  .product-hero__image { min-height: 0; overflow: hidden; }
+  .product-hero__image { position: relative; min-height: 0; overflow: hidden; }
+  .product-gallery__slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .product-gallery__thumbs { display: flex; gap: 10px; margin-top: 12px; }
+  .product-gallery__thumb {
+    flex: 0 0 auto; width: 64px; height: 64px; padding: 0; border: 2px solid transparent; border-radius: 4px;
+    overflow: hidden; cursor: pointer; background: none; opacity: 0.6; transition: opacity 0.15s, border-color 0.15s;
+  }
+  .product-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .product-gallery__thumb[aria-selected="true"] { opacity: 1; border-color: #000; }
+  .product-gallery__thumb:hover { opacity: 1; }
 
   .product-specs {
     margin-top: 18px;
@@ -648,6 +699,19 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
       input?.addEventListener("change", () => setValue(Number(input.value || min)));
     }
 
+    // Product photo gallery — thumbnail click swaps which full-size photo
+    // is shown in the main stage. Plain show/hide, no carousel library.
+    const galleryStage = document.querySelector<HTMLElement>("[data-gallery-stage]");
+    if (galleryStage) {
+      const slides = Array.from(galleryStage.querySelectorAll<HTMLElement>("[data-gallery-slide]"));
+      const thumbs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]"));
+      const showSlide = (idx: number) => {
+        slides.forEach((s) => { s.hidden = s.dataset.galleryIndex !== String(idx); });
+        thumbs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.galleryThumb === String(idx))));
+      };
+      thumbs.forEach((t) => t.addEventListener("click", () => showSlide(Number(t.dataset.galleryThumb))));
+    }
+
     // Live stock check — this page's product data (name, price, included
     // items) is still static build-time content (see the `product` const
     // above), but sold-out state changes far more often than that and must
@@ -656,20 +720,25 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
     // this only controls what the page shows, so it fails safe (leaves
     // buying enabled) if the check itself errors out.
 
-    // Known kit-contents labels -> icon, matching the build-time `included`
-    // list above. Admin-added custom lines (src/server/admin/product.js,
-    // section "passport", field kitContents) fall back to a generic tile
-    // icon rather than needing a matching asset for every possible label.
-    const KIT_CONTENT_ICONS: Record<string, string> = {
-      "3 Designs": "/assets/icons/three-designs.svg",
-      "Wrap Build Mat": "/assets/icons/furoshiki-wrap.svg",
-      "Unstitch Mail": "/assets/icons/mail-postcard.svg",
-      "Tiles": "/assets/icons/tile.svg",
-      "x3 Tile for Change": "/assets/icons/tile-for-change.svg",
-      "Product Passport": "/assets/icons/digital-passport.svg",
-      "Gift Message (optional)": "/assets/icons/gifting-message.svg",
-    };
+    // Kit-contents label -> icon. Keyword-based rather than an exact-string
+    // dictionary: the live database can hold older or slightly-reworded
+    // admin-entered text (e.g. "3 designs", "22 tiles", "1 Kit Passport" —
+    // the wording used before these labels were redesigned), and an exact
+    // match would silently fall back to the same default icon for every
+    // line that doesn't match byte-for-byte. This keeps matching correctly
+    // even as the exact wording drifts, old or new.
     const DEFAULT_KIT_CONTENT_ICON = "/assets/icons/tile.svg";
+    function iconForKitContentLabel(label: string): string {
+      const norm = label.toLowerCase();
+      if (norm.includes("design")) return "/assets/icons/three-designs.svg";
+      if (norm.includes("wrap") || norm.includes("build mat")) return "/assets/icons/furoshiki-wrap.svg";
+      if (norm.includes("mail") || norm.includes("postcard")) return "/assets/icons/mail-postcard.svg";
+      if (norm.includes("tile") && (norm.includes("change") || norm.includes("donat"))) return "/assets/icons/tile-for-change.svg";
+      if (norm.includes("tile")) return "/assets/icons/tile.svg";
+      if (norm.includes("passport")) return "/assets/icons/digital-passport.svg";
+      if (norm.includes("gift")) return "/assets/icons/gifting-message.svg";
+      return DEFAULT_KIT_CONTENT_ICON;
+    }
 
     // Splits the "Feel" spec into its stacked lines. Accepts either the
     // newline-separated format the admin Product tab saves going forward,
@@ -743,7 +812,7 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
             .map((entry: unknown) => {
               const label = typeof entry === "string" ? entry : String((entry as any)?.item ?? entry ?? "");
               if (!label) return "";
-              const icon = KIT_CONTENT_ICONS[label] || DEFAULT_KIT_CONTENT_ICON;
+              const icon = iconForKitContentLabel(label);
               return `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="${icon}" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label">${escHtml(label)}</p></div>`;
             })
             .join("");
