@@ -122,6 +122,7 @@ describe('order-lookup API handler (/api/order-lookup)', () => {
       totalCents: 12345,
       currency: 'AUD',
       createdAt: SAMPLE_ORDER.createdAt,
+      trackingNumber: null,
       items: [{ productName: 'Slow Bloom Kit', quantity: 1, lineTotalCents: 12345 }],
       deliveryAddress: {
         recipientName: 'Jane Doe',
