@@ -686,6 +686,20 @@ model Order {
   expectedShipAt DateTime? @map("expected_ship_at")
   shippedAt      DateTime? @map("shipped_at")
 
+  // AusPost (or any carrier) tracking number/consignment code, entered
+  // manually by the admin (this business doesn't have an AusPost API/MyPost
+  // Business integration, so nothing populates this automatically). Shown
+  // on the order detail panel and the customer's order-tracking page as a
+  // link to AusPost's public tracking lookup, and included in the "your
+  // order has shipped" email once set — see src/lib/emailTemplate.js.
+  trackingNumber String? @map("tracking_number") @db.VarChar(50)
+
+  // Set once by the admin "Mark as delivered" action (api/admin/orders.js)
+  // when they've confirmed via AusPost tracking (or otherwise) that the kit
+  // arrived — there's no automatic carrier webhook wired up, so this is a
+  // manual confirmation, same pattern as shippedAt above.
+  deliveredAt DateTime? @map("delivered_at")
+
   // Idempotency: one key per checkout attempt from the client, enforced
   // unique so retried/double-submitted requests can't create duplicate
   // orders. Pair with Stripe's own idempotency-key header on the charge call.
@@ -828,4 +842,19 @@ model AdminUser {
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("admin_users")
+}
+
+// ---------------------------------------------------------------------------
+// Admin-editable key/value settings — currently just the default order-
+// confirmation message (see src/lib/emailTemplate.js's DEFAULT_ORDER_NOTE,
+// editable from the admin "Send Email" tab), but deliberately generic so a
+// future setting doesn't need its own schema migration. One row per key.
+// ---------------------------------------------------------------------------
+
+model Setting {
+  key       String   @id @db.VarChar(100)
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("settings")
 }

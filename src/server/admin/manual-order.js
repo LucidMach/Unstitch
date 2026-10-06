@@ -60,6 +60,7 @@ import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../lib/deliveryZ
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import { orderConfirmationEmail } from '../../lib/emailTemplate.js';
+import { getDefaultOrderMessage } from '../../lib/settings.js';
 
 const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
@@ -81,6 +82,10 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
     const lookupToken = sign({ kind: 'order-lookup', orderId }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
     const lookupLink = `${getSiteOrigin()}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
+    // No custom message typed on the manual-order form -> falls back to
+    // the admin-editable default (Send Email tab -> Email templates),
+    // same as a real Stripe checkout's confirmation email.
+    const resolvedMessage = message || (await getDefaultOrderMessage());
     const { html, text } = orderConfirmationEmail({
       orderNumber,
       totalCents,
@@ -90,7 +95,7 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
       deliveryMethodLabel: methodLabel,
       deliveryFeeCents,
       deliveryAddress,
-      message,
+      message: resolvedMessage,
       signatureName,
       signatureRole,
     });

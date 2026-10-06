@@ -133,6 +133,17 @@ export function brandedEmailHtml({
 </html>`;
 }
 
+/**
+ * Public AusPost tracking-lookup URL for a given consignment/tracking
+ * number — used both here (shipped email) and in the admin order detail
+ * panel / customer order-lookup page, so all three always point at the
+ * same URL shape. Works for any tracking number typed into the admin
+ * panel; AusPost's own lookup page handles unrecognized codes gracefully.
+ */
+export function auspostTrackingUrl(trackingNumber) {
+  return `https://auspost.com.au/mypost/track/#/details/${encodeURIComponent(trackingNumber)}`;
+}
+
 /** Formats a delivery address down to one readable line for the email. */
 function formatAddressLine(addr) {
   if (!addr) return null;
@@ -203,7 +214,7 @@ export function orderConfirmationEmail({
   const deliveryLine = deliveryMethodLabel
     ? `${deliveryMethodLabel}${
         typeof deliveryFeeCents === 'number'
-          ? ` — ${deliveryFeeCents > 0 ? `${currency.toUpperCase()} $${(deliveryFeeCents / 100).toFixed(2)}` : 'Free'}`
+          ? ` (${deliveryFeeCents > 0 ? `${currency.toUpperCase()} $${(deliveryFeeCents / 100).toFixed(2)}` : 'Free'})`
           : ''
       }`
     : null;
@@ -339,21 +350,42 @@ export function giftAcknowledgementEmail({ giverName, productName, unitSerial, r
   return { html, text };
 }
 
-export function orderShippedEmail({ orderNumber, lookupLink }) {
+/**
+ * @param {object} opts
+ * @param {string} opts.orderNumber
+ * @param {string} opts.lookupLink
+ * @param {string} [opts.trackingNumber] - AusPost (or other carrier) tracking
+ *   number, if the admin has entered one (src/server/admin/orders.js's
+ *   'update-tracking' action). This business posts manually rather than
+ *   through an AusPost API/MyPost Business integration, so nothing
+ *   auto-populates this — when it's set, the email links straight to
+ *   AusPost's public tracking lookup so the customer doesn't have to go
+ *   find it themselves; when it isn't, the email just omits that line.
+ */
+export function orderShippedEmail({ orderNumber, lookupLink, trackingNumber }) {
+  // infoBox row values go through brandedEmailHtml's own esc() — safe for
+  // the plain tracking number, but that means a clickable link can't live
+  // in a row value (it'd render as literal escaped markup). So the number
+  // itself is a plain row, and the link is its own sentence in bodyHtml.
+  const trackingUrl = trackingNumber ? auspostTrackingUrl(trackingNumber) : null;
+  const rows = [{ label: 'Order number', value: orderNumber }];
+  if (trackingNumber) rows.push({ label: 'Tracking number', value: trackingNumber });
   const html = brandedEmailHtml({
     eyebrow: 'On its way',
     heading: 'Your order has shipped!',
-    bodyHtml: `<p style="margin:0 0 8px;">Your Unstitch order is on its way to you.</p>`,
-    infoBox: {
-      title: 'Order details',
-      rows: [{ label: 'Order number', value: orderNumber }],
-    },
+    bodyHtml: `<p style="margin:0 0 8px;">Your Unstitch order is on its way to you.${
+      trackingUrl
+        ? ` You can follow its progress on <a href="${esc(trackingUrl)}" style="color:${ACCENT};">Australia Post's tracking page</a>.`
+        : ''
+    }</p>`,
+    infoBox: { title: 'Order details', rows },
     cta: { label: 'Track your order', href: lookupLink },
   });
   const text = [
     'Your order has shipped!',
     '',
     `Order number: ${orderNumber}`,
+    ...(trackingNumber ? [`Tracking number: ${trackingNumber}`, `Track with Australia Post: ${trackingUrl}`] : []),
     '',
     'Your Unstitch order is on its way to you.',
     '',

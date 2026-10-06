@@ -38,6 +38,27 @@
 //                                          sale history. For cleaning up
 //                                          orders created while testing the
 //                                          admin panel, not for real orders.
+// POST /api/admin/orders {orderId,      -> "mark as delivered": sets
+//   action:'mark-delivered'}               deliveredAt=now() and bumps status
+//                                          to DELIVERED. There's no carrier
+//                                          webhook wired up (this business
+//                                          posts manually, not through an
+//                                          AusPost API/MyPost Business
+//                                          integration — see src/lib/
+//                                          deliveryZones.js's header note),
+//                                          so this is always a manual
+//                                          confirmation the admin makes
+//                                          themselves (e.g. after checking
+//                                          the AusPost tracking page).
+// POST /api/admin/orders {orderId,      -> saves/updates the carrier
+//   action:'update-tracking',              tracking number — shown on the
+//   trackingNumber}                        order detail panel (linked to
+//                                          AusPost's tracking lookup),
+//                                          included in the "shipped" email
+//                                          once set, and shown on the
+//                                          customer's own order-tracking
+//                                          page. Pass an empty string to
+//                                          clear it.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
@@ -55,9 +76,9 @@ const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 /** Best-effort — logs and returns false rather than throwing, so a Resend
  * hiccup never stops "mark as shipped" from recording the shipped status. */
-async function sendShippedEmail({ orderId, orderNumber, email }) {
+async function sendShippedEmail({ orderId, orderNumber, email, trackingNumber }) {
   if (!process.env.RESEND_API_KEY) {
-    console.log('[admin/orders] Dev/mock shipped email:', { orderId, orderNumber, email });
+    console.log('[admin/orders] Dev/mock shipped email:', { orderId, orderNumber, email, trackingNumber });
     return false;
   }
   try {
@@ -66,7 +87,7 @@ async function sendShippedEmail({ orderId, orderNumber, email }) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
     const lookupToken = sign({ kind: 'order-lookup', orderId }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
     const lookupLink = `${getSiteOrigin()}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
-    const { html, text } = orderShippedEmail({ orderNumber, lookupLink });
+    const { html, text } = orderShippedEmail({ orderNumber, lookupLink, trackingNumber });
     const result = await resend.emails.send({
       from: fromEmail,
       to: email,
@@ -98,6 +119,20 @@ const MarkPaidSchema = z.object({
 const DeleteTestOrderSchema = z.object({
   action: z.literal('delete-test-order'),
   orderId: z.string().uuid(),
+});
+
+const MarkDeliveredSchema = z.object({
+  action: z.literal('mark-delivered'),
+  orderId: z.string().uuid(),
+});
+
+const UpdateTrackingSchema = z.object({
+  action: z.literal('update-tracking'),
+  orderId: z.string().uuid(),
+  // Carrier consignment/tracking code as printed on the label — kept as a
+  // free-text string (not validated against AusPost's own format) since
+  // this field is meant to work for any future carrier too. Blank clears it.
+  trackingNumber: z.string().trim().max(50).optional().default(''),
 });
 
 const UpdateShipDateSchema = z.object({
@@ -333,6 +368,58 @@ export default async function handler(req, res) {
       }
     }
 
+    if (body.action === 'mark-delivered') {
+      const parseResult = MarkDeliveredSchema.safeParse(body);
+      if (!parseResult.success) {
+        const formatted = formatZodError(parseResult.error);
+        return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+      }
+      try {
+        const existing = await prisma.order.findUnique({ where: { id: parseResult.data.orderId } });
+        if (!existing) return sendJson(res, 404, { error: 'Order not found.' });
+        // `customer` included for the same in-place row-patch reason as the
+        // other admin order actions above.
+        const order = await prisma.order.update({
+          where: { id: existing.id },
+          data: {
+            deliveredAt: new Date(),
+            // Only advance status forward — never stomp a state an admin
+            // or a refund already moved it to (CANCELLED, REFUNDED, etc.).
+            status:
+              existing.status === 'PAID' || existing.status === 'PACKED' || existing.status === 'OUT_FOR_DELIVERY'
+                ? 'DELIVERED'
+                : existing.status,
+          },
+          include: { customer: { select: { email: true, name: true } } },
+        });
+        return sendJson(res, 200, { order });
+      } catch (err) {
+        console.error('[admin/orders] Mark-delivered failed:', err);
+        return sendJson(res, 500, { error: 'Failed to mark as delivered.' });
+      }
+    }
+
+    if (body.action === 'update-tracking') {
+      const parseResult = UpdateTrackingSchema.safeParse(body);
+      if (!parseResult.success) {
+        const formatted = formatZodError(parseResult.error);
+        return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+      }
+      try {
+        const existing = await prisma.order.findUnique({ where: { id: parseResult.data.orderId } });
+        if (!existing) return sendJson(res, 404, { error: 'Order not found.' });
+        const order = await prisma.order.update({
+          where: { id: existing.id },
+          data: { trackingNumber: parseResult.data.trackingNumber || null },
+          include: { customer: { select: { email: true, name: true } } },
+        });
+        return sendJson(res, 200, { order });
+      } catch (err) {
+        console.error('[admin/orders] Update-tracking failed:', err);
+        return sendJson(res, 500, { error: 'Failed to save tracking number.' });
+      }
+    }
+
     const parseResult = MarkShippedSchema.safeParse(body);
     if (!parseResult.success) {
       const formatted = formatZodError(parseResult.error);
@@ -362,7 +449,12 @@ export default async function handler(req, res) {
       // but belt-and-braces here) shouldn't re-notify the customer.
       const emailSent = alreadyShipped
         ? false
-        : await sendShippedEmail({ orderId: order.id, orderNumber: order.orderNumber, email: existing.customer.email });
+        : await sendShippedEmail({
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            email: existing.customer.email,
+            trackingNumber: order.trackingNumber,
+          });
       return sendJson(res, 200, { order, emailSent });
     } catch (err) {
       console.error('[admin/orders] Mark-shipped failed:', err);
@@ -406,6 +498,8 @@ export default async function handler(req, res) {
         createdAt: true,
         expectedShipAt: true,
         shippedAt: true,
+        deliveredAt: true,
+        trackingNumber: true,
         internalNote: true,
         giftWrap: true,
         customer: { select: { email: true, name: true } },

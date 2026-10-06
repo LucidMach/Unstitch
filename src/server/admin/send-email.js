@@ -18,6 +18,7 @@ import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
 import { brandedEmailHtml, orderConfirmationEmail, esc } from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
+import { getDefaultOrderMessage } from '../../lib/settings.js';
 
 // Matches api/stripe-webhook.js and api/order-lookup-request.js, so a
 // resent confirmation carries the same style of link as the original.
@@ -75,7 +76,10 @@ function parseRecipients(raw) {
 
 const CustomEmailSchema = z.object({
   mode: z.literal('custom'),
-  to: z.string().trim().min(1),
+  // Normally required, but a preview renders the email without sending it,
+  // so there's nothing to validate recipients against — see the preview
+  // branch below, which checks this before recipients are parsed.
+  to: z.string().trim().optional().default(''),
   subject: z.string().trim().min(1).max(200),
   message: z.string().trim().min(1).max(10000),
   // Optional — e.g. for a workshop/school follow-up or a new-contact
@@ -86,11 +90,24 @@ const CustomEmailSchema = z.object({
   // one send (e.g. a different team member replying to a specific thread).
   signatureName: z.string().trim().max(100).optional(),
   signatureRole: z.string().trim().max(150).optional(),
+  // When true, renders and returns {html, text} instead of actually
+  // sending anything — powers the admin panel's "Preview email" button.
+  preview: z.boolean().optional().default(false),
 });
 
 const ResendConfirmationSchema = z.object({
   mode: z.literal('resend-confirmation'),
   orderId: z.string().min(1),
+  // Optional — lets the admin write a one-off note for this specific
+  // resend from the order detail panel, same as api/admin/manual-order.js
+  // already allows at order-creation time. Falls back to the saved/default
+  // made-to-order copy when left blank (see emailTemplate.js's
+  // DEFAULT_ORDER_MESSAGE and the Setting-backed override in getSetting()).
+  message: z.string().trim().max(10000).optional(),
+  signatureName: z.string().trim().max(100).optional(),
+  signatureRole: z.string().trim().max(150).optional(),
+  // Same preview flag as the custom mode above.
+  preview: z.boolean().optional().default(false),
 });
 
 export default async function handler(req, res) {
@@ -105,15 +122,17 @@ export default async function handler(req, res) {
     return sendJson(res, 429, { error: 'Too many emails sent recently. Please wait a moment.' });
   }
 
-  if (!process.env.RESEND_API_KEY) {
+  const body = parseRequestBody(req);
+  const isPreview = body && body.preview === true;
+
+  // A preview only renders the template — nothing is sent, so it doesn't
+  // need Resend configured at all (handy in local dev without a real key).
+  if (!isPreview && !process.env.RESEND_API_KEY) {
     return sendJson(res, 503, { error: 'RESEND_API_KEY is not configured.' });
   }
 
-  const body = parseRequestBody(req);
-
   try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = isPreview ? null : new (await import('resend')).Resend(process.env.RESEND_API_KEY);
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
 
     if (body.mode === 'custom') {
@@ -122,21 +141,9 @@ export default async function handler(req, res) {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { to, subject, message, gifUrl, signatureName, signatureRole } = parseResult.data;
+      const { to, subject, message, gifUrl, signatureName, signatureRole, preview } = parseResult.data;
       const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
       const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
-      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
-
-      if (recipients.length === 0) {
-        return sendJson(res, 400, {
-          error: skippedInvalid.length
-            ? `Couldn't recognize any valid email addresses in: ${skippedInvalid.join(', ')}`
-            : 'Enter at least one recipient.',
-        });
-      }
-      if (recipients.length > MAX_RECIPIENTS) {
-        return sendJson(res, 400, { error: `Too many recipients — max ${MAX_RECIPIENTS} per send.` });
-      }
 
       const fullMessage = `${message}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
       // message may be multiple \n\n-separated paragraphs — keep that
@@ -152,6 +159,23 @@ export default async function handler(req, res) {
         signatureName: finalSignatureName,
         signatureRole: finalSignatureRole,
       });
+
+      if (preview) {
+        return sendJson(res, 200, { ok: true, preview: true, html, text: fullMessage });
+      }
+
+      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
+
+      if (recipients.length === 0) {
+        return sendJson(res, 400, {
+          error: skippedInvalid.length
+            ? `Couldn't recognize any valid email addresses in: ${skippedInvalid.join(', ')}`
+            : 'Enter at least one recipient.',
+        });
+      }
+      if (recipients.length > MAX_RECIPIENTS) {
+        return sendJson(res, 400, { error: `Too many recipients — max ${MAX_RECIPIENTS} per send.` });
+      }
 
       const results = await Promise.all(
         recipients.map(async (recipient) => {
@@ -217,8 +241,14 @@ export default async function handler(req, res) {
       }
       const items = Array.from(itemCounts, ([name, quantity]) => ({ name, quantity }));
 
+      const { message, signatureName, signatureRole, preview } = parseResult.data;
       const lookupToken = sign({ kind: 'order-lookup', orderId: order.id }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
       const lookupLink = `${getSiteOrigin(req)}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
+      // No custom message typed for this resend -> falls back to the
+      // admin-editable default (Send Email tab -> Email templates), which
+      // itself falls back to the hardcoded DEFAULT_ORDER_MESSAGE constant
+      // if nothing's been saved yet. See src/lib/settings.js.
+      const resolvedMessage = message || (await getDefaultOrderMessage());
       const { html, text } = orderConfirmationEmail({
         orderNumber: order.orderNumber,
         totalCents: order.totalCents,
@@ -236,7 +266,15 @@ export default async function handler(req, res) {
               postcode: order.deliveryAddress.postcode,
             }
           : null,
+        message: resolvedMessage,
+        ...(signatureName ? { signatureName } : {}),
+        ...(signatureRole ? { signatureRole } : {}),
       });
+
+      if (preview) {
+        return sendJson(res, 200, { ok: true, preview: true, html, text });
+      }
+
       const result = await resend.emails.send({
         from: fromEmail,
         to: order.customer.email,
