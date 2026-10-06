@@ -26,6 +26,7 @@ function sanitizeOrder(order) {
     totalCents: order.totalCents,
     currency: order.currency,
     createdAt: order.createdAt,
+    trackingNumber: order.trackingNumber || null,
     items: order.items.map((it) => ({
       productName: it.product?.name || 'Item',
       quantity: it.quantity,

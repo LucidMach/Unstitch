@@ -208,6 +208,11 @@ import Layout from "../../layouts/Layout.astro";
               ? `<p class="order-card__meta">Delivering to: ${o.deliveryAddress.recipientName}, ${o.deliveryAddress.suburb} ${o.deliveryAddress.state} ${o.deliveryAddress.postcode}</p>`
               : ""
           }
+          ${
+            o.trackingNumber
+              ? `<p class="order-card__meta">Tracking: <a href="https://auspost.com.au/mypost/track/#/details/${encodeURIComponent(o.trackingNumber)}" target="_blank" rel="noopener">${o.trackingNumber} ↗</a></p>`
+              : ""
+          }
         </div>`,
         )
         .join("");
