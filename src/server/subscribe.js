@@ -138,23 +138,40 @@ export default async function handler(req, res) {
     });
   }
 
-  const { email, name, source } = parseResult.data;
+  const { email, name, source, productSlug } = parseResult.data;
 
   // 3. Database Persistence (Neon Postgres via Prisma)
   if (prisma) {
     try {
+      // Best-effort -- an unrecognized/typo'd slug (or a page whose
+      // NEXT_DROP_PRODUCT_SLUG hasn't been set for this drop yet) just
+      // means no waitlist link is set, not a failed signup.
+      let productId;
+      if (productSlug) {
+        const product = await prisma.product.findUnique({ where: { slug: productSlug }, select: { id: true } });
+        productId = product?.id;
+      }
+
       await prisma.subscriber.upsert({
         where: { email },
         update: {
           signupCount: { increment: 1 },
           name: name || undefined,
           source: source || undefined,
+          productId: productId || undefined,
+          // Deliberately NOT cleared here -- someone who unsubscribed and
+          // then signs up again (e.g. for a specific drop's waitlist)
+          // should confirm that by actually using the unsubscribe-reversal
+          // flow if one's ever added, not by a form submission alone,
+          // which could also happen if their email gets reused on an old
+          // mailing list signup page they don't remember.
         },
         create: {
           name: name || null,
           email,
           source: source || null,
           signupCount: 1,
+          productId: productId || null,
         },
       });
       console.log('✓ Successfully saved subscriber to Neon Postgres:', email);
@@ -165,7 +182,7 @@ export default async function handler(req, res) {
       });
     }
   } else {
-    console.log('[Dev/Mock] Subscriber recorded:', { email, name, source });
+    console.log('[Dev/Mock] Subscriber recorded:', { email, name, source, productSlug });
   }
 
   // 4. Send Raffle Confirmation Email (for Zero Waste Festival / event raffle entries)

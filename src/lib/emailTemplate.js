@@ -57,6 +57,11 @@ export function brandedEmailHtml({
   includeSignature = true,
   signatureName = 'Astra',
   signatureRole = 'Designer at Unstitch',
+  // Set only for broadcast/newsletter and waitlist-notify sends (see
+  // src/server/admin/broadcast.js) -- never for transactional mail (order
+  // confirmations, shipped/delivered notices), which isn't marketing and
+  // shouldn't offer to opt out of being told about an order you placed.
+  unsubscribeUrl,
 }) {
   const infoBoxHtml = infoBox
     ? `
@@ -128,6 +133,11 @@ export function brandedEmailHtml({
       ${signatureHtml}
     </div>
     <p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:20px 0 0;">Unstitch — Naarm, Melbourne Australia</p>
+    ${
+      unsubscribeUrl
+        ? `<p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:6px 0 0;"><a href="${esc(unsubscribeUrl)}" style="color:#999;text-decoration:underline;">Unsubscribe</a> from these emails</p>`
+        : ''
+    }
   </div>
 </body>
 </html>`;
@@ -147,6 +157,28 @@ export function brandedEmailHtml({
 export function fillMessageVars(template, vars) {
   if (!template) return template;
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
+}
+
+// Default sign-off for a free-composed send (the admin's custom/bulk
+// email, and the newsletter/waitlist broadcasts) — overridable per-send
+// via signatureName/signatureRole. Not used for order-confirmation-style
+// mail, which already closes with its own business sign-off baked into
+// orderConfirmationEmail().
+export const DEFAULT_SIGNATURE_NAME = 'Astra';
+export const DEFAULT_SIGNATURE_ROLE = 'Designer at Unstitch';
+
+export function plainTextSignature(name, role) {
+  return [
+    '',
+    '',
+    'Warm regards,',
+    name,
+    role,
+    '',
+    'unstitchx.com',
+    'linkedin.com/company/unstitchx',
+    '@unstitchxfactory (instagram.com/unstitchxfactory)',
+  ].join('\n');
 }
 
 /**

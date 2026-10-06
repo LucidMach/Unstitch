@@ -34,6 +34,14 @@ model Subscriber {
   product    Product?  @relation(fields: [productId], references: [id])
   notifiedAt DateTime? @map("notified_at")
 
+  // Set once, permanently, when someone clicks the unsubscribe link in a
+  // broadcast or waitlist-notify email (src/pages/unsubscribe.astro ->
+  // src/server/unsubscribe.js). Excluded from every future send (both the
+  // general newsletter and any product's waitlist) but the row itself is
+  // kept rather than deleted, so re-subscribing via api/subscribe.js
+  // doesn't silently un-unsubscribe someone -- see that handler's comment.
+  unsubscribedAt DateTime? @map("unsubscribed_at")
+
   @@map("subscribers")
 }
 

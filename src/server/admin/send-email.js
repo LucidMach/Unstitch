@@ -16,7 +16,15 @@ import { checkRateLimit } from '../../lib/rateLimit.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
-import { brandedEmailHtml, orderConfirmationEmail, esc, fillMessageVars } from '../../lib/emailTemplate.js';
+import {
+  brandedEmailHtml,
+  orderConfirmationEmail,
+  esc,
+  fillMessageVars,
+  DEFAULT_SIGNATURE_NAME,
+  DEFAULT_SIGNATURE_ROLE,
+  plainTextSignature,
+} from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
 
@@ -31,26 +39,8 @@ const MAX_RECIPIENTS = 50;
 
 const EmailAddressSchema = z.string().trim().toLowerCase().email();
 
-// Default sign-off for every custom send — overridable per-send via
-// signatureName/signatureRole (e.g. someone other than Astra signing a
-// particular workshop follow-up). Not applied to resend-confirmation,
-// which already closes with its own business sign-off.
-const DEFAULT_SIGNATURE_NAME = 'Astra';
-const DEFAULT_SIGNATURE_ROLE = 'Designer at Unstitch';
-
-function plainTextSignature(name, role) {
-  return [
-    '',
-    '',
-    'Warm regards,',
-    name,
-    role,
-    '',
-    'unstitchx.com',
-    'linkedin.com/company/unstitchx',
-    '@unstitchxfactory (instagram.com/unstitchxfactory)',
-  ].join('\n');
-}
+// DEFAULT_SIGNATURE_NAME/ROLE and plainTextSignature now live in
+// src/lib/emailTemplate.js, shared with src/server/admin/broadcast.js.
 
 /** Splits a comma/newline-separated blob into deduped, validated addresses. */
 function parseRecipients(raw) {

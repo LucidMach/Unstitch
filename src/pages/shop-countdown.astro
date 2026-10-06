@@ -110,6 +110,17 @@ import Layout from "../layouts/Layout.astro";
 </style>
 
 <script>
+  // Set this to the slug of the product this countdown is actually for,
+  // so the "Notify Me at Launch" form's signups land on that specific
+  // drop's waitlist (src/server/admin/broadcast.js's "waitlist" mode) --
+  // which the Broadcasts admin tab can then notify specifically, instead
+  // of only the general subscriber list. Edited by hand per drop, same as
+  // the countdown target date above (data-target) already is. Leave ""
+  // if this page is a pure hype/teaser countdown with no real product row
+  // yet -- signups are still saved to the general list either way, just
+  // without a waitlist link.
+  const NEXT_DROP_PRODUCT_SLUG = "";
+
   function initCountdown() {
     // Countdown Timer
     document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => {
@@ -189,10 +200,17 @@ import Layout from "../layouts/Layout.astro";
         feedback.className = 'form-feedback';
 
         try {
+          const isDropNotifyForm = form.dataset.subscribeForm === 'countdown-notify';
           const res = await fetch('/api/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined, _gotcha }),
+            body: JSON.stringify({
+              name,
+              email,
+              source: form.dataset.subscribeForm || undefined,
+              productSlug: isDropNotifyForm && NEXT_DROP_PRODUCT_SLUG ? NEXT_DROP_PRODUCT_SLUG : undefined,
+              _gotcha,
+            }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));

@@ -1,8 +1,8 @@
 // api/[...route].js
-// Catch-all dispatcher for the 11 remaining customer-facing endpoints
+// Catch-all dispatcher for the 12 remaining customer-facing endpoints
 // (contact, share, subscribe, delivery-quote, drop-status, order-lookup,
 // order-lookup-request, order-lookup-by-number, order-status, passport,
-// passport-confirm-transfer),
+// passport-confirm-transfer, unsubscribe),
 // consolidated into a single Vercel Serverless Function. Vercel's Hobby
 // plan caps a deployment at 12 Serverless Functions; this repo previously
 // shipped 20 files under api/, one function each.
@@ -38,6 +38,7 @@ import orderStatus from '../src/server/order-status.js';
 import passport from '../src/server/passport.js';
 import passportConfirmTransfer from '../src/server/passport-confirm-transfer.js';
 import events from '../src/server/events.js';
+import unsubscribe from '../src/server/unsubscribe.js';
 
 const ROUTES = {
   contact,
@@ -52,6 +53,7 @@ const ROUTES = {
   passport,
   'passport-confirm-transfer': passportConfirmTransfer,
   events,
+  unsubscribe,
 };
 
 export default async function handler(req, res) {
