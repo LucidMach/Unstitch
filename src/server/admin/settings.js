@@ -1,28 +1,40 @@
 // api/admin/settings.js
-// GET  /api/admin/settings  -> current admin-editable settings (right now:
-//                              just the default order-confirmation message).
-// POST /api/admin/settings  -> { defaultOrderMessage } saves it; an empty/
-//                              whitespace-only value resets back to the
-//                              hardcoded fallback (src/lib/emailTemplate.js's
-//                              DEFAULT_ORDER_MESSAGE) by deleting the row
-//                              rather than saving a blank override.
+// GET  /api/admin/settings  -> the order-confirmation email template library:
+//                              { templates: [{id, name, message}], defaultId }
+// POST /api/admin/settings  -> one of two shapes:
+//   { templates, defaultId }   saves the whole library (add/edit/delete/
+//                              reorder/change-default all go through this
+//                              one wholesale save — the admin UI holds the
+//                              full list client-side).
+//   { previewMessage }         renders a sample order-confirmation email
+//                              with this message, without saving anything
+//                              — powers the "Preview" button on any one
+//                              template.
 //
-// Backs the admin "Send Email" tab's "Email templates" section. Every send
-// that uses the default order-confirmation copy (a real Stripe checkout via
-// api/stripe-webhook.js, a manual order with no custom message, or a
-// "resend confirmation" with no custom message typed) reads through
-// src/lib/settings.js's getDefaultOrderMessage(), so a save here takes
-// effect on the very next send — no deploy needed.
+// Backs the admin "Send Email" tab's "Email templates" section. The
+// template marked `defaultId` is what every order-confirmation send uses
+// when nothing more specific is typed for that send (a real Stripe
+// checkout, a manual order with no custom message, or a "resend
+// confirmation" with no custom message typed) — see
+// src/lib/settings.js's getDefaultOrderMessage(). A save here takes effect
+// on the very next send — no deploy needed.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
-import { DEFAULT_ORDER_MESSAGE, orderConfirmationEmail } from '../../lib/emailTemplate.js';
-import { SETTING_KEYS, getSetting, setSetting } from '../../lib/settings.js';
+import { orderConfirmationEmail } from '../../lib/emailTemplate.js';
+import { getEmailTemplates, setEmailTemplates } from '../../lib/settings.js';
 
-const UpdateSettingsSchema = z.object({
-  defaultOrderMessage: z.string().max(10000).optional().default(''),
+const TemplateSchema = z.object({
+  id: z.string().max(100).optional(),
+  name: z.string().trim().min(1, 'Name is required.').max(200),
+  message: z.string().max(10000),
+});
+
+const SaveTemplatesSchema = z.object({
+  templates: z.array(TemplateSchema).min(1, 'At least one template is required.'),
+  defaultId: z.string().max(100),
 });
 
 const PreviewSettingsSchema = z.object({
@@ -39,12 +51,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const value = await getSetting(SETTING_KEYS.DEFAULT_ORDER_MESSAGE, DEFAULT_ORDER_MESSAGE);
-      return sendJson(res, 200, {
-        defaultOrderMessage: value,
-        isCustom: value !== DEFAULT_ORDER_MESSAGE,
-        fallback: DEFAULT_ORDER_MESSAGE,
-      });
+      const { templates, defaultId } = await getEmailTemplates();
+      return sendJson(res, 200, { templates, defaultId });
     } catch (err) {
       console.error('[admin/settings] Failed to load settings:', err);
       return sendJson(res, 500, { error: 'Unable to load settings.' });
@@ -79,19 +87,14 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { ok: true, preview: true, html, text });
     }
 
-    const parseResult = UpdateSettingsSchema.safeParse(body);
+    const parseResult = SaveTemplatesSchema.safeParse(body);
     if (!parseResult.success) {
       const formatted = formatZodError(parseResult.error);
       return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
     }
     try {
-      await setSetting(SETTING_KEYS.DEFAULT_ORDER_MESSAGE, parseResult.data.defaultOrderMessage);
-      const value = await getSetting(SETTING_KEYS.DEFAULT_ORDER_MESSAGE, DEFAULT_ORDER_MESSAGE);
-      return sendJson(res, 200, {
-        defaultOrderMessage: value,
-        isCustom: value !== DEFAULT_ORDER_MESSAGE,
-        fallback: DEFAULT_ORDER_MESSAGE,
-      });
+      const saved = await setEmailTemplates(parseResult.data.templates, parseResult.data.defaultId);
+      return sendJson(res, 200, saved);
     } catch (err) {
       console.error('[admin/settings] Failed to save settings:', err);
       return sendJson(res, 500, { error: 'Unable to save settings.' });
