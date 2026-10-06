@@ -98,12 +98,16 @@ function apiDevMiddleware() {
               handler = await load('./src/server/admin/events.js');
             } else if (endpoint === '/api/admin/batch-drops') {
               handler = await load('./src/server/admin/batch-drops.js');
+            } else if (endpoint === '/api/admin/settings') {
+              handler = await load('./src/server/admin/settings.js');
             } else if (endpoint === '/api/events') {
               handler = await load('./src/server/events.js');
             } else if (endpoint === '/api/order-lookup-request') {
               handler = await load('./src/server/order-lookup-request.js');
             } else if (endpoint === '/api/order-lookup') {
               handler = await load('./src/server/order-lookup.js');
+            } else if (endpoint === '/api/order-lookup-by-number') {
+              handler = await load('./src/server/order-lookup-by-number.js');
             } else if (endpoint === '/api/delivery-quote') {
               handler = await load('./src/server/delivery-quote.js');
             } else if (endpoint === '/api/drop-status') {

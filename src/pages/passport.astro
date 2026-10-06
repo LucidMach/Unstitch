@@ -576,12 +576,46 @@ import Layout from "../layouts/Layout.astro";
       return "";
     }
   }
-  function pvSafeVideo(u: string) {
+  // Turns a pasted video link into something actually embeddable.
+  // youtu.be / youtube.com / vimeo.com / drive.google.com links become an
+  // {embed} iframe URL (a raw <video src> pointed at a youtu.be page does
+  // not work — YouTube does not serve a playable video file at that URL,
+  // only its web player does, which is why step videos silently failed to
+  // play before this). Anything else (e.g. Dropbox, or a direct .mp4) is
+  // treated as a {file} URL for a real <video> element; Dropbox's share
+  // link is rewritten to its raw-content host so the browser gets actual
+  // video bytes instead of Dropbox's preview page.
+  function pvVideoInfo(u: string): { embed?: string; file?: string; page: string } | null {
     try {
       const x = new URL(u);
-      return x.protocol === "https:" ? x.href : "";
+      if (x.protocol !== "https:") return null;
+      const h = x.hostname.replace(/^www\./, "");
+      let m: string | null;
+      if (h === "youtu.be") {
+        m = x.pathname.slice(1);
+        return { embed: `https://www.youtube.com/embed/${encodeURIComponent(m)}?loop=1&playlist=${encodeURIComponent(m)}&rel=0`, page: x.href };
+      }
+      if (h === "youtube.com" || h === "m.youtube.com") {
+        m = x.searchParams.get("v") || (x.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/) || [])[1];
+        if (m) return { embed: `https://www.youtube.com/embed/${encodeURIComponent(m)}?loop=1&playlist=${encodeURIComponent(m)}&rel=0`, page: x.href };
+      }
+      if (h === "vimeo.com") {
+        const vm = x.pathname.match(/\/(\d+)/);
+        if (vm) return { embed: `https://player.vimeo.com/video/${vm[1]}?loop=1`, page: x.href };
+      }
+      if (h === "drive.google.com") {
+        const dm = x.pathname.match(/\/file\/d\/([^/]+)/) || [null, x.searchParams.get("id")];
+        if (dm[1]) return { embed: `https://drive.google.com/file/d/${dm[1]}/preview`, page: x.href };
+      }
+      if (h === "dropbox.com" || h === "www.dropbox.com") {
+        x.hostname = "dl.dropboxusercontent.com";
+        x.searchParams.delete("dl");
+        x.searchParams.set("raw", "1");
+        return { file: x.href, page: u };
+      }
+      return { file: x.href, page: x.href };
     } catch {
-      return "";
+      return null;
     }
   }
   function pvIsDyn(step: any) {
@@ -664,18 +698,37 @@ import Layout from "../layouts/Layout.astro";
       return v;
     }
     function watchPanel(step: any) {
-      const u = step.video ? pvSafeVideo(step.video) : "";
-      if (u) {
+      const info = step.video ? pvVideoInfo(step.video) : null;
+      if (info && info.embed) {
+        const fr = document.createElement("iframe");
+        fr.src = info.embed;
+        fr.title = `Video for step ${step.n}`;
+        fr.referrerPolicy = "strict-origin-when-cross-origin";
+        fr.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        fr.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        fr.allowFullscreen = true;
+        fr.style.cssText = "display:block;width:100%;aspect-ratio:16/9;border:0;background:#000";
+        return fr;
+      }
+      if (info && info.file) {
+        const wrap = document.createElement("div");
         const vid = document.createElement("video");
-        vid.src = u;
+        vid.src = info.file;
         vid.muted = true;
         vid.loop = true;
         vid.playsInline = true;
         vid.controls = true;
-        vid.preload = "metadata";
+        vid.preload = "auto";
         vid.setAttribute("aria-label", `Video for step ${step.n}`);
         vid.addEventListener("canplay", () => { vid.play().catch(() => {}); }, { once: true });
-        return vid;
+        vid.addEventListener("error", () => {
+          const n = document.createElement("p");
+          n.style.cssText = "margin:8px 0 0;font-size:14px";
+          n.innerHTML = `This video could not be loaded here. <a href="${pvEsc(info.page)}" target="_blank" rel="noopener">Open it in a new tab</a>.`;
+          wrap.appendChild(n);
+        }, { once: true });
+        wrap.appendChild(vid);
+        return wrap;
       }
       const d = document.createElement("div");
       d.className = "pv-ph";

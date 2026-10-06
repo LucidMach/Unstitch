@@ -67,7 +67,6 @@ import prisma from '../../lib/prisma.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import { orderShippedEmail } from '../../lib/emailTemplate.js';
-import { addBusinessDays, MIN_PRODUCTION_DAYS } from '../../lib/shipping.js';
 import { revertUnitsToStock } from '../../lib/inventory.js';
 
 // Matches api/stripe-webhook.js / api/admin/send-email.js, so the "shipped"
@@ -281,16 +280,15 @@ export default async function handler(req, res) {
         if (Number.isNaN(candidate.getTime())) {
           return sendJson(res, 400, { error: 'Invalid date.' });
         }
-        // Every kit is made to order — this floor is the studio's own
-        // minimum turnaround, so an admin can push the date out (a
-        // commission running long) but never promise something sooner
-        // than can actually be built.
-        const minDate = addBusinessDays(existing.createdAt, MIN_PRODUCTION_DAYS);
-        if (candidate.getTime() < minDate.getTime()) {
-          return sendJson(res, 400, {
-            error: `Ship date must be at least ${MIN_PRODUCTION_DAYS} business days from the order date (${minDate.toLocaleDateString('en-AU')} or later).`,
-          });
-        }
+        // This used to hard-floor the date at MIN_PRODUCTION_DAYS business
+        // days out and reject anything sooner, which defeated the actual
+        // point of this field: an admin override for an order that is NOT
+        // on the standard 5-business-day timeline (a kit already finished,
+        // a rush the admin has personally confirmed they can meet). The
+        // admin is the one person who actually knows whether a given date
+        // is achievable, so this now accepts any valid calendar date —
+        // sooner or later than the computed default — and leaves that
+        // judgment call to them.
         // `customer` included for the same reason as mark-paid above — lets
         // the admin panel patch the order row in place rather than
         // refetching the whole list.
