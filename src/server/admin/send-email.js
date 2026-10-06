@@ -16,7 +16,7 @@ import { checkRateLimit } from '../../lib/rateLimit.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
-import { brandedEmailHtml, orderConfirmationEmail, esc } from '../../lib/emailTemplate.js';
+import { brandedEmailHtml, orderConfirmationEmail, esc, fillMessageVars } from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
 
@@ -248,7 +248,13 @@ export default async function handler(req, res) {
       // admin-editable default (Send Email tab -> Email templates), which
       // itself falls back to the hardcoded DEFAULT_ORDER_MESSAGE constant
       // if nothing's been saved yet. See src/lib/settings.js.
-      const resolvedMessage = message || (await getDefaultOrderMessage());
+      // Shipping recipient can differ from the account holder (a gift
+      // bought under one name, sent to another) -> prefer that, then the
+      // customer's own saved name, then fall back to their email's local
+      // part so {name} never renders as literally empty.
+      const recipientName =
+        order.deliveryAddress?.recipientName || order.customer?.name || order.customer.email.split('@')[0];
+      const resolvedMessage = fillMessageVars(message || (await getDefaultOrderMessage()), { name: recipientName });
       const { html, text } = orderConfirmationEmail({
         orderNumber: order.orderNumber,
         totalCents: order.totalCents,

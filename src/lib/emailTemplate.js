@@ -134,6 +134,22 @@ export function brandedEmailHtml({
 }
 
 /**
+ * Fills {name}-style placeholders in an admin-written message (an
+ * order-confirmation note, a saved template from the Email templates
+ * library) so the admin can write one template once instead of retyping
+ * the customer's name into every send. A placeholder with no matching
+ * var (a typo, or a var this call site doesn't supply) is left as
+ * literal text rather than silently disappearing, so a mistake shows up
+ * in the preview instead of going out unnoticed. Runs before esc(), so
+ * the substituted value still gets HTML-escaped downstream like the
+ * rest of the message.
+ */
+export function fillMessageVars(template, vars) {
+  if (!template) return template;
+  return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
+}
+
+/**
  * Public AusPost tracking-lookup URL for a given consignment/tracking
  * number — used both here (shipped email) and in the admin order detail
  * panel / customer order-lookup page, so all three always point at the

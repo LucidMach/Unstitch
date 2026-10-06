@@ -129,7 +129,7 @@ import Layout from "../../layouts/Layout.astro";
           <h3>Email customer</h3>
           <label for="detail-email-template-select">Load from a saved template <span class="admin-muted">(optional — fills in the message below; manage templates in the Send Email tab)</span></label>
           <select id="detail-email-template-select"><option value="">Standard message (leave blank)</option></select>
-          <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
+          <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note; use <code>{name}</code> to insert this order's recipient name)</span></label>
           <textarea id="detail-email-message" rows="3" placeholder="Leave blank to use the standard confirmation message"></textarea>
           <div class="admin-field-row">
             <button id="detail-email-preview" class="btn-ghost btn-ghost--small" type="button">Preview email</button>
@@ -200,7 +200,7 @@ import Layout from "../../layouts/Layout.astro";
 
           <label class="admin-checkbox-label"><input id="mo-send-email" type="checkbox" /> Email the customer a confirmation</label>
           <div id="mo-email-fields" hidden>
-            <label for="mo-email-message">Message <span class="admin-muted">(optional: leave blank for the standard "made to order" note)</span></label>
+            <label for="mo-email-message">Message <span class="admin-muted">(optional: leave blank for the standard "made to order" note; use <code>{name}</code> to insert the recipient's name)</span></label>
             <textarea id="mo-email-message" rows="4" maxlength="10000"></textarea>
             <div class="admin-grid">
               <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="mo-email-sig-name" type="text" placeholder="Astra" /></label>
@@ -668,7 +668,7 @@ import Layout from "../../layouts/Layout.astro";
 
       <div class="admin-card">
         <h2>Email templates</h2>
-        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank). Keep as many named templates as you like — e.g. "Standard", "Workshop pickup", "Delayed restock" — and mark one as the default.</p>
+        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank). Keep as many named templates as you like — e.g. "Standard", "Workshop pickup", "Delayed restock" — and mark one as the default. Write <code>{name}</code> anywhere in a message and it's swapped for that order's recipient name when it's sent or previewed — no need to retype a name per customer.</p>
         <div id="email-template-list"></div>
         <div class="admin-field-row">
           <button id="email-template-add" class="btn-ghost btn-ghost--small" type="button">+ Add template</button>
