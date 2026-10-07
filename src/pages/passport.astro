@@ -1,5 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { Image } from "astro:assets";
+import QuickStartGuideImage from "../assets/quick-start-guide.png";
 
 /**
  * The digital passport / QR-scan page — one static page (query-param
@@ -147,6 +149,24 @@ import Layout from "../layouts/Layout.astro";
           <ul id="p-safety-notes" class="passport-steps"></ul>
         </section>
 
+        <!-- The three-step "how the system works" primer (size nesting,
+             tab/slot connection, layer vs. flat pattern) is the same for
+             every kit regardless of product, so — unlike the sections
+             around it — this one is static markup, always visible, not
+             driven by per-unit API data. -->
+        <section id="p-quickstart-section" class="passport-card">
+          <h2>Quick start guide</h2>
+          <p class="passport__body">The basics behind every design, before you get into the specific instructions for yours.</p>
+          <Image
+            src={QuickStartGuideImage}
+            alt="Quick start: 1. Size — tiles nest from XS up to XL. 2. Connect — a tab on one tile slots into a matching slot on another. 3. Pattern — layer tiles with a gap between them, or lay them flat edge to edge."
+            width={1266}
+            height={356}
+            format="webp"
+            class="passport-quickstart-img"
+          />
+        </section>
+
         <!-- Separate from "Assembly & care" above (which is how to build
              and look after the kit you have) — this is for the design
              patterns/build instructions themselves, e.g. a downloadable
@@ -195,8 +215,31 @@ import Layout from "../layouts/Layout.astro";
   </main>
 
 <style is:global>
-  .passport { min-height: 50vh; padding-top: 40px; padding-bottom: 60px; }
-  .passport__panel { max-width: 480px; margin: 0 auto; text-align: center; }
+  .passport {
+    min-height: 50vh; padding-top: 40px; padding-bottom: 60px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .passport__panel { max-width: 480px; margin: 0 auto; text-align: center; width: 100%; }
+  /* Scoped to the pre-lookup panels only (search / loading / error) so
+     they read identically to order/lookup.astro's "Where's my order?"
+     panel. .passport__eyebrow/__title/__body are reused across the whole
+     passport-result page once a unit loads, so their shared sizing below
+     is left as-is for every other section. */
+  #passport-search .passport__eyebrow,
+  #passport-loading .passport__eyebrow,
+  #passport-error .passport__eyebrow {
+    font-size: 0.78rem;
+  }
+  #passport-search .passport__title,
+  #passport-loading .passport__title,
+  #passport-error .passport__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+  }
+  #passport-search .passport__body,
+  #passport-loading .passport__body,
+  #passport-error .passport__body {
+    font-size: 1rem;
+  }
   .passport__eyebrow {
     text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.08em;
     color: var(--accent); font-weight: 600; margin: 0 0 6px;
@@ -209,6 +252,7 @@ import Layout from "../layouts/Layout.astro";
     flex: 1; padding: 11px 14px; border: 1px solid #ccc; border-radius: var(--radius);
     font-family: var(--font-body); font-size: 0.9rem;
   }
+  .passport-quickstart-img { display: block; width: 100%; height: auto; max-width: 640px; margin: 0 auto; }
 
   .passport-hero { max-width: 560px; margin: 0 auto; text-align: center; padding-bottom: 8px; }
   .passport-hero__title { font-family: var(--font-display); font-size: 2rem; margin: 0 0 4px; line-height: 1.1; }
@@ -1021,6 +1065,7 @@ import Layout from "../layouts/Layout.astro";
     { id: "passport-register", label: "Register" },
     { id: "p-section-care", label: "Care" },
     { id: "p-safety-section", label: "Safety" },
+    { id: "p-quickstart-section", label: "Quick start" },
     { id: "p-designs-section", label: "Instructions" },
     { id: "p-snapshare-section", label: "Share" },
     { id: "p-section-review", label: "Reviews" },

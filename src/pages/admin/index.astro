@@ -49,6 +49,7 @@ import Layout from "../../layouts/Layout.astro";
       <button class="admin__tab" data-tab="events">Events</button>
       <button class="admin__tab" data-tab="batch-drops">Batch Drops</button>
       <button class="admin__tab" data-tab="email">Send Email</button>
+      <button class="admin__tab" data-tab="broadcasts">Broadcasts</button>
     </nav>
 
     <p id="global-error" class="admin__error" hidden></p>
@@ -129,7 +130,7 @@ import Layout from "../../layouts/Layout.astro";
           <h3>Email customer</h3>
           <label for="detail-email-template-select">Load from a saved template <span class="admin-muted">(optional — fills in the message below; manage templates in the Send Email tab)</span></label>
           <select id="detail-email-template-select"><option value="">Standard message (leave blank)</option></select>
-          <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note)</span></label>
+          <label for="detail-email-message">Message <span class="admin-muted">(optional — leave blank for the standard "made to order" note; use <code>{"{name}"}</code> to insert this order's recipient name)</span></label>
           <textarea id="detail-email-message" rows="3" placeholder="Leave blank to use the standard confirmation message"></textarea>
           <div class="admin-field-row">
             <button id="detail-email-preview" class="btn-ghost btn-ghost--small" type="button">Preview email</button>
@@ -200,7 +201,7 @@ import Layout from "../../layouts/Layout.astro";
 
           <label class="admin-checkbox-label"><input id="mo-send-email" type="checkbox" /> Email the customer a confirmation</label>
           <div id="mo-email-fields" hidden>
-            <label for="mo-email-message">Message <span class="admin-muted">(optional: leave blank for the standard "made to order" note)</span></label>
+            <label for="mo-email-message">Message <span class="admin-muted">(optional: leave blank for the standard "made to order" note; use <code>{"{name}"}</code> to insert the recipient's name)</span></label>
             <textarea id="mo-email-message" rows="4" maxlength="10000"></textarea>
             <div class="admin-grid">
               <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="mo-email-sig-name" type="text" placeholder="Astra" /></label>
@@ -652,6 +653,7 @@ import Layout from "../../layouts/Layout.astro";
         <input id="email-subject" type="text" maxlength="200" />
         <label for="email-message">Message</label>
         <textarea id="email-message" rows="6" maxlength="10000"></textarea>
+        <p class="admin-muted">Use <code>{"{name}"}</code> in the subject or message (e.g. "Hi {"{name}"},") and each recipient gets their own saved name filled in automatically — no need to send one at a time to personalize it. Falls back to the part of their email before the @ for anyone who isn't a saved customer yet.</p>
         <p class="admin-muted">Your sign-off (Astra, Designer at Unstitch, with website/LinkedIn/Instagram) is added automatically. Sends as a branded HTML email, with a plain-text fallback.</p>
         <label for="email-gif-url">Sign-off gif URL <span class="admin-muted">(optional: e.g. for a workshop or new-contact welcome note)</span></label>
         <input id="email-gif-url" type="url" placeholder="https://unstitchx.com/…/welcome.gif" />
@@ -668,13 +670,42 @@ import Layout from "../../layouts/Layout.astro";
 
       <div class="admin-card">
         <h2>Email templates</h2>
-        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank). Keep as many named templates as you like — e.g. "Standard", "Workshop pickup", "Delayed restock" — and mark one as the default.</p>
+        <p class="admin-muted">The note every order-confirmation email opens with when nothing more specific is typed for that send (a real Stripe checkout, a manual order with no custom message, or a "resend confirmation" with the message left blank). Keep as many named templates as you like — e.g. "Standard", "Workshop pickup", "Delayed restock" — and mark one as the default. Write <code>{"{name}"}</code> anywhere in a message and it's swapped for that order's recipient name when it's sent or previewed — no need to retype a name per customer.</p>
         <div id="email-template-list"></div>
         <div class="admin-field-row">
           <button id="email-template-add" class="btn-ghost btn-ghost--small" type="button">+ Add template</button>
           <button id="email-template-save" class="btn-primary">Save all</button>
         </div>
         <p id="email-template-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
+    <section data-panel="broadcasts" class="admin__panel" hidden>
+      <div class="admin-card">
+        <h2>General newsletter</h2>
+        <p class="admin-muted">Sent to every subscriber who hasn't unsubscribed (<strong id="broadcast-general-count">—</strong> right now). Use for progress updates, behind-the-scenes notes — anything not tied to one specific drop.</p>
+        <label for="broadcast-general-subject">Subject</label>
+        <input id="broadcast-general-subject" type="text" maxlength="200" />
+        <label for="broadcast-general-message">Message</label>
+        <textarea id="broadcast-general-message" rows="6" maxlength="10000"></textarea>
+        <p class="admin-muted">Use <code>{"{name}"}</code> in the subject or message and each subscriber gets their own saved name filled in automatically — falls back to the part of their email before the @ for anyone without one. An unsubscribe link is added automatically; this is a marketing send, unlike the Send Email tab.</p>
+        <label for="broadcast-general-gif-url">Sign-off gif URL <span class="admin-muted">(optional)</span></label>
+        <input id="broadcast-general-gif-url" type="url" placeholder="https://unstitchx.com/…/update.gif" />
+        <div class="admin-grid">
+          <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="broadcast-general-sig-name" type="text" placeholder="Astra" /></label>
+          <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="broadcast-general-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
+        </div>
+        <div class="admin-field-row">
+          <button id="broadcast-general-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
+          <button id="broadcast-general-send" class="btn-primary">Send to all subscribers</button>
+        </div>
+        <p id="broadcast-general-status" class="admin__hint" hidden></p>
+      </div>
+
+      <div class="admin-card">
+        <h2>Drop waitlists</h2>
+        <p class="admin-muted">Each product can collect its own "notify me" signups from that drop's countdown page. Sending here reaches only subscribers waiting on that specific product who haven't already been notified or unsubscribed — and marks them notified, so a second send only reaches anyone new.</p>
+        <div id="broadcast-waitlist-list"><p class="admin-muted">Loading…</p></div>
       </div>
     </section>
 
@@ -2493,6 +2524,7 @@ import Layout from "../../layouts/Layout.astro";
     if (target === "events") loadEvents();
     if (target === "batch-drops") loadBatchDrops();
     if (target === "email") loadEmailTemplateSettings();
+    if (target === "broadcasts") loadBroadcastStats();
   }
   document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab as string));
@@ -5411,6 +5443,7 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("email-preview")?.addEventListener("click", async () => {
     const status = document.getElementById("email-status") as HTMLElement;
+    const to = (document.getElementById("email-to") as HTMLTextAreaElement).value.trim();
     const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
     const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
     const gifUrl = (document.getElementById("email-gif-url") as HTMLInputElement).value.trim();
@@ -5422,6 +5455,185 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           mode: "custom",
+          // Included (even though a preview never emails anyone) so a
+          // {name} placeholder resolves against the first recipient
+          // that's actually typed in, rather than always previewing
+          // with a generic placeholder.
+          to: to || undefined,
+          subject,
+          message,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+          preview: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.html) openEmailPreview(data.html);
+      else showHint(status, data.error || "Failed to build preview.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Broadcasts (general newsletter + per-drop waitlist notifications) ---
+  async function loadBroadcastStats() {
+    try {
+      const res = await api("/api/admin/broadcast");
+      const data = await res.json();
+      if (res.ok) {
+        const countEl = document.getElementById("broadcast-general-count") as HTMLElement;
+        countEl.textContent = String(data.generalCount ?? 0);
+        renderBroadcastWaitlists(data.waitlists || []);
+      }
+    } catch {
+      // Silent -- the per-product cards just stay on their "Loading…" state.
+    }
+  }
+
+  function renderBroadcastWaitlists(waitlists: { productId: string; productName: string; pendingCount: number }[]) {
+    const container = document.getElementById("broadcast-waitlist-list") as HTMLElement;
+    if (!waitlists.length) {
+      container.innerHTML = '<p class="admin-muted">No one\'s waiting on a drop yet -- subscribers join a product\'s waitlist from that drop\'s countdown page.</p>';
+      return;
+    }
+    container.innerHTML = waitlists
+      .map(
+        (w) => `
+        <div class="admin-card admin-card--nested" data-waitlist-product-id="${w.productId}">
+          <h3>${w.productName.replace(/</g, "&lt;")} <span class="admin-muted">(${w.pendingCount} waiting)</span></h3>
+          <label>Subject<input type="text" class="wl-subject" maxlength="200" /></label>
+          <label>Message<textarea class="wl-message" rows="4" maxlength="10000"></textarea></label>
+          <label>Sign-off gif URL <span class="admin-muted">(optional)</span><input type="url" class="wl-gif-url" placeholder="https://unstitchx.com/…/drop.gif" /></label>
+          <div class="admin-grid">
+            <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input type="text" class="wl-sig-name" placeholder="Astra" /></label>
+            <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input type="text" class="wl-sig-role" placeholder="Designer at Unstitch" /></label>
+          </div>
+          <div class="admin-field-row">
+            <button type="button" class="btn-ghost btn-ghost--small wl-preview">Preview</button>
+            <button type="button" class="btn-primary wl-send">Notify waitlist</button>
+          </div>
+          <p class="wl-status admin__hint" hidden></p>
+        </div>`,
+      )
+      .join("");
+
+    container.querySelectorAll<HTMLElement>("[data-waitlist-product-id]").forEach((card) => {
+      const productId = card.getAttribute("data-waitlist-product-id") as string;
+      const status = card.querySelector(".wl-status") as HTMLElement;
+      const getFields = () => ({
+        subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
+        message: (card.querySelector(".wl-message") as HTMLTextAreaElement).value.trim(),
+        gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
+        signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
+        signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
+      });
+
+      card.querySelector(".wl-preview")?.addEventListener("click", async () => {
+        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              message,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+              preview: true,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.html) openEmailPreview(data.html);
+          else showHint(status, data.error || "Failed to build preview.", false);
+        } catch {
+          showHint(status, "Network error.", false);
+        }
+      });
+
+      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject || !message) return showHint(status, "Fill in all fields.", false);
+        if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              message,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
+            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+            showHint(status, parts.join(" "), !data.failed?.length);
+            loadBroadcastStats();
+          } else {
+            showHint(status, data.error || "Failed to send.", false);
+          }
+        } catch {
+          showHint(status, "Network error.", false);
+        }
+      });
+    });
+  }
+
+  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    if (!subject || !message) return showHint(status, "Fill in subject and message.", false);
+    if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
+          subject,
+          message,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        showHint(status, parts.join(" "), !data.failed?.length);
+      } else {
+        showHint(status, data.error || "Failed to send.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("broadcast-general-preview")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
           subject,
           message,
           gifUrl: gifUrl || undefined,

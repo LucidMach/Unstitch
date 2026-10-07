@@ -31,6 +31,7 @@ import sendEmail from '../../src/server/admin/send-email.js';
 import events from '../../src/server/admin/events.js';
 import batchDrops from '../../src/server/admin/batch-drops.js';
 import settings from '../../src/server/admin/settings.js';
+import broadcast from '../../src/server/admin/broadcast.js';
 
 const ROUTES = {
   customers,
@@ -44,6 +45,7 @@ const ROUTES = {
   events,
   'batch-drops': batchDrops,
   settings,
+  broadcast,
 };
 
 export default async function handler(req, res) {

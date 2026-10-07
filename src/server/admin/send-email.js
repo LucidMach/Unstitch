@@ -16,7 +16,15 @@ import { checkRateLimit } from '../../lib/rateLimit.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
-import { brandedEmailHtml, orderConfirmationEmail, esc } from '../../lib/emailTemplate.js';
+import {
+  brandedEmailHtml,
+  orderConfirmationEmail,
+  esc,
+  fillMessageVars,
+  DEFAULT_SIGNATURE_NAME,
+  DEFAULT_SIGNATURE_ROLE,
+  plainTextSignature,
+} from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
 
@@ -31,26 +39,8 @@ const MAX_RECIPIENTS = 50;
 
 const EmailAddressSchema = z.string().trim().toLowerCase().email();
 
-// Default sign-off for every custom send — overridable per-send via
-// signatureName/signatureRole (e.g. someone other than Astra signing a
-// particular workshop follow-up). Not applied to resend-confirmation,
-// which already closes with its own business sign-off.
-const DEFAULT_SIGNATURE_NAME = 'Astra';
-const DEFAULT_SIGNATURE_ROLE = 'Designer at Unstitch';
-
-function plainTextSignature(name, role) {
-  return [
-    '',
-    '',
-    'Warm regards,',
-    name,
-    role,
-    '',
-    'unstitchx.com',
-    'linkedin.com/company/unstitchx',
-    '@unstitchxfactory (instagram.com/unstitchxfactory)',
-  ].join('\n');
-}
+// DEFAULT_SIGNATURE_NAME/ROLE and plainTextSignature now live in
+// src/lib/emailTemplate.js, shared with src/server/admin/broadcast.js.
 
 /** Splits a comma/newline-separated blob into deduped, validated addresses. */
 function parseRecipients(raw) {
@@ -145,26 +135,61 @@ export default async function handler(req, res) {
       const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
       const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
 
-      const fullMessage = `${message}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
-      // message may be multiple \n\n-separated paragraphs — keep that
-      // structure in the HTML version rather than collapsing it to one block.
-      const bodyHtml = message
-        .split(/\n{2,}/)
-        .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
-        .join('');
-      const html = brandedEmailHtml({
-        heading: subject,
-        bodyHtml,
-        gifUrl,
-        signatureName: finalSignatureName,
-        signatureRole: finalSignatureRole,
-      });
+      // Parsed up front -- even for a preview -- so a {name} in the
+      // message can be previewed against a real address instead of only
+      // resolving once the send actually happens.
+      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
 
-      if (preview) {
-        return sendJson(res, 200, { ok: true, preview: true, html, text: fullMessage });
+      // One batched lookup covers every recipient who's an existing
+      // customer; anyone not found (a one-off contact, not a customer
+      // yet) falls back to the part of their address before the @, same
+      // fallback the single-order sends use.
+      const customersByEmail = recipients.length && prisma
+        ? new Map(
+            (
+              await prisma.customer.findMany({
+                where: { email: { in: recipients } },
+                select: { email: true, name: true },
+              })
+            ).map((c) => [c.email, c.name]),
+          )
+        : new Map();
+      const nameForRecipient = (email) => customersByEmail.get(email) || email.split('@')[0];
+
+      // Renders this send for one specific recipient name -- {name} (in
+      // either the subject or the message) is filled in before the
+      // signature is appended and the HTML is built, so each recipient's
+      // copy is personalized rather than one shared render reused for
+      // everyone.
+      function renderFor(name) {
+        const filledSubject = fillMessageVars(subject, { name });
+        const filledMessage = fillMessageVars(message, { name });
+        const fullMessage = `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
+        // message may be multiple \n\n-separated paragraphs — keep that
+        // structure in the HTML version rather than collapsing it to one block.
+        const bodyHtml = filledMessage
+          .split(/\n{2,}/)
+          .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
+          .join('');
+        const html = brandedEmailHtml({
+          heading: filledSubject,
+          bodyHtml,
+          gifUrl,
+          signatureName: finalSignatureName,
+          signatureRole: finalSignatureRole,
+        });
+        return { subject: filledSubject, html, text: fullMessage };
       }
 
-      const { valid: recipients, invalid: skippedInvalid } = parseRecipients(to);
+      if (preview) {
+        // Preview as it'll actually render for the first recognized
+        // recipient, so a {name} placeholder shows a real resolved value;
+        // with no recipients typed yet, fall back to a generic "there"
+        // rather than failing the preview.
+        const sampleName = recipients.length ? nameForRecipient(recipients[0]) : 'there';
+        const { html, text } = renderFor(sampleName);
+        return sendJson(res, 200, { ok: true, preview: true, html, text });
+      }
 
       if (recipients.length === 0) {
         return sendJson(res, 400, {
@@ -179,8 +204,9 @@ export default async function handler(req, res) {
 
       const results = await Promise.all(
         recipients.map(async (recipient) => {
+          const { subject: recipientSubject, html, text } = renderFor(nameForRecipient(recipient));
           try {
-            const result = await resend.emails.send({ from: fromEmail, to: recipient, subject, html, text: fullMessage });
+            const result = await resend.emails.send({ from: fromEmail, to: recipient, subject: recipientSubject, html, text });
             if (result.error) {
               return { email: recipient, ok: false, error: result.error.message || result.error.name || 'unknown reason' };
             }
@@ -248,7 +274,13 @@ export default async function handler(req, res) {
       // admin-editable default (Send Email tab -> Email templates), which
       // itself falls back to the hardcoded DEFAULT_ORDER_MESSAGE constant
       // if nothing's been saved yet. See src/lib/settings.js.
-      const resolvedMessage = message || (await getDefaultOrderMessage());
+      // Shipping recipient can differ from the account holder (a gift
+      // bought under one name, sent to another) -> prefer that, then the
+      // customer's own saved name, then fall back to their email's local
+      // part so {name} never renders as literally empty.
+      const recipientName =
+        order.deliveryAddress?.recipientName || order.customer?.name || order.customer.email.split('@')[0];
+      const resolvedMessage = fillMessageVars(message || (await getDefaultOrderMessage()), { name: recipientName });
       const { html, text } = orderConfirmationEmail({
         orderNumber: order.orderNumber,
         totalCents: order.totalCents,

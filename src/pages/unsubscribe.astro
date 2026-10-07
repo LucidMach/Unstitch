@@ -1,0 +1,113 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+/**
+ * Landing page for the unsubscribe link in every broadcast/waitlist-notify
+ * email (src/lib/emailTemplate.js's brandedEmailHtml, signed per-recipient
+ * in src/server/admin/broadcast.js). Static page, like /order/lookup and
+ * /passport -- the actual unsubscribe happens via api/unsubscribe.js,
+ * called client-side with the ?token= in the URL.
+ */
+---
+
+<Layout
+  title="Unsubscribe | Unstitch"
+  description="Unsubscribe from Unstitch emails."
+  noindex
+>
+  <main>
+    <section class="wrap section unsubscribe">
+      <div class="unsubscribe__panel">
+        <div id="unsub-loading">
+          <p class="unsubscribe__eyebrow">One moment</p>
+          <h1 class="unsubscribe__title">Unsubscribing…</h1>
+        </div>
+        <div id="unsub-success" hidden>
+          <p class="unsubscribe__eyebrow">Done</p>
+          <h1 class="unsubscribe__title">You're unsubscribed</h1>
+          <p class="unsubscribe__body">You won't get any more emails like this one from us. If that was a mistake, just sign up again any time.</p>
+          <a href="/" class="btn btn-outline">Back to Unstitch</a>
+        </div>
+        <div id="unsub-error" hidden>
+          <p class="unsubscribe__eyebrow">Hmm</p>
+          <h1 class="unsubscribe__title">That link didn't work</h1>
+          <p class="unsubscribe__body" id="unsub-error-message">It may have expired. Get in touch and we'll remove you by hand.</p>
+          <a href="/contact" class="btn btn-outline">Contact us</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .unsubscribe {
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .unsubscribe__panel {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .unsubscribe__eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .unsubscribe__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .unsubscribe__body {
+    color: #444;
+    margin-bottom: 18px;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .unsubscribe__panel .btn {
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+  }
+</style>
+
+<script>
+  const loadingEl = document.getElementById("unsub-loading") as HTMLElement;
+  const successEl = document.getElementById("unsub-success") as HTMLElement;
+  const errorEl = document.getElementById("unsub-error") as HTMLElement;
+  const errorMessageEl = document.getElementById("unsub-error-message") as HTMLElement;
+
+  function show(el: HTMLElement) {
+    loadingEl.hidden = true;
+    successEl.hidden = true;
+    errorEl.hidden = true;
+    el.hidden = false;
+  }
+
+  const token = new URLSearchParams(window.location.search).get("token");
+  if (!token) {
+    errorMessageEl.textContent = "This link is missing its token. Get in touch and we'll remove you by hand.";
+    show(errorEl);
+  } else {
+    fetch(`/api/unsubscribe?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok) {
+          show(successEl);
+        } else {
+          errorMessageEl.textContent = data.error || "It may have expired. Get in touch and we'll remove you by hand.";
+          show(errorEl);
+        }
+      })
+      .catch(() => {
+        errorMessageEl.textContent = "Network error — please try again.";
+        show(errorEl);
+      });
+  }
+</script>

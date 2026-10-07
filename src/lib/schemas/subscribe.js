@@ -28,6 +28,20 @@ export const SubscribeSchema = z.object({
     .nullable()
     .transform((val) => val || 'newsletter'),
 
+  // Optional -- when a "notify me" form is for a specific upcoming drop
+  // rather than the general list, it passes that product's slug (not its
+  // id, since slugs are what's readable/hardcodable in page markup --
+  // see src/pages/shop-countdown.astro). Resolved to a real productId
+  // server-side in api/subscribe.js; an unrecognized slug is ignored
+  // rather than failing the whole signup.
+  productSlug: z
+    .string()
+    .trim()
+    .max(160, 'Product reference is too long')
+    .optional()
+    .nullable()
+    .transform((val) => val || undefined),
+
   // Honeypot spam trap
   _gotcha: z
     .string()

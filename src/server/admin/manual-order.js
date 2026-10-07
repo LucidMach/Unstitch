@@ -58,7 +58,7 @@ import { generateOrderNumber } from '../../lib/orderNumber.js';
 import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../lib/deliveryZones.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
-import { orderConfirmationEmail } from '../../lib/emailTemplate.js';
+import { orderConfirmationEmail, fillMessageVars } from '../../lib/emailTemplate.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
 
 const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -70,7 +70,7 @@ const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
  * manual orders (a cash sale at a market, a straightforward giveaway) don't
  * send one at all.
  */
-async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, currency, items, deliveryMethodLabel: methodLabel, deliveryFeeCents, deliveryAddress, message, signatureName, signatureRole }) {
+async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, currency, items, deliveryMethodLabel: methodLabel, deliveryFeeCents, deliveryAddress, recipientName, message, signatureName, signatureRole }) {
   if (!process.env.RESEND_API_KEY) {
     console.log('[admin/manual-order] Dev/mock order email:', { email, orderNumber });
     return false;
@@ -84,7 +84,7 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
     // No custom message typed on the manual-order form -> falls back to
     // the admin-editable default (Send Email tab -> Email templates),
     // same as a real Stripe checkout's confirmation email.
-    const resolvedMessage = message || (await getDefaultOrderMessage());
+    const resolvedMessage = fillMessageVars(message || (await getDefaultOrderMessage()), { name: recipientName });
     const { html, text } = orderConfirmationEmail({
       orderNumber,
       totalCents,
@@ -442,6 +442,10 @@ export default async function handler(req, res) {
         deliveryAddress: hasFullAddress
           ? { line1: addressLine1, line2: addressLine2 || null, suburb, state, postcode }
           : null,
+        // Same fallback order as the Address row created above: the
+        // name this specific kit is addressed to, then whoever's account
+        // it's under, then the raw email as a last resort.
+        recipientName: recipientName || name || email,
         message: emailMessage,
         signatureName: emailSignatureName,
         signatureRole: emailSignatureRole,
