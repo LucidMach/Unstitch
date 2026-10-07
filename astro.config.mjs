@@ -100,6 +100,10 @@ function apiDevMiddleware() {
               handler = await load('./src/server/admin/batch-drops.js');
             } else if (endpoint === '/api/admin/settings') {
               handler = await load('./src/server/admin/settings.js');
+            } else if (endpoint === '/api/admin/broadcast') {
+              handler = await load('./src/server/admin/broadcast.js');
+            } else if (endpoint === '/api/unsubscribe') {
+              handler = await load('./src/server/unsubscribe.js');
             } else if (endpoint === '/api/events') {
               handler = await load('./src/server/events.js');
             } else if (endpoint === '/api/order-lookup-request') {
