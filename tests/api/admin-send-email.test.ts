@@ -55,6 +55,10 @@ describe('admin/send-email API handler — custom + resend-confirmation happy pa
     mockSend.mockClear();
     process.env.SESSION_SECRET = 'test-secret-for-admin-send-email';
     process.env.RESEND_API_KEY = 'test-resend-key';
+    // The custom-send path looks up existing customers by email (for the
+    // {name} placeholder). Without this, it'd hit the CI mock Neon host
+    // for real, throw, and surface as a 500.
+    vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([]);
   });
 
   it('sends a custom email to each valid, deduped recipient', async () => {
