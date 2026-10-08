@@ -342,3 +342,157 @@ describe('admin/product API handler — passport-design (viewer package upload)'
     expect(res.statusCode).toBe(404);
   });
 });
+
+describe('admin/product API handler — multi-product support & product creation', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env.SESSION_SECRET = 'test-secret-for-admin-product';
+  });
+
+  it('GET /api/admin/product?slug=desert-bloom loads specific product by slug', async () => {
+    const findSpy = vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({
+      id: 'prod-db',
+      slug: 'desert-bloom',
+      name: 'Desert Bloom',
+      basePriceCents: 3500,
+    } as any);
+    vi.spyOn(prisma.drop, 'findFirst').mockResolvedValue(null);
+
+    const req = {
+      method: 'GET',
+      url: '/api/admin/product?slug=desert-bloom',
+      headers: { cookie: adminCookieHeader() },
+    };
+    const res = createMockRes();
+
+    await productHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.product.slug).toBe('desert-bloom');
+    expect(findSpy).toHaveBeenCalledWith({
+      where: { slug: 'desert-bloom' },
+      include: { costRecipe: { include: { materialSource: true } } },
+    });
+  });
+
+  it('GET /api/admin/product?list=true returns product list', async () => {
+    const listSpy = vi.spyOn(prisma.product, 'findMany').mockResolvedValue([
+      { id: '1', name: 'Slow Bloom', slug: 'slow-bloom', sku: 'UX-SLOWBLOOM', basePriceCents: 2900, isActive: true },
+      { id: '2', name: 'Desert Bloom', slug: 'desert-bloom', sku: 'UX-DESERTBLOOM', basePriceCents: 3500, isActive: true },
+    ] as any);
+
+    const req = {
+      method: 'GET',
+      url: '/api/admin/product?list=true',
+      headers: { cookie: adminCookieHeader() },
+    };
+    const res = createMockRes();
+
+    await productHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.products).toHaveLength(2);
+    expect(listSpy).toHaveBeenCalled();
+  });
+
+  it('POST section: "create" creates a new product with default material & cost recipe', async () => {
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue(null);
+    const txSpy = vi.spyOn(prisma, '$transaction').mockImplementation(async (cb: any) => {
+      const mockTx = {
+        product: {
+          create: vi.fn().mockResolvedValue({
+            id: 'new-id-1',
+            name: 'Desert Bloom',
+            slug: 'desert-bloom',
+            sku: 'UX-DESERTBLOOM',
+            basePriceCents: 3500,
+          }),
+        },
+        materialSource: {
+          create: vi.fn().mockResolvedValue({ id: 'mat-1' }),
+        },
+        productCostRecipe: {
+          create: vi.fn().mockResolvedValue({ id: 'recipe-1' }),
+        },
+      };
+      return cb(mockTx);
+    });
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        section: 'create',
+        name: 'Desert Bloom',
+        slug: 'desert-bloom',
+        sku: 'UX-DESERTBLOOM',
+        basePriceCents: 3500,
+        tagline: 'Autumn 2026 Modular Kit',
+        description: 'New desert bloom kit',
+      },
+    };
+    const res = createMockRes();
+
+    await productHandler(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.product.slug).toBe('desert-bloom');
+    expect(txSpy).toHaveBeenCalled();
+  });
+
+  it('POST section: "create" rejects duplicate slug with 409', async () => {
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({
+      id: 'existing-id',
+      slug: 'desert-bloom',
+    } as any);
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        section: 'create',
+        name: 'Desert Bloom',
+        slug: 'desert-bloom',
+        sku: 'UX-DESERTBLOOM',
+      },
+    };
+    const res = createMockRes();
+
+    await productHandler(req, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body.error).toContain('already in use');
+  });
+
+  it('POST section: "copy" updates name along with tagline and description', async () => {
+    const updateSpy = vi.spyOn(prisma.product, 'update').mockResolvedValue({
+      slug: 'desert-bloom',
+      name: 'Desert Bloom (Updated)',
+      tagline: 'New tagline',
+    } as any);
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        section: 'copy',
+        slug: 'desert-bloom',
+        name: 'Desert Bloom (Updated)',
+        tagline: 'New tagline',
+      },
+    };
+    const res = createMockRes();
+
+    await productHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith({
+      where: { slug: 'desert-bloom' },
+      data: {
+        name: 'Desert Bloom (Updated)',
+        tagline: 'New tagline',
+      },
+    });
+  });
+});
+

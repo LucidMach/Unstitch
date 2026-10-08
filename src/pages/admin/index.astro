@@ -226,7 +226,32 @@ import Layout from "../../layouts/Layout.astro";
       <div class="admin__panel-header">
         <div>
           <h2>Product Overview</h2>
-          <p class="admin-muted" style="margin-top: 4px;">Everything shown on the live shop page (/shop) in one place. Saving here updates the same database fields as the Pricing and Passport tabs.</p>
+          <p class="admin-muted" style="margin-top: 4px;">Everything shown on the live shop page in one place. Switch products or create a new kit below.</p>
+        </div>
+        <div class="admin__panel-header-actions" style="display: flex; gap: 8px; align-items: center;">
+          <select id="pd-product-select" class="admin-product-switcher" style="min-width: 220px; font-weight: 500;"></select>
+          <button id="pd-new-product-btn" class="btn-ghost btn-ghost--small" type="button">+ New Product</button>
+        </div>
+      </div>
+
+      <!-- Create New Product Card (expandable) -->
+      <div id="admin-new-product-card" class="admin-card" style="border: 1.5px solid var(--accent, #A36E93); background: #faf9f6; margin-bottom: 24px;" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin: 0; font-family: var(--font-display, 'Space Grotesk', sans-serif); font-size: 1.05rem;">Create New Product</h3>
+          <button id="np-cancel-btn" class="btn-ghost btn-ghost--small" type="button">Cancel</button>
+        </div>
+        <p class="admin-muted" style="margin-bottom: 14px; font-size: 0.88rem;">Add a new modular kit product to the catalog with its own SKU, slug, and initial cost recipe.</p>
+        <div class="admin-grid">
+          <label>Product Name* <input id="np-name" type="text" placeholder="e.g. Desert Bloom" required /></label>
+          <label>SKU* <input id="np-sku" type="text" placeholder="e.g. UX-DESERTBLOOM" required /></label>
+          <label>URL Slug* <input id="np-slug" type="text" placeholder="e.g. desert-bloom" required /></label>
+          <label>Initial Price (AUD)* <input id="np-price" type="number" step="0.01" min="1" value="29.00" required /></label>
+        </div>
+        <label style="margin-top: 10px;">Eyebrow / Tagline <input id="np-tagline" type="text" placeholder="e.g. Autumn 2026 Modular Textile Kit" /></label>
+        <label style="margin-top: 10px;">Description <textarea id="np-description" rows="2" placeholder="Description of the modular kit..."></textarea></label>
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 10px;">
+          <button id="np-submit-btn" class="btn-primary" type="button">Create Product</button>
+          <p id="np-status" class="admin__hint" hidden></p>
         </div>
       </div>
 
@@ -236,8 +261,8 @@ import Layout from "../../layouts/Layout.astro";
         <div class="admin-card">
           <h2>Shop page content</h2>
           <label for="pd-name">Product name</label>
-          <input id="pd-name" type="text" disabled />
-          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">Renaming the product is a bigger change (affects the URL slug and checkout code) — ask for that separately if needed.</p>
+          <input id="pd-name" type="text" />
+          <p class="admin__hint" style="margin-top: -8px; margin-bottom: 12px;">Customer-facing product name displayed across the PDP, cart, and passport.</p>
 
           <label for="pd-tagline">Eyebrow / tagline</label>
           <input id="pd-tagline" type="text" maxlength="280" placeholder="2026 RESET x Zero Waste Festival" />
@@ -299,6 +324,17 @@ import Layout from "../../layouts/Layout.astro";
 
     <!-- PRICING -->
     <section data-panel="pricing" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <div>
+          <h2>Pricing &amp; Cost Recipe</h2>
+          <p class="admin-muted" style="margin-top: 4px;">Recalculate cost transparency and retail prices per product kit from raw material and labour inputs.</p>
+        </div>
+        <div class="admin__panel-header-actions" style="display: flex; gap: 8px; align-items: center;">
+          <select id="pricing-product-select" class="admin-product-switcher" style="min-width: 220px; font-weight: 500;"></select>
+          <button id="pricing-new-product-btn" class="btn-ghost btn-ghost--small" type="button">+ New Product</button>
+        </div>
+      </div>
+
       <p id="pricing-loading">Loading product…</p>
 
       <div id="pricing-content" hidden>
@@ -363,6 +399,9 @@ import Layout from "../../layouts/Layout.astro";
         <div>
           <h2>Digital Passport Content</h2>
           <p class="admin-muted" style="margin-top: 4px;">Everything shown on a customer's passport page when they scan their kit's QR code — edit any card below and save it on its own.</p>
+        </div>
+        <div class="admin__panel-header-actions" style="display: flex; gap: 8px; align-items: center;">
+          <select id="passport-product-select" class="admin-product-switcher" style="min-width: 220px; font-weight: 500;"></select>
         </div>
       </div>
 
@@ -4662,14 +4701,149 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("inventory-refresh")?.addEventListener("click", () => loadInventory(true));
 
+  // --- Multi-product state & switcher ---
+  let currentProductSlug = "slow-bloom";
+  let currentProductId = "";
+  let adminProductsList: Array<{ id: string; name: string; slug: string; sku: string; basePriceCents: number; isActive: boolean }> = [];
+
+  function updateProductDropdowns() {
+    const selects = document.querySelectorAll<HTMLSelectElement>(".admin-product-switcher");
+    selects.forEach((select) => {
+      if (adminProductsList.length) {
+        select.innerHTML = adminProductsList
+          .map((p) => `<option value="${esc(p.slug)}" ${p.slug === currentProductSlug ? "selected" : ""}>${esc(p.name)} (${esc(p.sku)}) — ${money(p.basePriceCents)}</option>`)
+          .join("");
+      }
+      select.value = currentProductSlug;
+    });
+  }
+
+  async function switchAdminProduct(slug: string, force = true) {
+    if (!slug) return;
+    currentProductSlug = slug;
+    updateProductDropdowns();
+    productLoaded = false;
+    productOverviewLoaded = false;
+    passportLoaded = false;
+
+    const activeTab = document.querySelector<HTMLButtonElement>(".admin__tab.is-active")?.dataset.tab;
+    if (activeTab === "product") await loadProductOverview(true);
+    else if (activeTab === "pricing") await loadProduct(true);
+    else if (activeTab === "passport") await loadPassport(true);
+  }
+
+  // Setup change listeners on all product switcher selects
+  document.querySelectorAll<HTMLSelectElement>(".admin-product-switcher").forEach((select) => {
+    select.addEventListener("change", () => switchAdminProduct(select.value, true));
+  });
+
+  // Toggle "+ New Product" card
+  function toggleNewProductCard(show?: boolean) {
+    const card = document.getElementById("admin-new-product-card") as HTMLElement;
+    if (!card) return;
+    const shouldShow = show !== undefined ? show : card.hidden;
+    card.hidden = !shouldShow;
+    if (shouldShow) {
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      (document.getElementById("np-name") as HTMLInputElement)?.focus();
+    }
+  }
+
+  document.getElementById("pd-new-product-btn")?.addEventListener("click", () => toggleNewProductCard(true));
+  document.getElementById("pricing-new-product-btn")?.addEventListener("click", () => {
+    activateTab("product");
+    toggleNewProductCard(true);
+  });
+  document.getElementById("np-cancel-btn")?.addEventListener("click", () => toggleNewProductCard(false));
+
+  // Auto-slugify and SKU-suggest on product name input
+  document.getElementById("np-name")?.addEventListener("input", () => {
+    const nameInput = document.getElementById("np-name") as HTMLInputElement;
+    const slugInput = document.getElementById("np-slug") as HTMLInputElement;
+    const skuInput = document.getElementById("np-sku") as HTMLInputElement;
+    if (!nameInput || !slugInput || !skuInput) return;
+    const name = nameInput.value.trim();
+    if (name) {
+      const slugVal = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const skuVal = "UX-" + name.toUpperCase().replace(/[^A-Z0-9]+/g, "");
+      if (!slugInput.dataset.touched) slugInput.value = slugVal;
+      if (!skuInput.dataset.touched) skuInput.value = skuVal;
+    }
+  });
+  document.getElementById("np-slug")?.addEventListener("input", (e) => {
+    (e.target as HTMLElement).dataset.touched = "true";
+  });
+  document.getElementById("np-sku")?.addEventListener("input", (e) => {
+    (e.target as HTMLElement).dataset.touched = "true";
+  });
+
+  // Submit new product
+  document.getElementById("np-submit-btn")?.addEventListener("click", async () => {
+    const status = document.getElementById("np-status") as HTMLElement;
+    const btn = document.getElementById("np-submit-btn") as HTMLButtonElement;
+    const name = (document.getElementById("np-name") as HTMLInputElement).value.trim();
+    const sku = (document.getElementById("np-sku") as HTMLInputElement).value.trim();
+    const slug = (document.getElementById("np-slug") as HTMLInputElement).value.trim();
+    const priceDollars = (document.getElementById("np-price") as HTMLInputElement).value;
+    const tagline = (document.getElementById("np-tagline") as HTMLInputElement).value.trim();
+    const description = (document.getElementById("np-description") as HTMLTextAreaElement).value.trim();
+    const basePriceCents = dollarsToCents(priceDollars);
+
+    if (!name) return showHint(status, "Product name is required.", false);
+    if (!sku) return showHint(status, "SKU is required.", false);
+    if (!slug) return showHint(status, "Slug is required.", false);
+    if (basePriceCents === null || basePriceCents <= 0) return showHint(status, "Enter a valid positive price.", false);
+
+    btn.disabled = true;
+    try {
+      const res = await api("/api/admin/product", {
+        method: "POST",
+        body: JSON.stringify({
+          section: "create",
+          name,
+          sku,
+          slug,
+          basePriceCents,
+          tagline: tagline || null,
+          description: description || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showHint(status, data.error || "Failed to create product.", false);
+      } else {
+        showHint(status, `Created "${data.product.name}"! Switching...`, true);
+        toggleNewProductCard(false);
+        (document.getElementById("np-name") as HTMLInputElement).value = "";
+        (document.getElementById("np-sku") as HTMLInputElement).value = "";
+        (document.getElementById("np-slug") as HTMLInputElement).value = "";
+        (document.getElementById("np-tagline") as HTMLInputElement).value = "";
+        (document.getElementById("np-description") as HTMLTextAreaElement).value = "";
+        delete (document.getElementById("np-slug") as HTMLElement).dataset.touched;
+        delete (document.getElementById("np-sku") as HTMLElement).dataset.touched;
+        await switchAdminProduct(data.product.slug, true);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   // --- Pricing ---
   let productLoaded = false;
-  async function loadProduct() {
-    if (productLoaded) return;
+  async function loadProduct(force = false) {
+    if (productLoaded && !force) return;
     try {
-      const res = await api("/api/admin/product");
+      const res = await api(`/api/admin/product?includeProducts=true&slug=${encodeURIComponent(currentProductSlug)}`);
       if (!res.ok) throw new Error("Failed to load product");
-      const { product } = await res.json();
+      const { product, products } = await res.json();
+      currentProductId = product.id;
+      currentProductSlug = product.slug;
+      if (Array.isArray(products) && products.length) {
+        adminProductsList = products;
+        updateProductDropdowns();
+      }
       productLoaded = true;
       (document.getElementById("pricing-loading") as HTMLElement).hidden = true;
       (document.getElementById("pricing-content") as HTMLElement).hidden = false;
@@ -4694,11 +4868,21 @@ import Layout from "../../layouts/Layout.astro";
           r.operationsOverheadCents ?? 0,
         );
         (document.getElementById("r-givingTiles") as HTMLInputElement).value = String(r.givingTilesPerKit);
-        // Margin isn't persisted as its own field — back it out from the last
-        // known total cost vs. the current retail price so the form starts
-        // somewhere sane; editing and saving will persist it going forward.
         const impliedMargin = product.basePriceCents - (product.lastCostCalculationCents ?? product.basePriceCents);
         (document.getElementById("r-margin") as HTMLInputElement).value = centsToDollarsStr(impliedMargin);
+      } else {
+        (document.getElementById("r-materialCost") as HTMLInputElement).value = "10.00";
+        (document.getElementById("r-materialWidth") as HTMLInputElement).value = "150";
+        (document.getElementById("r-materialHeight") as HTMLInputElement).value = "200";
+        (document.getElementById("r-wastePercent") as HTMLInputElement).value = "15";
+        (document.getElementById("r-tileSize") as HTMLSelectElement).value = "8";
+        (document.getElementById("r-tilesPerKit") as HTMLInputElement).value = "22";
+        (document.getElementById("r-labourMinutes") as HTMLInputElement).value = "15";
+        (document.getElementById("r-labourRate") as HTMLInputElement).value = "30.00";
+        (document.getElementById("r-equipmentCost") as HTMLInputElement).value = "1.50";
+        (document.getElementById("r-opsOverhead") as HTMLInputElement).value = "2.00";
+        (document.getElementById("r-givingTiles") as HTMLInputElement).value = "0";
+        (document.getElementById("r-margin") as HTMLInputElement).value = centsToDollarsStr(product.basePriceCents);
       }
     } catch {
       (document.getElementById("pricing-loading") as HTMLElement).textContent = "Couldn't load product.";
@@ -4712,11 +4896,21 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api("/api/admin/product", {
         method: "POST",
-        body: JSON.stringify({ section: "price", basePriceCents: cents }),
+        body: JSON.stringify({ section: "price", slug: currentProductSlug, productId: currentProductId, basePriceCents: cents }),
       });
       const data = await res.json();
-      if (res.ok) showHint(status, "Price updated.", true);
-      else showHint(status, data.error || "Failed to update.", false);
+      if (res.ok) {
+        showHint(status, "Price updated.", true);
+        if (data.product) {
+          const item = adminProductsList.find((p) => p.slug === data.product.slug);
+          if (item) {
+            item.basePriceCents = data.product.basePriceCents;
+            updateProductDropdowns();
+          }
+        }
+      } else {
+        showHint(status, data.error || "Failed to update.", false);
+      }
     } catch {
       showHint(status, "Network error.", false);
     }
@@ -4729,6 +4923,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "copy",
+          slug: currentProductSlug,
+          productId: currentProductId,
           tagline: (document.getElementById("copy-tagline") as HTMLInputElement).value,
           description: (document.getElementById("copy-description") as HTMLTextAreaElement).value,
         }),
@@ -4776,7 +4972,7 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api("/api/admin/product", {
         method: "POST",
-        body: JSON.stringify({ section: "recipe", recipe }),
+        body: JSON.stringify({ section: "recipe", slug: currentProductSlug, productId: currentProductId, recipe }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -4785,6 +4981,12 @@ import Layout from "../../layouts/Layout.astro";
           `Recalculated: cost ${money(data.costCalc.totalCostCents)}, new price ${money(data.product.basePriceCents)}.`,
           true,
         );
+        (document.getElementById("price-override") as HTMLInputElement).value = centsToDollarsStr(data.product.basePriceCents);
+        const item = adminProductsList.find((p) => p.slug === data.product.slug);
+        if (item) {
+          item.basePriceCents = data.product.basePriceCents;
+          updateProductDropdowns();
+        }
       } else {
         showHint(status, data.error || "Failed to recalculate.", false);
       }
@@ -4794,10 +4996,6 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Product overview (consolidated shop-page editor) ---
-  // "Feel" is stored as a single Product.materialRigidity string (see
-  // schema.prisma), shown here one line per stacked line on the shop
-  // page. Accepts the legacy "Soft / low-rigidity" seed format too, same
-  // as shop.astro's own splitFeelLines().
   function materialRigidityToLines(value: string | null | undefined): string {
     if (!value) return "";
     const byNewline = value.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -4809,9 +5007,15 @@ import Layout from "../../layouts/Layout.astro";
   async function loadProductOverview(force = false) {
     if (productOverviewLoaded && !force) return;
     try {
-      const res = await api("/api/admin/product");
+      const res = await api(`/api/admin/product?includeProducts=true&slug=${encodeURIComponent(currentProductSlug)}`);
       if (!res.ok) throw new Error("Failed to load product");
-      const { product, activeDrop } = await res.json();
+      const { product, activeDrop, products } = await res.json();
+      currentProductId = product.id;
+      currentProductSlug = product.slug;
+      if (Array.isArray(products) && products.length) {
+        adminProductsList = products;
+        updateProductDropdowns();
+      }
       productOverviewLoaded = true;
       (document.getElementById("pd-loading") as HTMLElement).hidden = true;
       (document.getElementById("pd-content") as HTMLElement).hidden = false;
@@ -4821,7 +5025,7 @@ import Layout from "../../layouts/Layout.astro";
       (document.getElementById("pd-price") as HTMLInputElement).value = centsToDollarsStr(product.basePriceCents);
       (document.getElementById("pd-drop-ref") as HTMLInputElement).value = activeDrop
         ? `Drop ${activeDrop.dropCode} · ${activeDrop.totalUnits} kits in this batch`
-        : "No drop yet";
+        : "No drop yet for this product";
       (document.getElementById("pd-pieces") as HTMLInputElement).value =
         product.costRecipe?.tilesPerKit != null ? String(product.costRecipe.tilesPerKit) : "Not set";
       (document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value = arrayToLines(product.colourPalette);
@@ -4834,13 +5038,14 @@ import Layout from "../../layouts/Layout.astro";
     }
   }
 
-  // Saves everything on the card in one click — fires the same three
-  // section calls the Pricing/Passport tabs already use (price/copy/
-  // passport), so this never creates a fourth, divergent write path.
+  // Saves everything on the card in one click
   document.getElementById("pd-save")?.addEventListener("click", async () => {
     const status = document.getElementById("pd-status") as HTMLElement;
     const cents = dollarsToCents((document.getElementById("pd-price") as HTMLInputElement).value);
     if (cents === null || cents <= 0) return showHint(status, "Enter a valid price.", false);
+
+    const name = (document.getElementById("pd-name") as HTMLInputElement).value.trim();
+    if (!name) return showHint(status, "Product name cannot be empty.", false);
 
     const feelLines = linesToArray((document.getElementById("pd-feel") as HTMLTextAreaElement).value);
 
@@ -4848,12 +5053,15 @@ import Layout from "../../layouts/Layout.astro";
       const [priceRes, copyRes, passportRes] = await Promise.all([
         api("/api/admin/product", {
           method: "POST",
-          body: JSON.stringify({ section: "price", basePriceCents: cents }),
+          body: JSON.stringify({ section: "price", slug: currentProductSlug, productId: currentProductId, basePriceCents: cents }),
         }),
         api("/api/admin/product", {
           method: "POST",
           body: JSON.stringify({
             section: "copy",
+            slug: currentProductSlug,
+            productId: currentProductId,
+            name,
             tagline: (document.getElementById("pd-tagline") as HTMLInputElement).value,
           }),
         }),
@@ -4861,6 +5069,8 @@ import Layout from "../../layouts/Layout.astro";
           method: "POST",
           body: JSON.stringify({
             section: "passport",
+            slug: currentProductSlug,
+            productId: currentProductId,
             colourPalette: colourPaletteToArray((document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value),
             materialRigidity: feelLines.length ? feelLines.join("\n") : null,
             ageRangeMin: numberInputOrNull((document.getElementById("pd-age-min") as HTMLInputElement).valueAsNumber),
@@ -4874,8 +5084,12 @@ import Layout from "../../layouts/Layout.astro";
       const allOk = [priceRes, copyRes, passportRes].every((r) => r.ok);
       if (allOk) {
         showHint(status, "Product details saved — live on the shop page now.", true);
-        // Other tabs reading the same fields (Pricing/Passport) shouldn't
-        // keep showing stale cached values after this save.
+        const item = adminProductsList.find((p) => p.slug === currentProductSlug);
+        if (item) {
+          item.name = name;
+          item.basePriceCents = cents;
+          updateProductDropdowns();
+        }
         productLoaded = false;
         passportLoaded = false;
       } else {
@@ -4939,9 +5153,15 @@ import Layout from "../../layouts/Layout.astro";
   async function loadPassport(force = false) {
     if (passportLoaded && !force) return;
     try {
-      const res = await api("/api/admin/product");
+      const res = await api(`/api/admin/product?includeProducts=true&slug=${encodeURIComponent(currentProductSlug)}`);
       if (!res.ok) throw new Error("Failed to load product");
-      const { product, activeDrop } = await res.json();
+      const { product, activeDrop, products } = await res.json();
+      currentProductId = product.id;
+      currentProductSlug = product.slug;
+      if (Array.isArray(products) && products.length) {
+        adminProductsList = products;
+        updateProductDropdowns();
+      }
       passportLoaded = true;
       (document.getElementById("passport-loading") as HTMLElement).hidden = true;
       (document.getElementById("passport-content") as HTMLElement).hidden = false;
@@ -4957,7 +5177,10 @@ import Layout from "../../layouts/Layout.astro";
       if (activeDrop) {
         (document.getElementById("pp-made-location") as HTMLInputElement).value = activeDrop.madeLocation || "";
         (document.getElementById("pp-made-year") as HTMLInputElement).value = String(activeDrop.madeYear || "");
+        (document.getElementById("pp-made-status") as HTMLElement).hidden = true;
       } else {
+        (document.getElementById("pp-made-location") as HTMLInputElement).value = "";
+        (document.getElementById("pp-made-year") as HTMLInputElement).value = "";
         (document.getElementById("pp-made-status") as HTMLElement).hidden = false;
         showHint(document.getElementById("pp-made-status") as HTMLElement, "No drop exists yet for this product.", false);
       }
@@ -5046,11 +5269,6 @@ import Layout from "../../layouts/Layout.astro";
         return;
       }
 
-      // Reading/parsing the file and sending it to the server are kept in
-      // separate try/catches on purpose — lumping them together previously
-      // meant a real server error (e.g. a Prisma schema mismatch) showed
-      // up to the admin as "That file isn't valid JSON", which was just
-      // wrong and sent debugging in the wrong direction.
       let parsed: any;
       try {
         const text = await file.text();
@@ -5067,7 +5285,7 @@ import Layout from "../../layouts/Layout.astro";
       try {
         const res = await api("/api/admin/product", {
           method: "POST",
-          body: JSON.stringify({ section: "passport-design", design, passportDesign: parsed }),
+          body: JSON.stringify({ section: "passport-design", slug: currentProductSlug, productId: currentProductId, design, passportDesign: parsed }),
         });
         const data = await res.json().catch(() => null);
         if (res.ok && data) {
@@ -5085,7 +5303,7 @@ import Layout from "../../layouts/Layout.astro";
       try {
         const res = await api("/api/admin/product", {
           method: "POST",
-          body: JSON.stringify({ section: "passport-design", design, clear: true }),
+          body: JSON.stringify({ section: "passport-design", slug: currentProductSlug, productId: currentProductId, design, clear: true }),
         });
         const data = await res.json();
         if (res.ok) {
@@ -5107,6 +5325,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "passport",
+          slug: currentProductSlug,
+          productId: currentProductId,
           colourPalette: colourPaletteToArray((document.getElementById("pp-colour-palette") as HTMLTextAreaElement).value),
           tileMaterial: (document.getElementById("pp-material") as HTMLInputElement).value,
           materialRigidity: (document.getElementById("pp-material-rigidity") as HTMLInputElement).value,
@@ -5136,7 +5356,7 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api("/api/admin/product", {
         method: "POST",
-        body: JSON.stringify({ section: "drop", madeLocation, madeYear }),
+        body: JSON.stringify({ section: "drop", slug: currentProductSlug, productId: currentProductId, madeLocation, madeYear }),
       });
       const data = await res.json();
       if (res.ok) showHint(status, "Made details updated.", true);
@@ -5153,6 +5373,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "passport",
+          slug: currentProductSlug,
+          productId: currentProductId,
           careSteps: careStepsToArray((document.getElementById("pp-care-steps") as HTMLTextAreaElement).value),
           careVideoUrl: (document.getElementById("pp-care-video") as HTMLInputElement).value,
           carePdfUrl: (document.getElementById("pp-care-pdf") as HTMLInputElement).value,
@@ -5173,6 +5395,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "passport",
+          slug: currentProductSlug,
+          productId: currentProductId,
           safetyNotes: linesToArray((document.getElementById("pp-safety-notes") as HTMLTextAreaElement).value),
         }),
       });
@@ -5191,6 +5415,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "passport",
+          slug: currentProductSlug,
+          productId: currentProductId,
           snapShareCopy: (document.getElementById("pp-snapshare-copy") as HTMLTextAreaElement).value,
           snapShareHashtags: linesToArray((document.getElementById("pp-snapshare-hashtags") as HTMLTextAreaElement).value),
         }),
@@ -5210,6 +5436,8 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           section: "passport",
+          slug: currentProductSlug,
+          productId: currentProductId,
           registerIntroCopy: (document.getElementById("pp-register-intro") as HTMLTextAreaElement).value,
           reviewCopyTemplate: (document.getElementById("pp-review-template") as HTMLTextAreaElement).value,
           scanAgainCopy: (document.getElementById("pp-scan-again") as HTMLTextAreaElement).value,

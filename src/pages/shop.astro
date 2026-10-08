@@ -761,6 +761,21 @@ const galleryImages = [
       return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] || c));
     }
 
+    function getRequestedSlug(): string | null {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = params.get("slug");
+      if (fromQuery) return fromQuery.trim();
+
+      const path = window.location.pathname.replace(/\/+$/, "");
+      if (path.startsWith("/shop/")) {
+        const fromPath = path.slice("/shop/".length).trim();
+        if (fromPath && fromPath !== "all" && fromPath !== "countdown") {
+          return decodeURIComponent(fromPath);
+        }
+      }
+      return null;
+    }
+
     // Overwrites the build-time static `product`/`included` content (see
     // frontmatter above) with the live database row, so a change saved in
     // the admin Pricing/Passport tabs reaches this statically-built page
@@ -771,6 +786,7 @@ const galleryImages = [
       if (typeof data.name === "string" && data.name) {
         const titleEl = document.querySelector<HTMLElement>("[data-product-title]");
         if (titleEl) titleEl.textContent = data.name;
+        document.title = `${data.name} — Modular Textile Kit | Unstitch`;
       }
       if (typeof data.tagline === "string" && data.tagline) {
         const eyebrowEl = document.querySelector<HTMLElement>("[data-product-eyebrow]");
@@ -833,10 +849,33 @@ const galleryImages = [
       // admin changed it since this page was last built.
       const addBtnForData = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
       if (addBtnForData) {
+        if (typeof data.slug === "string" && data.slug) addBtnForData.dataset.productId = data.slug;
         if (typeof data.name === "string" && data.name) addBtnForData.dataset.productName = data.name;
         if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
           addBtnForData.dataset.productPrice = String(data.basePriceCents);
         }
+        if (typeof data.imageUrl === "string" && data.imageUrl) {
+          addBtnForData.dataset.productImage = data.imageUrl;
+        }
+        if (typeof data.totalUnits === "number" && data.totalUnits > 0) {
+          addBtnForData.dataset.productMax = String(data.totalUnits);
+        }
+      }
+
+      // If a non-default product is loaded with its own image, update the gallery stage
+      if (data.slug && data.slug !== "slow-bloom" && typeof data.imageUrl === "string" && data.imageUrl) {
+        const slideImgs = document.querySelectorAll<HTMLImageElement>("[data-gallery-stage] [data-gallery-slide]");
+        if (slideImgs.length > 0) {
+          slideImgs[0].src = data.imageUrl;
+          slideImgs[0].srcset = "";
+          slideImgs[0].alt = data.name || "";
+          slideImgs[0].hidden = false;
+          for (let i = 1; i < slideImgs.length; i++) {
+            slideImgs[i].hidden = true;
+          }
+        }
+        const thumbs = document.querySelector<HTMLElement>("[data-gallery-thumbs]");
+        if (thumbs) thumbs.style.display = "none";
       }
     }
 
@@ -846,9 +885,14 @@ const galleryImages = [
       const soldOutNote = document.querySelector<HTMLElement>("[data-sold-out-note]");
       if (!addBtn) return;
       try {
-        const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
+        const requestedSlug = getRequestedSlug();
+        const targetSlug = requestedSlug || addBtn.dataset.productId || "slow-bloom";
+        const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(targetSlug)}`);
         if (!res.ok) return;
         const data = await res.json();
+        if (data.status === "NONE" && !data.available) {
+          return;
+        }
 
         applyLiveProductData(data);
 
@@ -871,6 +915,11 @@ const galleryImages = [
           addBtn.textContent = "Sold out";
           if (stepper) stepper.style.display = "none";
           if (soldOutNote) soldOutNote.hidden = false;
+        } else {
+          addBtn.disabled = false;
+          addBtn.textContent = "Add to Bag";
+          if (stepper) stepper.style.display = "";
+          if (soldOutNote) soldOutNote.hidden = true;
         }
       } catch {
         // Network error — leave the static (assumed-available) state as is

@@ -514,7 +514,9 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
         const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
         if (!res.ok) return;
         const data = await res.json();
+        if (typeof data.slug === "string" && data.slug) addBtn.dataset.productId = data.slug;
         if (typeof data.name === "string" && data.name) addBtn.dataset.productName = data.name;
+        if (typeof data.imageUrl === "string" && data.imageUrl) addBtn.dataset.productImage = data.imageUrl;
         if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
           addBtn.dataset.productPrice = String(data.basePriceCents);
         }

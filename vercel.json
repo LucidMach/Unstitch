@@ -3,6 +3,10 @@
     {
       "source": "/passport/:serial",
       "destination": "/passport?serial=:serial"
+    },
+    {
+      "source": "/shop/:slug",
+      "destination": "/shop?slug=:slug"
     }
   ]
 }

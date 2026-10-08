@@ -1,0 +1,12 @@
+// api/admin/logout.js
+import { sendJson } from '../../lib/apiHelper.js';
+import { buildAdminLogoutCookie } from '../../lib/adminAuth.js';
+
+export default async function handler(req: any, res: any): Promise<any> {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return sendJson(res, 405, { error: 'Method not allowed' });
+  }
+  res.setHeader('Set-Cookie', buildAdminLogoutCookie());
+  return sendJson(res, 200, { ok: true });
+}
