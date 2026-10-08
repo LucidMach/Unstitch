@@ -123,6 +123,7 @@ describe('admin/broadcast API handler', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.sent).toBe(2);
       expect(mockSend).toHaveBeenCalledTimes(2);
+      expect(mockSend.mock.calls[0][0].from).toContain('hello@unstitchx.com');
     });
 
     it('returns 400 when there are no subscribers to send to', async () => {
@@ -215,6 +216,7 @@ describe('admin/broadcast API handler', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.sent).toBe(2);
+      expect(mockSend.mock.calls[0][0].from).toContain('hello@unstitchx.com');
       // The fix in this pass: one updateMany for the whole batch, never a
       // per-recipient update() call.
       expect(updateSpy).not.toHaveBeenCalled();

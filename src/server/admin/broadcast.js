@@ -31,7 +31,7 @@ import { checkRateLimit } from '../../lib/rateLimit.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
-import { renderPersonalizedEmail } from '../../lib/emailTemplate.js';
+import { renderPersonalizedEmail, GENERAL_FROM_EMAIL } from '../../lib/emailTemplate.js';
 
 // A signed unsubscribe link needs to keep working for as long as someone
 // might still have the email sitting in their inbox -- long enough that
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
 
   try {
     const resend = isPreview ? null : new (await import('resend')).Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || GENERAL_FROM_EMAIL;
 
     if (body.mode === 'general') {
       const parseResult = BroadcastGeneralSchema.safeParse(body);

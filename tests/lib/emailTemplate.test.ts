@@ -5,6 +5,8 @@ import {
   orderConfirmationEmail,
   orderShippedEmail,
   DEFAULT_ORDER_MESSAGE,
+  ORDERS_FROM_EMAIL,
+  GENERAL_FROM_EMAIL,
 } from '../../src/lib/emailTemplate.js';
 
 describe('esc', () => {
@@ -163,5 +165,15 @@ describe('orderShippedEmail', () => {
     const { html } = orderShippedEmail({ orderNumber: '<b>UX</b>', lookupLink: 'https://example.com' });
     expect(html).not.toContain('<b>UX</b>');
     expect(html).toContain('&lt;b&gt;UX&lt;/b&gt;');
+  });
+});
+
+describe('sending identities (ORDERS_FROM_EMAIL & GENERAL_FROM_EMAIL)', () => {
+  it('exports canonical eshop sender for orders and commerce', () => {
+    expect(ORDERS_FROM_EMAIL).toBe('Unstitch Studio <eshop@unstitchx.com>');
+  });
+
+  it('exports canonical hello sender for general and studio communications', () => {
+    expect(GENERAL_FROM_EMAIL).toBe('Unstitch Studio <hello@unstitchx.com>');
   });
 });

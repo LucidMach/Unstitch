@@ -5,6 +5,7 @@ import { ContactSchema, subjectLabels } from '../lib/schemas/contact.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
 import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
 import prisma from '../lib/prisma.js';
+import { GENERAL_FROM_EMAIL } from '../lib/emailTemplate.js';
 
 const NOTIFY_EMAIL = 'hello@unstitchx.com';
 
@@ -151,7 +152,7 @@ export default async function handler(req, res) {
       const { Resend } = await import('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
       const subjectTitle = subjectLabels[subject] || subject;
-      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch <hello@unstitchx.com>';
+      const fromEmail = process.env.RESEND_FROM_EMAIL || GENERAL_FROM_EMAIL;
       const toEmail = process.env.CONTACT_NOTIFY_EMAIL || NOTIFY_EMAIL;
 
       const detailLines = Object.entries(details || {})

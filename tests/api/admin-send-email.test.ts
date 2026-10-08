@@ -80,6 +80,29 @@ describe('admin/send-email API handler — custom + resend-confirmation happy pa
     expect(res.body.sent).toBe(2);
     expect(res.body.skippedInvalid).toEqual(['not-an-email']);
     expect(mockSend).toHaveBeenCalledTimes(2);
+    expect(mockSend.mock.calls[0][0].from).toContain('eshop@unstitchx.com');
+  });
+
+  it('sends custom email from hello@unstitchx.com when sender is set to hello', async () => {
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        mode: 'custom',
+        sender: 'hello',
+        to: 'studio@example.com',
+        subject: 'Studio note',
+        message: 'Welcome to the workshop!',
+      },
+    };
+    const res = createMockRes();
+
+    await sendEmailHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sent).toBe(1);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][0].from).toContain('hello@unstitchx.com');
   });
 
   it('returns 400 when no valid recipients are found', async () => {
@@ -121,6 +144,7 @@ describe('admin/send-email API handler — custom + resend-confirmation happy pa
     expect(res.body).toEqual({ ok: true });
     expect(mockSend).toHaveBeenCalledTimes(1);
     expect(mockSend.mock.calls[0][0].to).toBe('buyer@example.com');
+    expect(mockSend.mock.calls[0][0].from).toContain('eshop@unstitchx.com');
   });
 
   it('returns 404 when resending confirmation for a nonexistent order', async () => {

@@ -5,8 +5,9 @@ import { SubscribeSchema } from '../lib/schemas/subscribe.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
 import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
 import prisma from '../lib/prisma.js';
+import { GENERAL_FROM_EMAIL } from '../lib/emailTemplate.js';
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || GENERAL_FROM_EMAIL;
 
 /**
  * Generate a clean, branded HTML email template for raffle entry confirmation

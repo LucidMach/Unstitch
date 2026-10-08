@@ -67,7 +67,7 @@ import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.
 import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
 import { releaseUnits } from '../../lib/inventory.js';
-import { giftAcknowledgementEmail } from '../../lib/emailTemplate.js';
+import { giftAcknowledgementEmail, ORDERS_FROM_EMAIL } from '../../lib/emailTemplate.js';
 
 // Mirrors SESSION_HOLD_SECONDS in api/create-checkout-session.js — a real
 // in-progress checkout never holds a reservation longer than this, so
@@ -120,7 +120,7 @@ async function sendGiftAcknowledgement({ toEmail, giverName, productName, unitSe
   }
   const { Resend } = await import('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
   const send = (from) =>
     resend.emails.send({ from, to: toEmail, subject: `Thank you for your Unstitch gift (${unitSerial})`, html, text });
   let result = await send(fromEmail);

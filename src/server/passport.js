@@ -49,7 +49,7 @@ import { sendJson, parseRequestBody, formatZodError } from '../lib/apiHelper.js'
 import { checkRateLimit } from '../lib/rateLimit.js';
 import { sign } from '../lib/signedToken.js';
 import { getSiteOrigin } from '../lib/siteOrigin.js';
-import { passportTransferConfirmationEmail } from '../lib/emailTemplate.js';
+import { passportTransferConfirmationEmail, ORDERS_FROM_EMAIL } from '../lib/emailTemplate.js';
 import prisma from '../lib/prisma.js';
 
 const REGISTERABLE_STATUSES = new Set(['SOLD', 'SHIPPED', 'DELIVERED', 'REGISTERED']);
@@ -150,7 +150,7 @@ async function sendPassportTransferEmail({ toEmail, productName, unitSerial, new
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
 
     const { html, text } = passportTransferConfirmationEmail({ productName, unitSerial, newOwnerEmail, confirmLink });
 

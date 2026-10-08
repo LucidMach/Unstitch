@@ -23,7 +23,7 @@ import { getSiteOrigin } from '../src/lib/siteOrigin.js';
 import { computeExpectedShipDate, deliveryMethodLabel } from '../src/lib/shipping.js';
 import { generateOrderNumber } from '../src/lib/orderNumber.js';
 import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../src/lib/deliveryZones.js';
-import { orderConfirmationEmail } from '../src/lib/emailTemplate.js';
+import { orderConfirmationEmail, ORDERS_FROM_EMAIL } from '../src/lib/emailTemplate.js';
 import { getDefaultOrderMessage } from '../src/lib/settings.js';
 
 // How long an order's magic link (mailed in the confirmation email) stays
@@ -69,7 +69,7 @@ async function sendOrderConfirmationEmail({
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
 
     const { html, text } = orderConfirmationEmail({
       orderNumber,

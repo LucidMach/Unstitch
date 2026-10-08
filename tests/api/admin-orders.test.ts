@@ -173,6 +173,7 @@ describe('admin/orders API handler', () => {
       expect(res.body.order.status).toBe('OUT_FOR_DELIVERY');
       expect(res.body.emailSent).toBe(true);
       expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend.mock.calls[0][0].from).toContain('eshop@unstitchx.com');
     });
 
     it('does not re-send the shipped email on a second mark-shipped call', async () => {

@@ -58,7 +58,7 @@ import { generateOrderNumber } from '../../lib/orderNumber.js';
 import { resolveDeliveryZone, OutOfDeliveryAreaError } from '../../lib/deliveryZones.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
-import { orderConfirmationEmail, fillMessageVars } from '../../lib/emailTemplate.js';
+import { orderConfirmationEmail, fillMessageVars, ORDERS_FROM_EMAIL } from '../../lib/emailTemplate.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
 
 const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -78,7 +78,7 @@ async function sendManualOrderEmail({ email, orderId, orderNumber, totalCents, c
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
     const lookupToken = sign({ kind: 'order-lookup', orderId }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
     const lookupLink = `${getSiteOrigin()}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
     // No custom message typed on the manual-order form -> falls back to

@@ -167,6 +167,18 @@ export function fillMessageVars(template, vars) {
 export const DEFAULT_SIGNATURE_NAME = 'Astra';
 export const DEFAULT_SIGNATURE_ROLE = 'Designer at Unstitch';
 
+// Two sending identities, both on the same verified @unstitchx.com domain:
+// eshop@ for anything order/commerce-specific (checkout confirmation,
+// shipped, tracking, order-lookup links, passport-transfer, gift-ack, the
+// admin "Send Email" tab's custom/resend sends) -- matching what
+// legal.astro already tells customers to email for order/delivery/return
+// questions -- and hello@ for anything general (contact-form notify, the
+// newsletter/waitlist broadcasts, the raffle confirmation, the 3D-share
+// feature). RESEND_FROM_EMAIL, if set, still overrides every send
+// regardless of category, same as before this split existed.
+export const ORDERS_FROM_EMAIL = process.env.RESEND_FROM_EMAIL_ORDERS || 'Unstitch Studio <eshop@unstitchx.com>';
+export const GENERAL_FROM_EMAIL = process.env.RESEND_FROM_EMAIL_GENERAL || 'Unstitch Studio <hello@unstitchx.com>';
+
 export function plainTextSignature(name, role) {
   return [
     '',

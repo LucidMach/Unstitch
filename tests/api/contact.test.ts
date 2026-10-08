@@ -144,9 +144,13 @@ describe('Contact API Handler (/api/contact)', () => {
     };
     const res = createMockRes();
 
+    process.env.RESEND_API_KEY = 'test-resend-key';
     await contactHandler(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ ok: true });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][0].from).toContain('hello@unstitchx.com');
+    delete process.env.RESEND_API_KEY;
   });
 
   it('returns 500 when database persistence fails', async () => {

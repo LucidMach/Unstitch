@@ -20,6 +20,8 @@ import {
   orderConfirmationEmail,
   fillMessageVars,
   renderPersonalizedEmail,
+  ORDERS_FROM_EMAIL,
+  GENERAL_FROM_EMAIL,
 } from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
@@ -59,6 +61,9 @@ function parseRecipients(raw) {
 
 const CustomEmailSchema = z.object({
   mode: z.literal('custom'),
+  // Optional sending identity: 'eshop' (eshop@unstitchx.com for orders/sales)
+  // or 'hello' (hello@unstitchx.com for studio/general outreach). Defaults to 'eshop'.
+  sender: z.enum(['eshop', 'hello']).optional().default('eshop'),
   // Normally required, but a preview renders the email without sending it,
   // so there's nothing to validate recipients against — see the preview
   // branch below, which checks this before recipients are parsed.
@@ -116,7 +121,6 @@ export default async function handler(req, res) {
 
   try {
     const resend = isPreview ? null : new (await import('resend')).Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
 
     if (body.mode === 'custom') {
       const parseResult = CustomEmailSchema.safeParse(body);
@@ -124,7 +128,9 @@ export default async function handler(req, res) {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { to, subject, message, gifUrl, signatureName, signatureRole, preview } = parseResult.data;
+      const { to, subject, message, gifUrl, signatureName, signatureRole, preview, sender } = parseResult.data;
+      const chosenSender = sender === 'hello' ? GENERAL_FROM_EMAIL : ORDERS_FROM_EMAIL;
+      const fromEmail = process.env.RESEND_FROM_EMAIL || chosenSender;
 
       // Parsed up front -- even for a preview -- so a {name} in the
       // message can be previewed against a real address instead of only
@@ -286,6 +292,7 @@ export default async function handler(req, res) {
         return sendJson(res, 200, { ok: true, preview: true, html, text });
       }
 
+      const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
       const result = await resend.emails.send({
         from: fromEmail,
         to: order.customer.email,

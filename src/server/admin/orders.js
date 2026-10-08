@@ -66,7 +66,7 @@ import { requireAdmin } from '../../lib/adminAuth.js';
 import prisma from '../../lib/prisma.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
-import { orderShippedEmail } from '../../lib/emailTemplate.js';
+import { orderShippedEmail, ORDERS_FROM_EMAIL } from '../../lib/emailTemplate.js';
 import { revertUnitsToStock } from '../../lib/inventory.js';
 
 // Matches api/stripe-webhook.js / api/admin/send-email.js, so the "shipped"
@@ -83,7 +83,7 @@ async function sendShippedEmail({ orderId, orderNumber, email, trackingNumber })
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Unstitch Studio <hello@unstitchx.com>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || ORDERS_FROM_EMAIL;
     const lookupToken = sign({ kind: 'order-lookup', orderId }, ORDER_LOOKUP_TOKEN_TTL_SECONDS);
     const lookupLink = `${getSiteOrigin()}/order/lookup?token=${encodeURIComponent(lookupToken)}`;
     const { html, text } = orderShippedEmail({ orderNumber, lookupLink, trackingNumber });

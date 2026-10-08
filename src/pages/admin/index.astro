@@ -646,6 +646,11 @@ import Layout from "../../layouts/Layout.astro";
     <section data-panel="email" class="admin__panel" hidden>
       <div class="admin-card">
         <h2>Send a custom email</h2>
+        <label for="email-from">From</label>
+        <select id="email-from">
+          <option value="eshop">eshop@unstitchx.com (Orders & Shop)</option>
+          <option value="hello">hello@unstitchx.com (General & Studio)</option>
+        </select>
         <label for="email-to">To <span class="admin-muted">(comma or newline-separated: sent individually, never CC'd together)</span></label>
         <textarea id="email-to" rows="2" placeholder="one@example.com, two@example.com"></textarea>
         <p class="admin-muted">Or check recipients from the <button type="button" id="email-goto-customers" class="admin-link-btn">Customers</button> or <button type="button" id="email-goto-orders" class="admin-link-btn">Orders</button> tab.</p>
@@ -5407,6 +5412,7 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("email-send")?.addEventListener("click", async () => {
     const status = document.getElementById("email-status") as HTMLElement;
+    const sender = ((document.getElementById("email-from") as HTMLSelectElement)?.value || "eshop") as "eshop" | "hello";
     const to = (document.getElementById("email-to") as HTMLTextAreaElement).value.trim();
     const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
     const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
@@ -5419,6 +5425,7 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           mode: "custom",
+          sender,
           to,
           subject,
           message,
@@ -5443,6 +5450,7 @@ import Layout from "../../layouts/Layout.astro";
 
   document.getElementById("email-preview")?.addEventListener("click", async () => {
     const status = document.getElementById("email-status") as HTMLElement;
+    const sender = ((document.getElementById("email-from") as HTMLSelectElement)?.value || "eshop") as "eshop" | "hello";
     const to = (document.getElementById("email-to") as HTMLTextAreaElement).value.trim();
     const subject = (document.getElementById("email-subject") as HTMLInputElement).value.trim();
     const message = (document.getElementById("email-message") as HTMLTextAreaElement).value.trim();
@@ -5455,6 +5463,7 @@ import Layout from "../../layouts/Layout.astro";
         method: "POST",
         body: JSON.stringify({
           mode: "custom",
+          sender,
           // Included (even though a preview never emails anyone) so a
           // {name} placeholder resolves against the first recipient
           // that's actually typed in, rather than always previewing
