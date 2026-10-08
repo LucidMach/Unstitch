@@ -144,6 +144,65 @@ describe('Passport API (/api/passport)', () => {
       expect(updateSpy).toHaveBeenCalledTimes(1);
       expect(mockSend).not.toHaveBeenCalled();
     });
+
+    // Gift acknowledgement had zero test coverage anywhere before this.
+    it('captures the gift claim at registration and never emails the giver automatically', async () => {
+      if (!prisma) return;
+      vi.spyOn(prisma.unit, 'findFirst').mockResolvedValue({ ...BASE_UNIT } as any);
+      vi.spyOn(prisma.customer, 'upsert').mockResolvedValue({ id: 'cust-new', email: 'new@example.com', name: 'New Owner' } as any);
+      const updateSpy = vi.spyOn(prisma.unit, 'update').mockResolvedValue({
+        ...BASE_UNIT,
+        status: 'REGISTERED',
+        registeredAt: new Date(),
+        currentOwner: { name: 'New Owner' },
+        isGift: true,
+        giftGiverName: 'Priya',
+      } as any);
+
+      const req = {
+        method: 'POST',
+        body: {
+          serial: 'UX-D001-007',
+          email: 'new@example.com',
+          name: 'New Owner',
+          isGift: true,
+          giftGiverName: 'Priya',
+          giftGiverEmail: 'priya@example.com',
+        },
+      };
+      const res = createMockRes();
+      await passportHandler(req as any, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isGift: true, giftGiverName: 'Priya', giftGiverEmail: 'priya@example.com' }),
+        }),
+      );
+      // Deliberately manual -- see the Unit gift fields' comment in
+      // schema.prisma -- so registering never itself triggers a send.
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it("never writes gift fields when isGift isn't checked", async () => {
+      if (!prisma) return;
+      vi.spyOn(prisma.unit, 'findFirst').mockResolvedValue({ ...BASE_UNIT } as any);
+      vi.spyOn(prisma.customer, 'upsert').mockResolvedValue({ id: 'cust-new', email: 'new@example.com', name: 'New Owner' } as any);
+      const updateSpy = vi.spyOn(prisma.unit, 'update').mockResolvedValue({ ...BASE_UNIT, status: 'REGISTERED' } as any);
+
+      const req = {
+        method: 'POST',
+        body: { serial: 'UX-D001-007', email: 'new@example.com', name: 'New Owner' },
+      };
+      const res = createMockRes();
+      await passportHandler(req as any, res);
+
+      expect(res.statusCode).toBe(200);
+      const data = (updateSpy.mock.calls[0][0] as any).data;
+      expect(data).not.toHaveProperty('isGift');
+      expect(data).not.toHaveProperty('giftGiverName');
+      expect(data).not.toHaveProperty('giftGiverEmail');
+    });
   });
 
   describe('POST /api/passport — already registered', () => {

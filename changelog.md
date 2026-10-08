@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - 2026-10-08
+
+Today's work: reviewed a large incoming pull (digital-passport content system + newsletter/waitlist broadcast feature, PRs #6–#8), applied the pending Prisma migration, ran a two-part QA audit (everything new since the pull, and a full `src/`/`api/`/`scripts/`/`prisma/` pass), fixed every confirmed finding, and closed the test-coverage gaps the audit surfaced.
+
+### Changed
+- **`Product.ageRangeMin`/`ageRangeMax` schema decision reversed**: the incoming pull had changed these from `Int` to `String` solely to accommodate the shop page's open-ended "100+" age display. Reverted back to `Int?` — both fields are always real numbers; "no real upper bound" is now represented by a `200` sentinel value, displayed to customers as "100+" via a small formatting check in `src/pages/shop.astro` (both the server-rendered template and the client-side live-refresh script, kept in sync via a matching comment). Updated every writer of these fields to match: `src/server/admin/product.js` (Zod validator, now also rejecting negative values via `.min(0)`), `src/pages/admin/index.astro` (number inputs, new `numberInputOrNull()` helper replacing a `0`-is-falsy-prone `valueAsNumber || null`), `prisma/seed.ts`, `scripts/sync-product-page-fields.ts`.
+- **Database migration applied**: `npx prisma db push --accept-data-loss` + `npx prisma generate` run against the project's one configured database, bringing in this pull's additive schema (`Subscriber.unsubscribedAt`, `Product` passport-content fields, `Unit` gift-acknowledgement fields, `Order` tracking/delivered/email-metadata fields, the new `Setting` table) alongside the `ageRangeMin`/`Max` type revert above. The live `age_range_min`/`max` values (`"4"`/`"100+"`) were backed up before the type-changing column recreation and restored afterward as `4`/`200`.
+
+### Fixed
+Findings from the two-part QA audit, each verified against the real code (not taken on faith) before being treated as real:
+- **`src/server/subscribe.js`**: resubscribing to a different product's waitlist now resets `notifiedAt` (only when actually switching products) — previously a subscriber already notified for one drop could never be notified again after joining a later drop's waitlist.
+- **`src/server/admin/orders.js`**: `mark-delivered` now rejects orders not in `PAID`/`PACKED`/`OUT_FOR_DELIVERY` instead of unconditionally stamping `deliveredAt` regardless of status; the admin UI button now disables/relabels itself to match.
+- **`src/pages/admin/index.astro`**: `careStepsToArray()` now returns `[]` for a fully-cleared textarea instead of `[""]`, so the Passport tab's "revert to defaults" actually works.
+- **`src/server/admin/send-email.js`**: the `{name}`-personalization customer lookup is now case-insensitive, matching Stripe-supplied mixed-case emails that were previously missed.
+- **`src/server/admin/broadcast.js`**: waitlist-notify now marks all successful recipients with one batched `updateMany` instead of one `update()` per recipient.
+- Two findings from the same audit pass were investigated and rejected as false positives: the "missing ship-date floor check" flagged in `manual-order.js`/`orders.js` is an intentional, already-documented admin-override design, not a regression.
+
+### Simplified
+- Extracted the duplicated personalized-email renderer out of `send-email.js` and `broadcast.js` into one `renderPersonalizedEmail()` in `src/lib/emailTemplate.js` — the two copies had already drifted (only `broadcast.js`'s had an unsubscribe link).
+- Extracted the duplicated QR-code CDN loader out of `passport.astro` and `admin/index.astro` into new `src/lib/qrCodeLoader.ts`.
+- De-duplicated the admin Broadcasts tab's general-newsletter and per-waitlist-card send/preview handlers in `admin/index.astro` into one shared `wireBroadcastSendPreview()` helper.
+
+### Added — Test coverage expansion
+247 → 357 tests. New files for previously zero-coverage endpoints, depth added everywhere a bug above was fixed (each as a regression-locking test), and two endpoints added to `admin-authz.test.ts`'s auth guard that had been missing from it entirely:
+- New: `tests/api/admin-orders.test.ts` (27 tests — every action on the endpoint), `tests/api/admin-broadcast.test.ts` (15), `tests/api/unsubscribe.test.ts` (8), `tests/api/admin-settings.test.ts` (6) + `tests/lib/settings.test.ts` (14), `tests/api/order-lookup-by-number.test.ts` (7).
+- Extended: `admin-product.test.ts` (+10, the entire `passport` section — ageRange, designs/careSteps/safetyNotes, the passport-viewer upload), `admin-send-email.test.ts` (+5, `{name}` personalization/case-insensitivity/MAX_RECIPIENTS), `subscribe.test.ts` (+5, waitlist `notifiedAt` reset), `admin-manual-order.test.ts` (+2, ship-date override), `admin-inventory.test.ts` (+5, gift-acknowledgement send), `passport.test.ts` (+2, gift-claim capture at registration), `admin-authz.test.ts` (added `admin/broadcast` and `admin/settings`).
+
+---
+
 ## [Unreleased] - 2026-09-23
 
 Today's work: a CI fix, two security fixes, a six-part performance pass, a large test-coverage expansion, and the merge/cleanup that followed bringing all three branches together.

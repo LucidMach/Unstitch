@@ -145,4 +145,84 @@ describe('admin/send-email API handler — custom + resend-confirmation happy pa
     expect(res.statusCode).toBe(401);
     expect(mockSend).not.toHaveBeenCalled();
   });
+
+  describe('custom send — {name} personalization', () => {
+    it("fills {name} with the matching customer's real name", async () => {
+      vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([{ email: 'jane@example.com', name: 'Jane Doe' }] as any);
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'custom', to: 'jane@example.com', subject: 'Hi {name}', message: 'Thanks, {name}!' },
+      };
+      const res = createMockRes();
+      await sendEmailHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockSend.mock.calls[0][0].subject).toBe('Hi Jane Doe');
+      expect(mockSend.mock.calls[0][0].text).toContain('Thanks, Jane Doe!');
+    });
+
+    // The case-sensitivity bug fixed in this pass: stripe-webhook.js never
+    // normalizes the case of a Customer's stored email, but recipients
+    // typed into this form are lower-cased by EmailAddressSchema before
+    // the lookup -- a mixed-case stored email used to miss that lookup.
+    it('matches a mixed-case stored customer email against a lower-cased recipient address', async () => {
+      vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([{ email: 'Jane.Doe@Example.com', name: 'Jane Doe' }] as any);
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'custom', to: 'jane.doe@example.com', subject: 'Hi {name}', message: 'Hi there.' },
+      };
+      const res = createMockRes();
+      await sendEmailHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockSend.mock.calls[0][0].subject).toBe('Hi Jane Doe');
+    });
+
+    it('falls back to the local part of the email when no customer matches', async () => {
+      vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([] as any);
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'custom', to: 'unknown-person@example.com', subject: 'Hi {name}', message: 'Hi.' },
+      };
+      const res = createMockRes();
+      await sendEmailHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockSend.mock.calls[0][0].subject).toBe('Hi unknown-person');
+    });
+
+    it('previews against the first recipient without sending anything', async () => {
+      vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([{ email: 'jane@example.com', name: 'Jane Doe' }] as any);
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'custom', to: 'jane@example.com', subject: 'Hi {name}', message: 'Hi.', preview: true },
+      };
+      const res = createMockRes();
+      await sendEmailHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.preview).toBe(true);
+      expect(res.body.html).toContain('Jane Doe');
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('rejects a send with more recipients than MAX_RECIPIENTS', async () => {
+      vi.spyOn(prisma.customer, 'findMany').mockResolvedValue([] as any);
+      const to = Array.from({ length: 51 }, (_, i) => `person${i}@example.com`).join(',');
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'custom', to, subject: 'x', message: 'y' },
+      };
+      const res = createMockRes();
+      await sendEmailHandler(req, res);
+
+      expect(res.statusCode).toBe(400);
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -31,14 +31,7 @@ import { checkRateLimit } from '../../lib/rateLimit.js';
 import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
-import {
-  brandedEmailHtml,
-  esc,
-  fillMessageVars,
-  DEFAULT_SIGNATURE_NAME,
-  DEFAULT_SIGNATURE_ROLE,
-  plainTextSignature,
-} from '../../lib/emailTemplate.js';
+import { renderPersonalizedEmail } from '../../lib/emailTemplate.js';
 
 // A signed unsubscribe link needs to keep working for as long as someone
 // might still have the email sitting in their inbox -- long enough that
@@ -83,30 +76,12 @@ function unsubscribeUrlFor(req, subscriberId) {
   return `${getSiteOrigin(req)}/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
-/** Renders this send for one recipient — {name} filled, unsubscribe link
- * built from their own id, same shape send-email.js's renderFor() uses. */
+/** Renders this send for one recipient — {name} filled, plus an
+ * unsubscribe link built from their own id (the one real difference from
+ * send-email.js's transactional sends — see renderPersonalizedEmail). */
 function renderFor({ req, subject, message, gifUrl, signatureName, signatureRole, name, subscriberId }) {
-  const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
-  const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
-  const filledSubject = fillMessageVars(subject, { name });
-  const filledMessage = fillMessageVars(message, { name });
   const unsubscribeUrl = subscriberId != null ? unsubscribeUrlFor(req, subscriberId) : undefined;
-  const fullMessage =
-    `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}` +
-    (unsubscribeUrl ? `\n\nUnsubscribe: ${unsubscribeUrl}` : '');
-  const bodyHtml = filledMessage
-    .split(/\n{2,}/)
-    .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
-    .join('');
-  const html = brandedEmailHtml({
-    heading: filledSubject,
-    bodyHtml,
-    gifUrl,
-    signatureName: finalSignatureName,
-    signatureRole: finalSignatureRole,
-    unsubscribeUrl,
-  });
-  return { subject: filledSubject, html, text: fullMessage };
+  return renderPersonalizedEmail({ subject, message, gifUrl, signatureName, signatureRole, name, unsubscribeUrl });
 }
 
 /** Sequential small batches rather than one giant Promise.all, so a large
@@ -295,10 +270,6 @@ export default async function handler(req, res) {
           if (result.error) {
             return { email: sub.email, id: sub.id, ok: false, error: result.error.message || result.error.name || 'unknown reason' };
           }
-          // Marked notified only on a confirmed-sent email, so a failed
-          // send leaves this subscriber eligible for the next attempt
-          // rather than silently skipping them forever.
-          await prisma.subscriber.update({ where: { id: sub.id }, data: { notifiedAt: new Date() } });
           return { email: sub.email, id: sub.id, ok: true };
         } catch (err) {
           return { email: sub.email, id: sub.id, ok: false, error: err instanceof Error ? err.message : 'Send failed' };
@@ -307,6 +278,13 @@ export default async function handler(req, res) {
 
       const failed = results.filter((r) => !r.ok);
       const sent = results.filter((r) => r.ok);
+      // Marked notified only for confirmed-sent emails, so a failed send
+      // leaves that subscriber eligible for the next attempt rather than
+      // silently skipping them forever. One updateMany instead of one
+      // update() per recipient inside the batch loop above.
+      if (sent.length > 0) {
+        await prisma.subscriber.updateMany({ where: { id: { in: sent.map((r) => r.id) } }, data: { notifiedAt: new Date() } });
+      }
       if (failed.length > 0) console.error('[admin/broadcast] Some waitlist-notify emails failed:', failed);
 
       return sendJson(res, 200, {

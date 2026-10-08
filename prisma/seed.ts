@@ -153,10 +153,8 @@ async function main() {
       tileMaterial: "Curtain and polar fleece",
       materialRigidity: "Soft / low-rigidity",
       difficultyLevel: "BEGINNER",
-      // Strings, not numbers — the shop page shows an open-ended range like
-      // "4-100+", not a valid integer (see schema.prisma).
-      ageRangeMin: "4",
-      ageRangeMax: "99",
+      ageRangeMin: 4,
+      ageRangeMax: 200,
       kitContents: [{ item: `${tilesPerKit} interlocking pieces` }],
       giftWrapAvailable: true,
       giftMessageAvailable: true,

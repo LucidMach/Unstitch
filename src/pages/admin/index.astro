@@ -261,9 +261,9 @@ import Layout from "../../layouts/Layout.astro";
 
           <div class="admin-field-row">
             <label for="pd-age-min">Ages — from</label>
-            <input id="pd-age-min" type="text" maxlength="20" placeholder="4" />
+            <input id="pd-age-min" type="number" min="0" placeholder="4" />
             <label for="pd-age-max">to</label>
-            <input id="pd-age-max" type="text" maxlength="20" placeholder="100+" />
+            <input id="pd-age-max" type="number" min="0" placeholder="200" />
           </div>
 
           <label for="pd-kit-contents">What's in your kit (one per line)</label>
@@ -2359,6 +2359,7 @@ import Layout from "../../layouts/Layout.astro";
 
 <script>
   import { esc } from "../../lib/emailTemplate.js";
+  import { loadQrCodeModule, resetQrCodeModule } from "../../lib/qrCodeLoader";
 
   type OrderSummary = {
     id: string;
@@ -3035,8 +3036,13 @@ import Layout from "../../layouts/Layout.astro";
       const deliveredBtn = document.getElementById("mark-delivered") as HTMLButtonElement;
       const deliveredStatus = document.getElementById("delivered-status") as HTMLElement;
       deliveredStatus.hidden = true;
-      deliveredBtn.disabled = !!order.deliveredAt;
-      deliveredBtn.textContent = order.deliveredAt ? "Already marked delivered" : "Mark as delivered";
+      const canMarkDelivered = ["PAID", "PACKED", "OUT_FOR_DELIVERY"].includes(order.status);
+      deliveredBtn.disabled = !!order.deliveredAt || !canMarkDelivered;
+      deliveredBtn.textContent = order.deliveredAt
+        ? "Already marked delivered"
+        : canMarkDelivered
+          ? "Mark as delivered"
+          : `Can't deliver a ${order.status} order`;
       deliveredBtn.onclick = async () => {
         deliveredBtn.disabled = true;
         try {
@@ -3735,25 +3741,9 @@ import Layout from "../../layouts/Layout.astro";
   // the browser, so there's no server route or image-generation dependency
   // added to the app itself.
   //
-  // Loaded via a dynamic import() of jsDelivr's "+esm" build rather than a
-  // classic <script src> tag exposing a window.QRCode global — the qrcode
-  // package's own browser bundle (lib/browser.min.js) is raw CommonJS
-  // (require()/exports, no UMD wrapper), so it throws immediately if
-  // loaded as a plain script; only the "+esm" endpoint actually wraps it
-  // into something a browser can import directly. Cached in qrModulePromise
-  // so it's only fetched once per page load, not once per QR download.
-  let qrModulePromise: Promise<any> | null = null;
-  function loadQrCodeModule() {
-    if (!qrModulePromise) {
-      // @ts-expect-error — a browser-native dynamic import of a fully
-      // qualified https:// URL. TypeScript has no way to resolve a module
-      // type for a URL specifier like this (it isn't a package name or a
-      // relative path), so `astro check`/tsc always flags it as "Cannot
-      // find module" even though it resolves fine at runtime.
-      qrModulePromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
-    }
-    return qrModulePromise;
-  }
+  // Loaded via src/lib/qrCodeLoader's dynamic import() of jsDelivr's "+esm"
+  // build, shared with src/pages/passport.astro — see that module's comment
+  // for why a classic <script src> tag won't work for this package.
 
   // Renders the QR into a canvas and then stamps the serial as a printed
   // caption underneath, in the exported PNG itself — not just the download
@@ -3794,7 +3784,7 @@ import Layout from "../../layouts/Layout.astro";
     } catch {
       // Let the next click retry the import in case this failure was a
       // transient network hiccup rather than something permanently wrong.
-      qrModulePromise = null;
+      resetQrCodeModule();
       window.alert("Couldn't generate that QR code. Check your network connection and try again.");
     }
   }
@@ -4831,8 +4821,8 @@ import Layout from "../../layouts/Layout.astro";
         product.costRecipe?.tilesPerKit != null ? String(product.costRecipe.tilesPerKit) : "Not set";
       (document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value = arrayToLines(product.colourPalette);
       (document.getElementById("pd-feel") as HTMLTextAreaElement).value = materialRigidityToLines(product.materialRigidity);
-      (document.getElementById("pd-age-min") as HTMLInputElement).value = product.ageRangeMin || "";
-      (document.getElementById("pd-age-max") as HTMLInputElement).value = product.ageRangeMax || "";
+      (document.getElementById("pd-age-min") as HTMLInputElement).value = product.ageRangeMin ?? "";
+      (document.getElementById("pd-age-max") as HTMLInputElement).value = product.ageRangeMax ?? "";
       (document.getElementById("pd-kit-contents") as HTMLTextAreaElement).value = kitContentsToLines(product.kitContents);
     } catch {
       (document.getElementById("pd-loading") as HTMLElement).textContent = "Couldn't load product.";
@@ -4868,8 +4858,8 @@ import Layout from "../../layouts/Layout.astro";
             section: "passport",
             colourPalette: colourPaletteToArray((document.getElementById("pd-colour-palette") as HTMLTextAreaElement).value),
             materialRigidity: feelLines.length ? feelLines.join("\n") : null,
-            ageRangeMin: (document.getElementById("pd-age-min") as HTMLInputElement).value.trim() || null,
-            ageRangeMax: (document.getElementById("pd-age-max") as HTMLInputElement).value.trim() || null,
+            ageRangeMin: numberInputOrNull((document.getElementById("pd-age-min") as HTMLInputElement).valueAsNumber),
+            ageRangeMax: numberInputOrNull((document.getElementById("pd-age-max") as HTMLInputElement).valueAsNumber),
             kitContents: linesToArray((document.getElementById("pd-kit-contents") as HTMLTextAreaElement).value),
           }),
         }),
@@ -4893,6 +4883,11 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Passport content ---
+  // valueAsNumber is NaN for an empty <input type="number">, not undefined —
+  // and 0 is a valid age, so `|| null` would wrongly null out a real 0.
+  function numberInputOrNull(value: number): number | null {
+    return Number.isNaN(value) ? null : value;
+  }
   function linesToArray(text: string): string[] {
     return text.split("\n").map((s) => s.trim()).filter(Boolean);
   }
@@ -4913,7 +4908,12 @@ import Layout from "../../layouts/Layout.astro";
   // Only trims the leading/trailing edges of the whole field, not every
   // line, so interior blank lines survive.
   function careStepsToArray(text: string): string[] {
-    return text.trim().split("\n").map((s) => s.trim());
+    const trimmed = text.trim();
+    // Empty field -> empty array (not [""]), so passport.astro's
+    // `careSteps?.length ? careSteps : DEFAULT_CARE_STEPS` fallback
+    // actually kicks in when an admin clears this to revert to defaults.
+    if (!trimmed) return [];
+    return trimmed.split("\n").map((s) => s.trim());
   }
   // kitContents predates the admin editor and started life in prisma/seed.ts
   // as [{ item: "..." }] rather than plain strings — normalize so an
@@ -5491,6 +5491,63 @@ import Layout from "../../layouts/Layout.astro";
     }
   }
 
+  // Shared by the general-newsletter card and every per-product waitlist
+  // card below -- both are "read these fields, POST /api/admin/broadcast,
+  // show the result" with only the payload shape, confirm wording, and
+  // success verb actually differing between them.
+  type BroadcastFields = { subject: string; message: string; gifUrl: string; signatureName: string; signatureRole: string };
+  function wireBroadcastSendPreview(opts: {
+    previewBtn: Element | null;
+    sendBtn: Element | null;
+    status: HTMLElement;
+    getFields: () => BroadcastFields;
+    buildPayload: (fields: BroadcastFields, extra: { preview?: true }) => Record<string, unknown>;
+    confirmMessage: string;
+    successPrefix: string;
+    onSent?: () => void;
+  }) {
+    const { previewBtn, sendBtn, status, getFields, buildPayload, confirmMessage, successPrefix, onSent } = opts;
+
+    previewBtn?.addEventListener("click", async () => {
+      const fields = getFields();
+      if (!fields.subject || !fields.message) return showHint(status, "Fill in subject and message to preview.", false);
+      try {
+        const res = await api("/api/admin/broadcast", {
+          method: "POST",
+          body: JSON.stringify(buildPayload(fields, { preview: true })),
+        });
+        const data = await res.json();
+        if (res.ok && data.html) openEmailPreview(data.html);
+        else showHint(status, data.error || "Failed to build preview.", false);
+      } catch {
+        showHint(status, "Network error.", false);
+      }
+    });
+
+    sendBtn?.addEventListener("click", async () => {
+      const fields = getFields();
+      if (!fields.subject || !fields.message) return showHint(status, "Fill in all fields.", false);
+      if (!window.confirm(confirmMessage)) return;
+      try {
+        const res = await api("/api/admin/broadcast", {
+          method: "POST",
+          body: JSON.stringify(buildPayload(fields, {})),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const parts = [`${successPrefix} ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
+          if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+          showHint(status, parts.join(" "), !data.failed?.length);
+          onSent?.();
+        } else {
+          showHint(status, data.error || "Failed to send.", false);
+        }
+      } catch {
+        showHint(status, "Network error.", false);
+      }
+    });
+  }
+
   function renderBroadcastWaitlists(waitlists: { productId: string; productName: string; pendingCount: number }[]) {
     const container = document.getElementById("broadcast-waitlist-list") as HTMLElement;
     if (!waitlists.length) {
@@ -5520,134 +5577,57 @@ import Layout from "../../layouts/Layout.astro";
 
     container.querySelectorAll<HTMLElement>("[data-waitlist-product-id]").forEach((card) => {
       const productId = card.getAttribute("data-waitlist-product-id") as string;
-      const status = card.querySelector(".wl-status") as HTMLElement;
-      const getFields = () => ({
-        subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
-        message: (card.querySelector(".wl-message") as HTMLTextAreaElement).value.trim(),
-        gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
-        signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
-        signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
-      });
-
-      card.querySelector(".wl-preview")?.addEventListener("click", async () => {
-        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
-        if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
-        try {
-          const res = await api("/api/admin/broadcast", {
-            method: "POST",
-            body: JSON.stringify({
-              mode: "waitlist",
-              productId,
-              subject,
-              message,
-              gifUrl: gifUrl || undefined,
-              signatureName: signatureName || undefined,
-              signatureRole: signatureRole || undefined,
-              preview: true,
-            }),
-          });
-          const data = await res.json();
-          if (res.ok && data.html) openEmailPreview(data.html);
-          else showHint(status, data.error || "Failed to build preview.", false);
-        } catch {
-          showHint(status, "Network error.", false);
-        }
-      });
-
-      card.querySelector(".wl-send")?.addEventListener("click", async () => {
-        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
-        if (!subject || !message) return showHint(status, "Fill in all fields.", false);
-        if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
-        try {
-          const res = await api("/api/admin/broadcast", {
-            method: "POST",
-            body: JSON.stringify({
-              mode: "waitlist",
-              productId,
-              subject,
-              message,
-              gifUrl: gifUrl || undefined,
-              signatureName: signatureName || undefined,
-              signatureRole: signatureRole || undefined,
-            }),
-          });
-          const data = await res.json();
-          if (res.ok) {
-            const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
-            showHint(status, parts.join(" "), !data.failed?.length);
-            loadBroadcastStats();
-          } else {
-            showHint(status, data.error || "Failed to send.", false);
-          }
-        } catch {
-          showHint(status, "Network error.", false);
-        }
+      wireBroadcastSendPreview({
+        previewBtn: card.querySelector(".wl-preview"),
+        sendBtn: card.querySelector(".wl-send"),
+        status: card.querySelector(".wl-status") as HTMLElement,
+        getFields: () => ({
+          subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
+          message: (card.querySelector(".wl-message") as HTMLTextAreaElement).value.trim(),
+          gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
+          signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
+          signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
+        }),
+        buildPayload: (f, extra) => ({
+          mode: "waitlist",
+          productId,
+          subject: f.subject,
+          message: f.message,
+          gifUrl: f.gifUrl || undefined,
+          signatureName: f.signatureName || undefined,
+          signatureRole: f.signatureRole || undefined,
+          ...extra,
+        }),
+        confirmMessage: "Send this to everyone waiting on this product's drop? This can't be undone.",
+        successPrefix: "Notified",
+        // Refreshes the pending count now that this batch is notified.
+        onSent: loadBroadcastStats,
       });
     });
   }
 
-  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
-    const status = document.getElementById("broadcast-general-status") as HTMLElement;
-    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
-    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
-    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
-    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
-    if (!subject || !message) return showHint(status, "Fill in subject and message.", false);
-    if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
-    try {
-      const res = await api("/api/admin/broadcast", {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "general",
-          subject,
-          message,
-          gifUrl: gifUrl || undefined,
-          signatureName: signatureName || undefined,
-          signatureRole: signatureRole || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
-        showHint(status, parts.join(" "), !data.failed?.length);
-      } else {
-        showHint(status, data.error || "Failed to send.", false);
-      }
-    } catch {
-      showHint(status, "Network error.", false);
-    }
-  });
-
-  document.getElementById("broadcast-general-preview")?.addEventListener("click", async () => {
-    const status = document.getElementById("broadcast-general-status") as HTMLElement;
-    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
-    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
-    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
-    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
-    if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
-    try {
-      const res = await api("/api/admin/broadcast", {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "general",
-          subject,
-          message,
-          gifUrl: gifUrl || undefined,
-          signatureName: signatureName || undefined,
-          signatureRole: signatureRole || undefined,
-          preview: true,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.html) openEmailPreview(data.html);
-      else showHint(status, data.error || "Failed to build preview.", false);
-    } catch {
-      showHint(status, "Network error.", false);
-    }
+  wireBroadcastSendPreview({
+    previewBtn: document.getElementById("broadcast-general-preview"),
+    sendBtn: document.getElementById("broadcast-general-send"),
+    status: document.getElementById("broadcast-general-status") as HTMLElement,
+    getFields: () => ({
+      subject: (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim(),
+      message: (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim(),
+      gifUrl: (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim(),
+      signatureName: (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim(),
+      signatureRole: (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim(),
+    }),
+    buildPayload: (f, extra) => ({
+      mode: "general",
+      subject: f.subject,
+      message: f.message,
+      gifUrl: f.gifUrl || undefined,
+      signatureName: f.signatureName || undefined,
+      signatureRole: f.signatureRole || undefined,
+      ...extra,
+    }),
+    confirmMessage: "Send this to every subscriber who hasn't unsubscribed? This can't be undone.",
+    successPrefix: "Sent to",
   });
 
   // --- Email templates (named library of order-confirmation messages) ---

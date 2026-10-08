@@ -375,19 +375,19 @@ export default async function handler(req, res) {
       try {
         const existing = await prisma.order.findUnique({ where: { id: parseResult.data.orderId } });
         if (!existing) return sendJson(res, 404, { error: 'Order not found.' });
+        // Only orders actually on their way to a customer can be marked
+        // delivered — a cancelled/unpaid/refunded order staying in that
+        // status while also carrying a deliveredAt reads as a
+        // contradiction on both the admin panel and the customer-facing
+        // order-tracking page.
+        if (!['PAID', 'PACKED', 'OUT_FOR_DELIVERY'].includes(existing.status)) {
+          return sendJson(res, 400, { error: `Order is ${existing.status}, not out for delivery — can't mark it delivered.` });
+        }
         // `customer` included for the same in-place row-patch reason as the
         // other admin order actions above.
         const order = await prisma.order.update({
           where: { id: existing.id },
-          data: {
-            deliveredAt: new Date(),
-            // Only advance status forward — never stomp a state an admin
-            // or a refund already moved it to (CANCELLED, REFUNDED, etc.).
-            status:
-              existing.status === 'PAID' || existing.status === 'PACKED' || existing.status === 'OUT_FOR_DELIVERY'
-                ? 'DELIVERED'
-                : existing.status,
-          },
+          data: { deliveredAt: new Date(), status: 'DELIVERED' },
           include: { customer: { select: { email: true, name: true } } },
         });
         return sendJson(res, 200, { order });

@@ -33,8 +33,14 @@ const product = {
   // "Feel" spec (was labelled "Rigidity") — rendered as two stacked lines.
   feel: ["Soft", "Low-rigidity"],
   ageRangeMin: 4,
-  ageRangeMax: "100+",
+  ageRangeMax: 200,
 };
+
+// 200 is the "no real upper bound" sentinel for ageRangeMax (see
+// schema.prisma) — shown to customers as "100+" rather than the literal
+// number. Keep this check in sync with the equivalent one in this file's
+// client-side live-refresh script below.
+const ageRangeMaxDisplay = product.ageRangeMax >= 200 ? "100+" : String(product.ageRangeMax);
 
 const included = [
   { label: "3 Designs", icon: "/assets/icons/three-designs.svg" },
@@ -138,7 +144,7 @@ const galleryImages = [
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Ages</span>
-              <span class="product-specs__value" data-ps-ages>{product.ageRangeMin}–{product.ageRangeMax}</span>
+              <span class="product-specs__value" data-ps-ages>{product.ageRangeMin}–{ageRangeMaxDisplay}</span>
             </div>
             <div class="product-specs__col">
               <span class="product-specs__label">Pieces</span>
@@ -786,9 +792,12 @@ const galleryImages = [
         const piecesEl = document.querySelector<HTMLElement>("[data-ps-pieces]");
         if (piecesEl) piecesEl.textContent = String(data.tilesPerKit);
       }
-      if ((data.ageRangeMin || data.ageRangeMax)) {
+      if (typeof data.ageRangeMin === "number" || typeof data.ageRangeMax === "number") {
         const agesEl = document.querySelector<HTMLElement>("[data-ps-ages]");
-        if (agesEl) agesEl.textContent = `${data.ageRangeMin ?? ""}\u2013${data.ageRangeMax ?? ""}`;
+        // Keep the ">= 200 -> 100+" sentinel check in sync with this file's
+        // server-rendered ageRangeMaxDisplay above.
+        const maxDisplay = typeof data.ageRangeMax === "number" && data.ageRangeMax >= 200 ? "100+" : (data.ageRangeMax ?? "");
+        if (agesEl) agesEl.textContent = `${data.ageRangeMin ?? ""}\u2013${maxDisplay}`;
       }
       if (Array.isArray(data.colourPalette) && data.colourPalette.length) {
         const swatchesEl = document.querySelector<HTMLElement>("[data-ps-swatches]");

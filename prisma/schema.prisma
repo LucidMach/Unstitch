@@ -312,11 +312,10 @@ model Product {
   tileMaterial     String?         @map("tile_material") @db.VarChar(200) // "curtain and polar fleece"
   materialRigidity String?         @map("material_rigidity") @db.VarChar(100)
   difficultyLevel  DifficultyLevel @default(BEGINNER) @map("difficulty_level")
-  // String, not Int: the product page shows an open-ended range like
-  // "4-100+" (see shop.astro's "Ages" spec), which isn't a valid integer.
-  // Free-text display copy, not used in any numeric/filtering logic.
-  ageRangeMin      String?         @map("age_range_min") @db.VarChar(20)
-  ageRangeMax      String?         @map("age_range_max") @db.VarChar(20)
+  ageRangeMin      Int?            @map("age_range_min")
+  // No open-ended "100+": the shop page's "Ages" spec uses a plain upper
+  // bound (200) to mean "all ages", so this stays a real Int.
+  ageRangeMax      Int?            @map("age_range_max")
   kitContents      Json            @default("[]") @map("kit_contents")
 
   // Gifting

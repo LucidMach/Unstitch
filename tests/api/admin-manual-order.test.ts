@@ -137,6 +137,61 @@ describe('admin/manual-order API handler — creation happy path', () => {
     );
   });
 
+  // Depth added in this pass: expectedShipAtOverride had zero coverage.
+  // It's deliberately unfloored (see the field's own comment) -- an admin
+  // override, not something the system double-checks -- so this locks in
+  // "accepts anything valid, even sooner than the standard turnaround"
+  // rather than the old hard-floor behavior regressing back in silently.
+  it('passes expectedShipAtOverride straight through, even a date sooner than the standard turnaround', async () => {
+    const mockTx = {
+      customer: { upsert: vi.fn().mockResolvedValue({ id: 'cust-1', email: 'buyer@example.com' }) },
+      address: { create: vi.fn() },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-3', orderNumber: 'UX-2026-000012' }) },
+      orderItem: { create: vi.fn().mockResolvedValue({}) },
+      payment: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (fn: any) => fn(mockTx));
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        email: 'buyer@example.com',
+        type: 'COMMISSION',
+        quantity: 1,
+        paymentStatus: 'UNPAID',
+        // Tomorrow -- far sooner than the standard multi-day production
+        // turnaround computeExpectedShipDate() would otherwise compute.
+        expectedShipAtOverride: '2026-01-02',
+      },
+    };
+    const res = createMockRes();
+    await manualOrderHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockTx.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ expectedShipAt: new Date('2026-01-02T12:00:00') }) }),
+    );
+  });
+
+  it('rejects a malformed expectedShipAtOverride before it ever reaches order creation', async () => {
+    const orderCreateSpy = vi.fn();
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (fn: any) =>
+      fn({ customer: { upsert: vi.fn() }, address: { create: vi.fn() }, order: { create: orderCreateSpy }, orderItem: { create: vi.fn() }, payment: { create: vi.fn() } }),
+    );
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: { email: 'buyer@example.com', type: 'COMMISSION', quantity: 1, expectedShipAtOverride: 'not-a-date' },
+    };
+    const res = createMockRes();
+    await manualOrderHandler(req, res);
+
+    expect(res.statusCode).toBe(400);
+    expect(orderCreateSpy).not.toHaveBeenCalled();
+  });
+
   it('returns 404 when the product is inactive/unavailable', async () => {
     vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ ...PRODUCT, isActive: false } as any);
     const req = {

@@ -13,6 +13,8 @@ import productHandler from '../../src/server/admin/product.js';
 import sendEmailHandler from '../../src/server/admin/send-email.js';
 import eventsHandler from '../../src/server/admin/events.js';
 import batchDropsHandler from '../../src/server/admin/batch-drops.js';
+import broadcastHandler from '../../src/server/admin/broadcast.js';
+import settingsHandler from '../../src/server/admin/settings.js';
 
 function createMockRes() {
   const res: any = {
@@ -81,6 +83,8 @@ const ENDPOINTS: Array<{ name: string; handler: any; method: string; body?: any 
   { name: 'admin/send-email', handler: sendEmailHandler, method: 'POST', body: {} },
   { name: 'admin/events', handler: eventsHandler, method: 'GET' },
   { name: 'admin/batch-drops', handler: batchDropsHandler, method: 'GET' },
+  { name: 'admin/broadcast', handler: broadcastHandler, method: 'GET' },
+  { name: 'admin/settings', handler: settingsHandler, method: 'GET' },
 ];
 
 describe('Admin endpoint authorization regression guard (no session cookie)', () => {

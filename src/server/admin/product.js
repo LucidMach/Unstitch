@@ -71,10 +71,8 @@ const PassportSchema = z.object({
   colourPalette: z.array(z.string()).optional(),
   tileMaterial: z.string().nullable().optional(),
   materialRigidity: z.string().nullable().optional(),
-  // Free-text display copy for the shop page's "Ages" spec (e.g. "4" /
-  // "100+") — not used in any numeric logic, see schema.prisma.
-  ageRangeMin: z.string().trim().max(20).nullable().optional(),
-  ageRangeMax: z.string().trim().max(20).nullable().optional(),
+  ageRangeMin: z.number().int().min(0).nullable().optional(),
+  ageRangeMax: z.number().int().min(0).nullable().optional(),
   kitContents: z.array(z.string()).optional(),
   wrapBuildDimensions: z.string().nullable().optional(),
   designs: z.array(z.string()).optional(),

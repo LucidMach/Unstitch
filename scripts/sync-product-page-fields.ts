@@ -38,8 +38,8 @@ async function main() {
       // tab's "Feel" field) — rendered as two stacked lines on the shop
       // page, same as the old hardcoded `feel: ["Soft", "Low-rigidity"]`.
       materialRigidity: 'Soft\nLow-rigidity',
-      ageRangeMin: '4',
-      ageRangeMax: '100+',
+      ageRangeMin: 4,
+      ageRangeMax: 200,
       // Matches the old hardcoded `included` array's labels exactly (see
       // git history of shop.astro) — icons are resolved client-side by
       // label, not stored here.

@@ -56,6 +56,7 @@ describe('Subscribe API Handler (/api/subscribe)', () => {
 
     if (prisma) {
       vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue(null);
     }
   });
 
@@ -218,6 +219,86 @@ describe('Subscribe API Handler (/api/subscribe)', () => {
     await subscribeHandler(req, res);
     expect(res.statusCode).toBe(200);
     expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  // The notifiedAt-reset bug fixed in this pass: resubscribing with a new
+  // productSlug used to update productId but never clear notifiedAt, so a
+  // subscriber already notified for one product's waitlist could never be
+  // notified again after switching to a different product's waitlist.
+  describe('productSlug / waitlist signup', () => {
+    if (!prisma) return;
+
+    it("resolves productSlug to a productId and stores it on a brand-new subscriber", async () => {
+      vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ id: 'prod-A' } as any);
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue(null);
+      const upsertSpy = vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+
+      const req = { method: 'POST', body: { email: 'new@example.com', productSlug: 'slow-bloom' } };
+      const res = createMockRes();
+      await subscribeHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(upsertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ create: expect.objectContaining({ productId: 'prod-A' }) }),
+      );
+    });
+
+    it("ignores an unrecognized productSlug rather than failing the signup", async () => {
+      vi.spyOn(prisma.product, 'findUnique').mockResolvedValue(null);
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue(null);
+      const upsertSpy = vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+
+      const req = { method: 'POST', body: { email: 'new@example.com', productSlug: 'not-a-real-product' } };
+      const res = createMockRes();
+      await subscribeHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(upsertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ create: expect.objectContaining({ productId: null }) }),
+      );
+    });
+
+    it("resets notifiedAt when an already-notified subscriber switches to a different product's waitlist", async () => {
+      vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ id: 'prod-B' } as any);
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue({ productId: 'prod-A' } as any);
+      const upsertSpy = vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+
+      const req = { method: 'POST', body: { email: 'existing@example.com', productSlug: 'new-drop' } };
+      const res = createMockRes();
+      await subscribeHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const update = (upsertSpy.mock.calls[0][0] as any).update;
+      expect(update.productId).toBe('prod-B');
+      expect(update.notifiedAt).toBeNull();
+    });
+
+    it("does not reset notifiedAt when re-signing up for the same product's waitlist", async () => {
+      vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({ id: 'prod-A' } as any);
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue({ productId: 'prod-A' } as any);
+      const upsertSpy = vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+
+      const req = { method: 'POST', body: { email: 'existing@example.com', productSlug: 'same-drop' } };
+      const res = createMockRes();
+      await subscribeHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const update = (upsertSpy.mock.calls[0][0] as any).update;
+      expect(update).not.toHaveProperty('notifiedAt');
+    });
+
+    it('does not touch notifiedAt for a general (non-waitlist) signup', async () => {
+      vi.spyOn(prisma.subscriber, 'findUnique').mockResolvedValue({ productId: 'prod-A' } as any);
+      const upsertSpy = vi.spyOn(prisma.subscriber, 'upsert').mockResolvedValue({ id: 1 } as any);
+
+      const req = { method: 'POST', body: { email: 'existing@example.com' } };
+      const res = createMockRes();
+      await subscribeHandler(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const update = (upsertSpy.mock.calls[0][0] as any).update;
+      expect(update).not.toHaveProperty('notifiedAt');
+    });
   });
 });
 

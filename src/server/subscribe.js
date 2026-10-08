@@ -152,6 +152,11 @@ export default async function handler(req, res) {
         productId = product?.id;
       }
 
+      // Needed to tell "re-signing up for the same waitlist" apart from
+      // "switching to a different product's waitlist" below.
+      const existing = await prisma.subscriber.findUnique({ where: { email }, select: { productId: true } });
+      const isSwitchingWaitlist = !!productId && existing && existing.productId !== productId;
+
       await prisma.subscriber.upsert({
         where: { email },
         update: {
@@ -159,12 +164,15 @@ export default async function handler(req, res) {
           name: name || undefined,
           source: source || undefined,
           productId: productId || undefined,
-          // Deliberately NOT cleared here -- someone who unsubscribed and
-          // then signs up again (e.g. for a specific drop's waitlist)
-          // should confirm that by actually using the unsubscribe-reversal
-          // flow if one's ever added, not by a form submission alone,
-          // which could also happen if their email gets reused on an old
-          // mailing list signup page they don't remember.
+          // Only reset when they're actually moving to a different
+          // product's waitlist -- otherwise a repeat signup for the one
+          // they're already tracking would make them eligible for a
+          // second notification of a drop they've already heard about.
+          // (unsubscribedAt is still deliberately NOT cleared here --
+          // see the comment that used to live on this object; that still
+          // requires an actual unsubscribe-reversal flow, not a form
+          // submission alone.)
+          ...(isSwitchingWaitlist ? { notifiedAt: null } : {}),
         },
         create: {
           name: name || null,

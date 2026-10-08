@@ -182,6 +182,42 @@ export function plainTextSignature(name, role) {
 }
 
 /**
+ * Renders one free-composed, personalized send -- the admin's custom/bulk
+ * email (src/server/admin/send-email.js) and the newsletter/waitlist
+ * broadcasts (src/server/admin/broadcast.js) both fill {name} into the
+ * subject/message, append the standard sign-off, and build the branded
+ * HTML the same way; this was previously two near-identical copies of
+ * this function that had already started to drift. `unsubscribeUrl` is
+ * the one real difference between the two callers -- broadcast.js passes
+ * one (this is marketing mail), send-email.js doesn't (these are
+ * transactional order emails, which never carry one).
+ */
+export function renderPersonalizedEmail({ subject, message, gifUrl, signatureName, signatureRole, name, unsubscribeUrl }) {
+  const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
+  const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
+  const filledSubject = fillMessageVars(subject, { name });
+  const filledMessage = fillMessageVars(message, { name });
+  const fullMessage =
+    `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}` +
+    (unsubscribeUrl ? `\n\nUnsubscribe: ${unsubscribeUrl}` : '');
+  // message may be multiple \n\n-separated paragraphs -- keep that
+  // structure in the HTML version rather than collapsing it to one block.
+  const bodyHtml = filledMessage
+    .split(/\n{2,}/)
+    .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+  const html = brandedEmailHtml({
+    heading: filledSubject,
+    bodyHtml,
+    gifUrl,
+    signatureName: finalSignatureName,
+    signatureRole: finalSignatureRole,
+    unsubscribeUrl,
+  });
+  return { subject: filledSubject, html, text: fullMessage };
+}
+
+/**
  * Public AusPost tracking-lookup URL for a given consignment/tracking
  * number — used both here (shipped email) and in the admin order detail
  * panel / customer order-lookup page, so all three always point at the

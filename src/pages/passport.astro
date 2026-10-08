@@ -407,6 +407,8 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
 </style>
 
 <script>
+  import { loadQrCodeModule, resetQrCodeModule } from "../lib/qrCodeLoader";
+
   type PassportUnit = {
     serial: string;
     editionNumber: number;
@@ -464,21 +466,6 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
   const DEFAULT_SCAN_AGAIN_COPY =
     "This same code is printed on your Unstitch Mail postcard. Scan it whenever you want to come back to this passport, re-check care instructions, or leave your review.";
 
-  // Same CDN "+esm" import pattern as admin/index.astro's loadQrCodeModule
-  // (see its comment for why: the qrcode package's own browser bundle is
-  // raw CommonJS and throws if loaded as a plain <script>). Kept as its own
-  // copy rather than shared code since this page and the admin page are
-  // two separate Astro routes with no shared client-side module today.
-  let qrModulePromise: Promise<any> | null = null;
-  function loadQrCodeModule() {
-    if (!qrModulePromise) {
-      // @ts-expect-error — browser-native dynamic import of a full https://
-      // URL; tsc has no module type to resolve for that specifier.
-      qrModulePromise = import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm");
-    }
-    return qrModulePromise;
-  }
-
   // Draws this unit's own passport URL as a QR code — the exact thing
   // "Scan again anytime" below is talking about — so the claim is backed
   // by an actual scannable (or screenshot-able) code, not just text.
@@ -497,7 +484,7 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
     } catch {
       // Quietly leave it hidden — the paragraph below still explains the
       // physical postcard code, so a blocked/offline CDN isn't fatal.
-      qrModulePromise = null;
+      resetQrCodeModule();
       holder.hidden = true;
     }
   }

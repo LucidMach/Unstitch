@@ -17,13 +17,9 @@ import { sign } from '../../lib/signedToken.js';
 import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
 import {
-  brandedEmailHtml,
   orderConfirmationEmail,
-  esc,
   fillMessageVars,
-  DEFAULT_SIGNATURE_NAME,
-  DEFAULT_SIGNATURE_ROLE,
-  plainTextSignature,
+  renderPersonalizedEmail,
 } from '../../lib/emailTemplate.js';
 import { deliveryMethodLabel } from '../../lib/shipping.js';
 import { getDefaultOrderMessage } from '../../lib/settings.js';
@@ -38,9 +34,6 @@ const ORDER_LOOKUP_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 const MAX_RECIPIENTS = 50;
 
 const EmailAddressSchema = z.string().trim().toLowerCase().email();
-
-// DEFAULT_SIGNATURE_NAME/ROLE and plainTextSignature now live in
-// src/lib/emailTemplate.js, shared with src/server/admin/broadcast.js.
 
 /** Splits a comma/newline-separated blob into deduped, validated addresses. */
 function parseRecipients(raw) {
@@ -132,8 +125,6 @@ export default async function handler(req, res) {
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
       const { to, subject, message, gifUrl, signatureName, signatureRole, preview } = parseResult.data;
-      const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
-      const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
 
       // Parsed up front -- even for a preview -- so a {name} in the
       // message can be previewed against a real address instead of only
@@ -143,43 +134,31 @@ export default async function handler(req, res) {
       // One batched lookup covers every recipient who's an existing
       // customer; anyone not found (a one-off contact, not a customer
       // yet) falls back to the part of their address before the @, same
-      // fallback the single-order sends use.
+      // fallback the single-order sends use. `recipients` is already
+      // lower-cased (EmailAddressSchema), but Customer.email is stored
+      // exactly as Stripe/the customer supplied it (stripe-webhook.js
+      // never normalizes case) -- `mode: 'insensitive'` on both the query
+      // and the map key keeps a mixed-case stored email matching a
+      // lower-case recipient address.
       const customersByEmail = recipients.length && prisma
         ? new Map(
             (
               await prisma.customer.findMany({
-                where: { email: { in: recipients } },
+                where: { email: { in: recipients, mode: 'insensitive' } },
                 select: { email: true, name: true },
               })
-            ).map((c) => [c.email, c.name]),
+            ).map((c) => [c.email.toLowerCase(), c.name]),
           )
         : new Map();
-      const nameForRecipient = (email) => customersByEmail.get(email) || email.split('@')[0];
+      const nameForRecipient = (email) => customersByEmail.get(email.toLowerCase()) || email.split('@')[0];
 
       // Renders this send for one specific recipient name -- {name} (in
       // either the subject or the message) is filled in before the
       // signature is appended and the HTML is built, so each recipient's
       // copy is personalized rather than one shared render reused for
-      // everyone.
-      function renderFor(name) {
-        const filledSubject = fillMessageVars(subject, { name });
-        const filledMessage = fillMessageVars(message, { name });
-        const fullMessage = `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}`;
-        // message may be multiple \n\n-separated paragraphs — keep that
-        // structure in the HTML version rather than collapsing it to one block.
-        const bodyHtml = filledMessage
-          .split(/\n{2,}/)
-          .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
-          .join('');
-        const html = brandedEmailHtml({
-          heading: filledSubject,
-          bodyHtml,
-          gifUrl,
-          signatureName: finalSignatureName,
-          signatureRole: finalSignatureRole,
-        });
-        return { subject: filledSubject, html, text: fullMessage };
-      }
+      // everyone. No unsubscribeUrl: this is a transactional admin send,
+      // not marketing mail (see renderPersonalizedEmail's own comment).
+      const renderFor = (name) => renderPersonalizedEmail({ subject, message, gifUrl, signatureName, signatureRole, name });
 
       if (preview) {
         // Preview as it'll actually render for the first recognized
