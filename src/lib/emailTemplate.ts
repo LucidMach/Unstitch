@@ -178,9 +178,8 @@ export const DEFAULT_SIGNATURE_ROLE = 'Designer at Unstitch';
 // questions -- and hello@ for anything general (contact-form notify, the
 // newsletter/waitlist broadcasts, the raffle confirmation, the 3D-share
 // feature). RESEND_FROM_EMAIL, if set, still overrides every send
-// regardless of category, same as before this split existed.
-export const ORDERS_FROM_EMAIL = process.env.RESEND_FROM_EMAIL_ORDERS || 'Unstitch Studio <eshop@unstitchx.com>';
-export const GENERAL_FROM_EMAIL = process.env.RESEND_FROM_EMAIL_GENERAL || 'Unstitch Studio <hello@unstitchx.com>';
+export const ORDERS_FROM_EMAIL = (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL_ORDERS) || 'Unstitch Studio <eshop@unstitchx.com>';
+export const GENERAL_FROM_EMAIL = (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL_GENERAL) || 'Unstitch Studio <hello@unstitchx.com>';
 
 export function plainTextSignature(name: string, role: string): string {
   return [

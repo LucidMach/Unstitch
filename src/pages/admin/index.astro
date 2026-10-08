@@ -2402,8 +2402,11 @@ import Layout from "../../layouts/Layout.astro";
 </style>
 
 <script>
-  import { esc } from "../../lib/emailTemplate.js";
   import { loadQrCodeModule, resetQrCodeModule } from "../../lib/qrCodeLoader";
+
+  function esc(value: any): string {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
+  }
 
   type OrderSummary = {
     id: string;
