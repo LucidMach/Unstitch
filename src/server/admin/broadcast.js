@@ -1,8 +1,10 @@
 // api/admin/broadcast.js
 // GET  -> stats for the Broadcasts admin tab: how many subscribers are
-//         eligible for the general newsletter, and (per product) how many
-//         are waiting on that product's "notify me" waitlist.
-// POST { mode: "general", subject, message, ... }
+//         eligible for the general newsletter, how many are waiting on
+//         each product's "notify me" waitlist, and the active product
+//         list (id/name/tagline/price/image/kit contents) the composer's
+//         "Kit announcement" block picks from.
+// POST { mode: "general", blocks, ... }
 //         -> sends to every Subscriber with unsubscribedAt = null. Not
 //            capped like send-email.js's custom/bulk send (that cap exists
 //            to bound a manual paste mistake's blast radius -- this is a
@@ -10,7 +12,7 @@
 //            subscriber list), but still sent in small batches rather than
 //            all at once, to stay under Resend's rate limit; see
 //            BATCH_SIZE/BATCH_DELAY_MS below if that needs tuning.
-// POST { mode: "waitlist", productId, subject, message, ... }
+// POST { mode: "waitlist", productId, blocks, ... }
 //         -> sends only to Subscribers with that productId, notifiedAt =
 //            null, unsubscribedAt = null (src/server/subscribe.js sets
 //            productId when a "notify me" form is for a specific drop --
@@ -18,11 +20,16 @@
 //            Each successful send sets that subscriber's notifiedAt, so a
 //            second click only reaches anyone new since the last one.
 //
-// Both send modes personalize {name} per recipient (src/lib/emailTemplate.js's
-// fillMessageVars, same as send-email.js's custom/bulk send) and add a
-// per-recipient signed unsubscribe link (src/server/unsubscribe.js) to
-// every email -- this is marketing mail, unlike the order-confirmation
-// sends in send-email.js, which never carry one.
+// `blocks` is an ordered array of content blocks (see BlockSchema below) --
+// this replaced a single free-text `message` field so one send can mix a
+// drop announcement, a photo, a raffle-winner shoutout and a call-to-action
+// in any order, each still fully editable copy rather than locked-in
+// generated text. Both send modes personalize {name} per recipient
+// (src/lib/emailTemplate.js's fillMessageVars/fillBlockVars, same as
+// send-email.js's custom/bulk send) and add a per-recipient signed
+// unsubscribe link (src/server/unsubscribe.js) to every email -- this is
+// marketing mail, unlike the order-confirmation sends in send-email.js,
+// which never carry one.
 
 import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../../lib/apiHelper.js';
@@ -33,8 +40,10 @@ import { getSiteOrigin } from '../../lib/siteOrigin.js';
 import prisma from '../../lib/prisma.js';
 import {
   brandedEmailHtml,
-  esc,
   fillMessageVars,
+  fillBlockVars,
+  renderBlocksHtml,
+  renderBlocksText,
   DEFAULT_SIGNATURE_NAME,
   DEFAULT_SIGNATURE_ROLE,
   plainTextSignature,
@@ -53,10 +62,51 @@ const BATCH_DELAY_MS = 300;
 // query rather than a deliberately large but legitimate send.
 const MAX_SEND = 5000;
 
+// --- Content blocks -------------------------------------------------
+// Every block type's own copy fields (heading/body/headline/caption/
+// buttonLabel) are plain admin-written text -- nothing here is
+// auto-generated-and-locked, so the "kit" block's headline/body are
+// editable overrides of the product's real tagline, not the tagline
+// itself, and the admin can rewrite them freely per send.
+const TextBlockSchema = z.object({
+  type: z.literal('text'),
+  heading: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(10000).optional(),
+  imageUrl: z.string().trim().min(1).max(2000).optional(),
+  imageAlt: z.string().trim().max(200).optional(),
+});
+
+const ImageBlockSchema = z.object({
+  type: z.literal('image'),
+  url: z.string().trim().min(1).max(2000),
+  alt: z.string().trim().max(200).optional(),
+  caption: z.string().trim().max(300).optional(),
+});
+
+const KitBlockSchema = z.object({
+  type: z.literal('kit'),
+  productId: z.string().uuid(),
+  headline: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(2000).optional(),
+  showImage: z.boolean().optional().default(true),
+  showPrice: z.boolean().optional().default(true),
+  showKitContents: z.boolean().optional().default(false),
+});
+
+const CtaBlockSchema = z.object({
+  type: z.literal('cta'),
+  heading: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(2000).optional(),
+  buttonLabel: z.string().trim().max(60).optional(),
+  buttonUrl: z.string().trim().url().max(2000).optional(),
+});
+
+const BlockSchema = z.discriminatedUnion('type', [TextBlockSchema, ImageBlockSchema, KitBlockSchema, CtaBlockSchema]);
+
 const BroadcastGeneralSchema = z.object({
   mode: z.literal('general'),
   subject: z.string().trim().min(1).max(200),
-  message: z.string().trim().min(1).max(10000),
+  blocks: z.array(BlockSchema).min(1).max(20),
   gifUrl: z.string().trim().url().max(2000).optional(),
   signatureName: z.string().trim().max(100).optional(),
   signatureRole: z.string().trim().max(150).optional(),
@@ -67,7 +117,7 @@ const BroadcastWaitlistSchema = z.object({
   mode: z.literal('waitlist'),
   productId: z.string().uuid(),
   subject: z.string().trim().min(1).max(200),
-  message: z.string().trim().min(1).max(10000),
+  blocks: z.array(BlockSchema).min(1).max(20),
   gifUrl: z.string().trim().url().max(2000).optional(),
   signatureName: z.string().trim().max(100).optional(),
   signatureRole: z.string().trim().max(150).optional(),
@@ -83,21 +133,65 @@ function unsubscribeUrlFor(req, subscriberId) {
   return `${getSiteOrigin(req)}/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
-/** Renders this send for one recipient — {name} filled, unsubscribe link
- * built from their own id, same shape send-email.js's renderFor() uses. */
-function renderFor({ req, subject, message, gifUrl, signatureName, signatureRole, name, subscriberId }) {
+// A standalone image block, or a kit block's product photo, can be typed/
+// stored as either a full URL or a site-relative path (e.g. the product's
+// own `imageUrl`, which defaults to "/SlowBloom.png" -- see
+// prisma/schema.prisma). Resend has no notion of "relative to this site",
+// so anything not already absolute is resolved against the site origin
+// before it goes anywhere near an email.
+function absoluteUrl(req, urlOrPath) {
+  if (!urlOrPath) return urlOrPath;
+  if (/^https?:\/\//i.test(urlOrPath)) return urlOrPath;
+  return `${getSiteOrigin(req)}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+}
+
+/** Resolves standalone image blocks' `url` to an absolute URL -- see
+ * absoluteUrl() above. Returns a new array; doesn't mutate the input. */
+function resolveBlockImageUrls(req, blocks) {
+  return blocks.map((block) => (block.type === 'image' ? { ...block, url: absoluteUrl(req, block.url) } : block));
+}
+
+/** Same resolution, applied to a kit block's product photo instead --
+ * returns a new Map so renderBlocksHtml's "kit" case can keep reading
+ * product.imageUrl without knowing about site-relative paths at all. */
+function resolveProductImageUrls(req, productsById) {
+  return new Map([...productsById].map(([id, product]) => [id, { ...product, imageUrl: absoluteUrl(req, product.imageUrl) }]));
+}
+
+/** Loads the Product rows referenced by any "kit" blocks, keyed by id.
+ * Returns { productsById, missingProductId } -- missingProductId is set
+ * (and the map incomplete) if a block names a product that no longer
+ * exists, so the caller can fail the request with a clear reason instead
+ * of silently rendering an empty section. */
+async function loadProductsForBlocks(blocks) {
+  const productIds = [...new Set(blocks.filter((b) => b.type === 'kit').map((b) => b.productId))];
+  if (productIds.length === 0) return { productsById: new Map(), missingProductId: null };
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, name: true, tagline: true, imageUrl: true, basePriceCents: true, currency: true, kitContents: true },
+  });
+  const productsById = new Map(products.map((p) => [p.id, p]));
+  const missingProductId = productIds.find((id) => !productsById.has(id)) || null;
+  return { productsById, missingProductId };
+}
+
+/** Renders this send for one recipient — {name} filled in every block's
+ * text fields plus the subject, unsubscribe link built from their own id,
+ * same shape send-email.js's renderFor() uses. */
+function renderFor({ req, subject, blocks, productsById, gifUrl, signatureName, signatureRole, name, subscriberId }) {
   const finalSignatureName = signatureName || DEFAULT_SIGNATURE_NAME;
   const finalSignatureRole = signatureRole || DEFAULT_SIGNATURE_ROLE;
   const filledSubject = fillMessageVars(subject, { name });
-  const filledMessage = fillMessageVars(message, { name });
+  const filledBlocks = fillBlockVars(blocks, { name });
   const unsubscribeUrl = subscriberId != null ? unsubscribeUrlFor(req, subscriberId) : undefined;
+
+  const bodyHtml = renderBlocksHtml(filledBlocks, productsById);
+  const bodyText = renderBlocksText(filledBlocks, productsById);
+
   const fullMessage =
-    `${filledMessage}${plainTextSignature(finalSignatureName, finalSignatureRole)}` +
+    `${bodyText}${plainTextSignature(finalSignatureName, finalSignatureRole)}` +
     (unsubscribeUrl ? `\n\nUnsubscribe: ${unsubscribeUrl}` : '');
-  const bodyHtml = filledMessage
-    .split(/\n{2,}/)
-    .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
-    .join('');
+
   const html = brandedEmailHtml({
     heading: filledSubject,
     bodyHtml,
@@ -130,20 +224,28 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const [generalCount, pending] = await Promise.all([
+      const [generalCount, pending, products] = await Promise.all([
         prisma.subscriber.count({ where: { unsubscribedAt: null } }),
         prisma.subscriber.groupBy({
           by: ['productId'],
           where: { productId: { not: null }, notifiedAt: null, unsubscribedAt: null },
           _count: { _all: true },
         }),
+        // Powers the "Kit announcement" block's product picker in the
+        // composer -- active products only, same set a drop announcement
+        // would ever reasonably be about.
+        prisma.product.findMany({
+          where: { isActive: true },
+          select: { id: true, name: true, tagline: true, imageUrl: true, basePriceCents: true, currency: true, kitContents: true },
+          orderBy: { name: 'asc' },
+        }),
       ]);
 
       const productIds = pending.map((p) => p.productId).filter(Boolean);
-      const products = productIds.length
+      const waitlistProducts = productIds.length
         ? await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } })
         : [];
-      const nameById = new Map(products.map((p) => [p.id, p.name]));
+      const nameById = new Map(waitlistProducts.map((p) => [p.id, p.name]));
 
       const waitlists = pending
         .map((p) => ({
@@ -153,7 +255,7 @@ export default async function handler(req, res) {
         }))
         .sort((a, b) => b.pendingCount - a.pendingCount);
 
-      return sendJson(res, 200, { generalCount, waitlists });
+      return sendJson(res, 200, { generalCount, waitlists, products });
     } catch (err) {
       console.error('[admin/broadcast] GET failed:', err);
       return sendJson(res, 500, { error: 'Failed to load broadcast stats.' });
@@ -186,14 +288,22 @@ export default async function handler(req, res) {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { subject, message, gifUrl, signatureName, signatureRole } = parseResult.data;
+      const { subject, blocks, gifUrl, signatureName, signatureRole } = parseResult.data;
+
+      const { productsById, missingProductId } = await loadProductsForBlocks(blocks);
+      if (missingProductId) {
+        return sendJson(res, 400, { error: `A kit block refers to a product that no longer exists (${missingProductId}). Remove or re-pick that block.` });
+      }
+      const resolvedBlocks = resolveBlockImageUrls(req, blocks);
+      const resolvedProductsById = resolveProductImageUrls(req, productsById);
 
       if (isPreview) {
         const sample = await prisma.subscriber.findFirst({ where: { unsubscribedAt: null }, select: { id: true, name: true, email: true } });
         const { html, text } = renderFor({
           req,
           subject,
-          message,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
           gifUrl,
           signatureName,
           signatureRole,
@@ -218,7 +328,8 @@ export default async function handler(req, res) {
         const { subject: filledSubject, html, text } = renderFor({
           req,
           subject,
-          message,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
           gifUrl,
           signatureName,
           signatureRole,
@@ -249,10 +360,17 @@ export default async function handler(req, res) {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { productId, subject, message, gifUrl, signatureName, signatureRole } = parseResult.data;
+      const { productId, subject, blocks, gifUrl, signatureName, signatureRole } = parseResult.data;
 
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, name: true } });
       if (!product) return sendJson(res, 404, { error: 'Product not found.' });
+
+      const { productsById, missingProductId } = await loadProductsForBlocks(blocks);
+      if (missingProductId) {
+        return sendJson(res, 400, { error: `A kit block refers to a product that no longer exists (${missingProductId}). Remove or re-pick that block.` });
+      }
+      const resolvedBlocks = resolveBlockImageUrls(req, blocks);
+      const resolvedProductsById = resolveProductImageUrls(req, productsById);
 
       const where = { productId, notifiedAt: null, unsubscribedAt: null };
 
@@ -261,7 +379,8 @@ export default async function handler(req, res) {
         const { html, text } = renderFor({
           req,
           subject,
-          message,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
           gifUrl,
           signatureName,
           signatureRole,
@@ -283,7 +402,8 @@ export default async function handler(req, res) {
         const { subject: filledSubject, html, text } = renderFor({
           req,
           subject,
-          message,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
           gifUrl,
           signatureName,
           signatureRole,

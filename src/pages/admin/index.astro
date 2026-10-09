@@ -683,12 +683,11 @@ import Layout from "../../layouts/Layout.astro";
     <section data-panel="broadcasts" class="admin__panel" hidden>
       <div class="admin-card">
         <h2>General newsletter</h2>
-        <p class="admin-muted">Sent to every subscriber who hasn't unsubscribed (<strong id="broadcast-general-count">—</strong> right now). Use for progress updates, behind-the-scenes notes — anything not tied to one specific drop.</p>
+        <p class="admin-muted">Sent to every subscriber who hasn't unsubscribed (<strong id="broadcast-general-count">—</strong> right now). Use for progress updates, behind-the-scenes notes, raffle winners — anything not tied to one specific drop.</p>
         <label for="broadcast-general-subject">Subject</label>
         <input id="broadcast-general-subject" type="text" maxlength="200" />
-        <label for="broadcast-general-message">Message</label>
-        <textarea id="broadcast-general-message" rows="6" maxlength="10000"></textarea>
-        <p class="admin-muted">Use <code>{"{name}"}</code> in the subject or message and each subscriber gets their own saved name filled in automatically — falls back to the part of their email before the @ for anyone without one. An unsubscribe link is added automatically; this is a marketing send, unlike the Send Email tab.</p>
+        <p class="admin-muted">Build the email from one or more blocks below — stack a kit announcement, a photo, a raffle-winner shoutout and a call-to-action in any order. Use <code>{"{name}"}</code> in any block's text and each subscriber gets their own saved name filled in automatically — falls back to the part of their email before the @ for anyone without one. An unsubscribe link is added automatically; this is a marketing send, unlike the Send Email tab.</p>
+        <div id="broadcast-general-blocks" class="block-composer"></div>
         <label for="broadcast-general-gif-url">Sign-off gif URL <span class="admin-muted">(optional)</span></label>
         <input id="broadcast-general-gif-url" type="url" placeholder="https://unstitchx.com/…/update.gif" />
         <div class="admin-grid">
@@ -1125,6 +1124,100 @@ import Layout from "../../layouts/Layout.astro";
     border-color: #ece8e1;
     margin-bottom: 14px;
     padding: 16px 18px;
+  }
+
+  /* --- Broadcast block composer (newsletter/waitlist sends, section 0.24) --- */
+  .block-composer__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 14px 0;
+  }
+
+  .block-card {
+    background: #ffffff;
+    border: 1.5px solid #ece8e1;
+    border-radius: var(--radius, 6px);
+    padding: 14px 16px 16px;
+  }
+
+  .block-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .block-card__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444444;
+  }
+
+  .block-card__actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .block-card__actions button {
+    border: 1.5px solid #dcd9d4;
+    background: #ffffff;
+    border-radius: 5px;
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ink, #111111);
+  }
+
+  .block-card__actions button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .block-card__actions button:hover:not(:disabled) {
+    border-color: var(--ink, #111111);
+  }
+
+  .block-card__remove {
+    color: #a33a3a;
+    border-color: #e7cfcf !important;
+  }
+
+  .block-card__body label {
+    margin: 10px 0 5px;
+  }
+
+  .block-card__toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  .block-card__toggles label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+    font-weight: 500;
+    font-size: 0.82rem;
+    margin: 0;
+  }
+
+  .block-card__toggles input[type="checkbox"] {
+    width: auto;
+  }
+
+  .block-composer__add-row {
+    margin-top: 6px;
+  }
+
+  .block-composer__add-row select {
+    max-width: 260px;
   }
 
   #email-template-list input.tpl-name {
@@ -5477,6 +5570,272 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Broadcasts (general newsletter + per-drop waitlist notifications) ---
+  // Block composer: a broadcast's email body is an ordered list of content
+  // blocks (text/update, photo, kit announcement, call-to-action) rather
+  // than one free-text message, so a single send can mix a drop
+  // announcement with a photo and a raffle-winner shoutout. Every block's
+  // copy is still plain editable text, not auto-generated-and-locked --
+  // the "kit" block's headline/body only *default* from the product's
+  // name/tagline (filled in once, on picking a product) and can be
+  // rewritten freely afterwards. Mirrors src/server/admin/broadcast.js's
+  // block shapes exactly -- see that file's BlockSchema.
+  type BroadcastBlock =
+    | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string }
+    | { type: "image"; url: string; alt?: string; caption?: string }
+    | {
+        type: "kit";
+        productId: string;
+        headline?: string;
+        body?: string;
+        showImage: boolean;
+        showPrice: boolean;
+        showKitContents: boolean;
+      }
+    | { type: "cta"; heading?: string; body?: string; buttonLabel?: string; buttonUrl?: string };
+
+  type BroadcastProduct = {
+    id: string;
+    name: string;
+    tagline: string | null;
+    imageUrl: string | null;
+    basePriceCents: number;
+    currency: string;
+    kitContents: unknown[];
+  };
+
+  let broadcastProducts: BroadcastProduct[] = [];
+
+  function bcEscHtml(value: string): string {
+    return (value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+  }
+
+  function bcFormatPrice(cents: number, currency: string): string {
+    return `${(currency || "AUD").toUpperCase()} $${(cents / 100).toFixed(2)}`;
+  }
+
+  const BLOCK_TITLES: Record<BroadcastBlock["type"], string> = {
+    text: "Text / update",
+    image: "Photo",
+    kit: "Kit announcement",
+    cta: "Call-to-action",
+  };
+
+  function newBlock(type: BroadcastBlock["type"]): BroadcastBlock {
+    if (type === "text") return { type, heading: "", body: "" };
+    if (type === "image") return { type, url: "", alt: "", caption: "" };
+    if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
+    return { type: "kit", productId: "", headline: "", body: "", showImage: true, showPrice: true, showKitContents: false };
+  }
+
+  /** Mounts a reusable block-list editor into `container` (the general
+   * newsletter card, or one per-product waitlist card) and returns a
+   * getter/setter for its current block list. Each card gets its own
+   * independent composer instance/state. */
+  function createBlockComposer(container: HTMLElement, initial: BroadcastBlock[] = []) {
+    let blocks: BroadcastBlock[] = initial;
+
+    const listEl = document.createElement("div");
+    listEl.className = "block-composer__list";
+    const addRow = document.createElement("div");
+    addRow.className = "block-composer__add-row admin-field-row";
+    addRow.innerHTML = `
+      <select class="bc-add-select">
+        <option value="">+ Add a block…</option>
+        <option value="text">Text / update</option>
+        <option value="image">Photo</option>
+        <option value="kit">Kit announcement</option>
+        <option value="cta">Call-to-action</option>
+      </select>`;
+    container.appendChild(listEl);
+    container.appendChild(addRow);
+
+    const addSelect = addRow.querySelector(".bc-add-select") as HTMLSelectElement;
+    addSelect.addEventListener("change", () => {
+      const type = addSelect.value as BroadcastBlock["type"] | "";
+      if (!type) return;
+      blocks.push(newBlock(type));
+      addSelect.value = "";
+      render();
+    });
+
+    function render() {
+      listEl.innerHTML = "";
+      blocks.forEach((block, index) => listEl.appendChild(renderCard(block, index)));
+    }
+
+    function renderCard(block: BroadcastBlock, index: number): HTMLElement {
+      const card = document.createElement("div");
+      card.className = "block-card";
+      card.innerHTML = `
+        <div class="block-card__header">
+          <span class="block-card__title">${BLOCK_TITLES[block.type]}</span>
+          <span class="block-card__actions">
+            <button type="button" class="bc-move-up" ${index === 0 ? "disabled" : ""} title="Move up">↑</button>
+            <button type="button" class="bc-move-down" ${index === blocks.length - 1 ? "disabled" : ""} title="Move down">↓</button>
+            <button type="button" class="block-card__remove bc-remove" title="Remove block">✕</button>
+          </span>
+        </div>
+        <div class="block-card__body"></div>`;
+
+      card.querySelector(".bc-remove")?.addEventListener("click", () => {
+        blocks.splice(index, 1);
+        render();
+      });
+      card.querySelector(".bc-move-up")?.addEventListener("click", () => {
+        if (index === 0) return;
+        [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
+        render();
+      });
+      card.querySelector(".bc-move-down")?.addEventListener("click", () => {
+        if (index === blocks.length - 1) return;
+        [blocks[index + 1], blocks[index]] = [blocks[index], blocks[index + 1]];
+        render();
+      });
+
+      (card.querySelector(".block-card__body") as HTMLElement).appendChild(renderFields(block, index));
+      return card;
+    }
+
+    function renderFields(block: BroadcastBlock, index: number): HTMLElement {
+      const wrap = document.createElement("div");
+      const set = (key: string, value: unknown) => {
+        (blocks[index] as any)[key] = value;
+      };
+
+      if (block.type === "text") {
+        wrap.innerHTML = `
+          <label>Heading <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
+          <label>Body</label>
+          <textarea class="f-body" rows="4" maxlength="10000">${bcEscHtml(block.body || "")}</textarea>
+          <label>Image <span class="admin-muted">(optional — full URL, or a site path like /SlowBloom.png)</span></label>
+          <input type="text" class="f-image-url" placeholder="https://… or /SlowBloom.png" value="${bcEscHtml(block.imageUrl || "")}" />
+          <label>Image alt text <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-image-alt" value="${bcEscHtml(block.imageAlt || "")}" />`;
+        wrap.querySelector(".f-heading")?.addEventListener("input", (e) => set("heading", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+        wrap.querySelector(".f-image-url")?.addEventListener("input", (e) => set("imageUrl", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-image-alt")?.addEventListener("input", (e) => set("imageAlt", (e.target as HTMLInputElement).value));
+        return wrap;
+      }
+
+      if (block.type === "image") {
+        wrap.innerHTML = `
+          <label>Image URL <span class="admin-muted">(full URL, or a site path like /SlowBloom.png)</span></label>
+          <input type="text" class="f-url" placeholder="https://… or /SlowBloom.png" value="${bcEscHtml(block.url || "")}" />
+          <label>Alt text <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-alt" value="${bcEscHtml(block.alt || "")}" />
+          <label>Caption <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-caption" maxlength="300" value="${bcEscHtml(block.caption || "")}" />`;
+        wrap.querySelector(".f-url")?.addEventListener("input", (e) => set("url", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-alt")?.addEventListener("input", (e) => set("alt", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-caption")?.addEventListener("input", (e) => set("caption", (e.target as HTMLInputElement).value));
+        return wrap;
+      }
+
+      if (block.type === "kit") {
+        const options = broadcastProducts
+          .map((p) => `<option value="${p.id}" ${p.id === block.productId ? "selected" : ""}>${bcEscHtml(p.name)}</option>`)
+          .join("");
+        wrap.innerHTML = `
+          <label>Product</label>
+          <select class="f-product"><option value="">Choose a product…</option>${options}</select>
+          <label>Headline <span class="admin-muted">(optional — defaults to "New drop: {product name}")</span></label>
+          <input type="text" class="f-headline" maxlength="200" value="${bcEscHtml(block.headline || "")}" />
+          <label>Body copy <span class="admin-muted">(optional — defaults to the product's tagline)</span></label>
+          <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+          <div class="block-card__toggles">
+            <label><input type="checkbox" class="f-show-image" ${block.showImage ? "checked" : ""} /> Show product photo</label>
+            <label><input type="checkbox" class="f-show-price" ${block.showPrice ? "checked" : ""} /> Show price</label>
+            <label><input type="checkbox" class="f-show-contents" ${block.showKitContents ? "checked" : ""} /> Show "what's in the kit"</label>
+          </div>
+          <p class="admin-muted" style="margin-top:8px;">Pulls the product's real photo, tagline, price and kit contents at send time — editing them here only overrides the headline/body copy for this send, the product record itself is untouched.</p>`;
+        wrap.querySelector(".f-product")?.addEventListener("change", (e) => {
+          const productId = (e.target as HTMLSelectElement).value;
+          set("productId", productId);
+          // Prefill editable copy from the product the first time one's
+          // picked, but never clobber copy the admin's already written.
+          const product = broadcastProducts.find((p) => p.id === productId);
+          if (product && !block.headline && !block.body) {
+            const headlineInput = wrap.querySelector(".f-headline") as HTMLInputElement;
+            const bodyInput = wrap.querySelector(".f-body") as HTMLTextAreaElement;
+            if (headlineInput && !headlineInput.value) {
+              headlineInput.value = `New drop: ${product.name}`;
+              set("headline", headlineInput.value);
+            }
+            if (bodyInput && !bodyInput.value && product.tagline) {
+              bodyInput.value = product.tagline;
+              set("body", bodyInput.value);
+            }
+          }
+        });
+        wrap.querySelector(".f-headline")?.addEventListener("input", (e) => set("headline", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+        wrap.querySelector(".f-show-image")?.addEventListener("change", (e) => set("showImage", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-show-price")?.addEventListener("change", (e) => set("showPrice", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-show-contents")?.addEventListener("change", (e) => set("showKitContents", (e.target as HTMLInputElement).checked));
+        return wrap;
+      }
+
+      // cta
+      wrap.innerHTML = `
+        <label>Heading <span class="admin-muted">(optional)</span></label>
+        <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
+        <label>Body <span class="admin-muted">(optional)</span></label>
+        <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+        <div class="admin-grid">
+          <label>Button label<input type="text" class="f-btn-label" maxlength="60" value="${bcEscHtml(block.buttonLabel || "")}" /></label>
+          <label>Button link<input type="url" class="f-btn-url" placeholder="https://… or mailto:…" value="${bcEscHtml(block.buttonUrl || "")}" /></label>
+        </div>`;
+      wrap.querySelector(".f-heading")?.addEventListener("input", (e) => set("heading", (e.target as HTMLInputElement).value));
+      wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+      wrap.querySelector(".f-btn-label")?.addEventListener("input", (e) => set("buttonLabel", (e.target as HTMLInputElement).value));
+      wrap.querySelector(".f-btn-url")?.addEventListener("input", (e) => set("buttonUrl", (e.target as HTMLInputElement).value));
+      return wrap;
+    }
+
+    render();
+    return {
+      getBlocks: (): BroadcastBlock[] => blocks,
+      setBlocks: (next: BroadcastBlock[]) => {
+        blocks = next;
+        render();
+      },
+    };
+  }
+
+  /** Strips out fully-empty blocks (added via "+ Add a block" then never
+   * filled in) and surfaces one validation error, rather than silently
+   * sending a blank section or letting the server reject the whole send
+   * over one stray block. Returns null (and shows the hint) if nothing
+   * sendable remains. */
+  function validateBroadcastBlocks(blocks: BroadcastBlock[], status: HTMLElement): BroadcastBlock[] | null {
+    const cleaned = blocks.filter((b) => {
+      if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
+      if (b.type === "image") return !!b.url?.trim();
+      if (b.type === "kit") return !!b.productId;
+      if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
+      return false;
+    });
+    if (cleaned.length === 0) {
+      showHint(status, "Add at least one block with some content.", false);
+      return null;
+    }
+    const incompleteKit = cleaned.find((b) => b.type === "kit" && !(b as any).productId);
+    if (incompleteKit) {
+      showHint(status, "A kit announcement block needs a product selected.", false);
+      return null;
+    }
+    const incompleteCta = cleaned.find((b) => b.type === "cta" && ((b as any).buttonLabel?.trim() ? !(b as any).buttonUrl?.trim() : !!(b as any).buttonUrl?.trim()));
+    if (incompleteCta) {
+      showHint(status, "A call-to-action block needs both a button label and a link, or neither.", false);
+      return null;
+    }
+    return cleaned;
+  }
+
+  const generalComposer = createBlockComposer(document.getElementById("broadcast-general-blocks") as HTMLElement, [newBlock("text")]);
+
   async function loadBroadcastStats() {
     try {
       const res = await api("/api/admin/broadcast");
@@ -5484,6 +5843,7 @@ import Layout from "../../layouts/Layout.astro";
       if (res.ok) {
         const countEl = document.getElementById("broadcast-general-count") as HTMLElement;
         countEl.textContent = String(data.generalCount ?? 0);
+        broadcastProducts = data.products || [];
         renderBroadcastWaitlists(data.waitlists || []);
       }
     } catch {
@@ -5503,7 +5863,8 @@ import Layout from "../../layouts/Layout.astro";
         <div class="admin-card admin-card--nested" data-waitlist-product-id="${w.productId}">
           <h3>${w.productName.replace(/</g, "&lt;")} <span class="admin-muted">(${w.pendingCount} waiting)</span></h3>
           <label>Subject<input type="text" class="wl-subject" maxlength="200" /></label>
-          <label>Message<textarea class="wl-message" rows="4" maxlength="10000"></textarea></label>
+          <p class="admin-muted">Build the notification from one or more blocks — a "Kit announcement" block defaults to this product, but you can add a photo, an update or a call-to-action alongside it.</p>
+          <div class="wl-blocks block-composer"></div>
           <label>Sign-off gif URL <span class="admin-muted">(optional)</span><input type="url" class="wl-gif-url" placeholder="https://unstitchx.com/…/drop.gif" /></label>
           <div class="admin-grid">
             <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input type="text" class="wl-sig-name" placeholder="Astra" /></label>
@@ -5521,17 +5882,21 @@ import Layout from "../../layouts/Layout.astro";
     container.querySelectorAll<HTMLElement>("[data-waitlist-product-id]").forEach((card) => {
       const productId = card.getAttribute("data-waitlist-product-id") as string;
       const status = card.querySelector(".wl-status") as HTMLElement;
+      const defaultKitBlock = newBlock("kit") as BroadcastBlock & { type: "kit" };
+      defaultKitBlock.productId = productId;
+      const composer = createBlockComposer(card.querySelector(".wl-blocks") as HTMLElement, [defaultKitBlock]);
       const getFields = () => ({
         subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
-        message: (card.querySelector(".wl-message") as HTMLTextAreaElement).value.trim(),
         gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
         signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
         signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
       });
 
       card.querySelector(".wl-preview")?.addEventListener("click", async () => {
-        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
-        if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject) return showHint(status, "Fill in a subject to preview.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
         try {
           const res = await api("/api/admin/broadcast", {
             method: "POST",
@@ -5539,7 +5904,7 @@ import Layout from "../../layouts/Layout.astro";
               mode: "waitlist",
               productId,
               subject,
-              message,
+              blocks,
               gifUrl: gifUrl || undefined,
               signatureName: signatureName || undefined,
               signatureRole: signatureRole || undefined,
@@ -5555,8 +5920,10 @@ import Layout from "../../layouts/Layout.astro";
       });
 
       card.querySelector(".wl-send")?.addEventListener("click", async () => {
-        const { subject, message, gifUrl, signatureName, signatureRole } = getFields();
-        if (!subject || !message) return showHint(status, "Fill in all fields.", false);
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject) return showHint(status, "Fill in a subject.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
         if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
         try {
           const res = await api("/api/admin/broadcast", {
@@ -5565,7 +5932,7 @@ import Layout from "../../layouts/Layout.astro";
               mode: "waitlist",
               productId,
               subject,
-              message,
+              blocks,
               gifUrl: gifUrl || undefined,
               signatureName: signatureName || undefined,
               signatureRole: signatureRole || undefined,
@@ -5590,11 +5957,12 @@ import Layout from "../../layouts/Layout.astro";
   document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
     const status = document.getElementById("broadcast-general-status") as HTMLElement;
     const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
     const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
     const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
     const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
-    if (!subject || !message) return showHint(status, "Fill in subject and message.", false);
+    if (!subject) return showHint(status, "Fill in a subject.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
     if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
     try {
       const res = await api("/api/admin/broadcast", {
@@ -5602,7 +5970,7 @@ import Layout from "../../layouts/Layout.astro";
         body: JSON.stringify({
           mode: "general",
           subject,
-          message,
+          blocks,
           gifUrl: gifUrl || undefined,
           signatureName: signatureName || undefined,
           signatureRole: signatureRole || undefined,
@@ -5624,18 +5992,19 @@ import Layout from "../../layouts/Layout.astro";
   document.getElementById("broadcast-general-preview")?.addEventListener("click", async () => {
     const status = document.getElementById("broadcast-general-status") as HTMLElement;
     const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const message = (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim();
     const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
     const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
     const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
-    if (!subject || !message) return showHint(status, "Fill in subject and message to preview.", false);
+    if (!subject) return showHint(status, "Fill in a subject to preview.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
     try {
       const res = await api("/api/admin/broadcast", {
         method: "POST",
         body: JSON.stringify({
           mode: "general",
           subject,
-          message,
+          blocks,
           gifUrl: gifUrl || undefined,
           signatureName: signatureName || undefined,
           signatureRole: signatureRole || undefined,

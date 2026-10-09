@@ -159,6 +159,160 @@ export function fillMessageVars(template, vars) {
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
 }
 
+/**
+ * Newsletter/broadcast content blocks (src/server/admin/broadcast.js).
+ * A broadcast is an ordered list of these rather than one free-text
+ * `message`, so a single send can mix a drop announcement, a photo, a
+ * raffle-winner shoutout and a call-to-action in any order -- every
+ * block's own heading/body/caption copy is still plain admin-written
+ * text, never auto-generated-and-locked, even the "kit" block's
+ * headline/body, which only default from the product's real name/
+ * tagline and can be freely rewritten per send.
+ *
+ * Block shapes (all fields besides `type` optional unless noted):
+ *   { type: 'text', heading?, body?, imageUrl?, imageAlt? }
+ *   { type: 'image', url (required), alt?, caption? }
+ *   { type: 'kit', productId (required), headline?, body?, showImage?, showPrice?, showKitContents? }
+ *   { type: 'cta', heading?, body?, buttonLabel?, buttonUrl? }
+ *
+ * `productsById` is a Map<string, {name, tagline, imageUrl, basePriceCents,
+ * currency, kitContents}> for every productId a "kit" block references --
+ * see src/server/admin/broadcast.js's loadProductsForBlocks(). A kit block
+ * whose product isn't in the map (shouldn't happen -- the caller checks
+ * for a missing product before calling this) renders as nothing rather
+ * than crashing the whole send.
+ */
+
+function formatBlockPrice(cents, currency) {
+  return `${(currency || 'AUD').toUpperCase()} $${(cents / 100).toFixed(2)}`;
+}
+
+function kitContentLine(entry) {
+  if (typeof entry === 'string') return entry;
+  if (entry && typeof entry === 'object' && 'item' in entry) return String(entry.item);
+  return String(entry ?? '');
+}
+
+function textParagraphsHtml(body) {
+  return (body || '')
+    .split(/\n{2,}/)
+    .filter((para) => para.trim().length > 0)
+    .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+}
+
+function blockHtml(block, productsById) {
+  switch (block.type) {
+    case 'text': {
+      const headingHtml = block.heading
+        ? `<h2 style="margin:22px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        : '';
+      const imageHtml = block.imageUrl
+        ? `<img src="${esc(block.imageUrl)}" alt="${esc(block.imageAlt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:0 0 14px;" />`
+        : '';
+      return `${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`;
+    }
+    case 'image': {
+      const captionHtml = block.caption
+        ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
+        : '';
+      return `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:14px 0 0;" />${captionHtml}`;
+    }
+    case 'kit': {
+      const product = productsById.get(block.productId);
+      if (!product) return '';
+      const headline = block.headline || `New drop: ${product.name}`;
+      const bodyText = block.body || product.tagline || '';
+      const imageHtml = block.showImage && product.imageUrl
+        ? `<img src="${esc(product.imageUrl)}" alt="${esc(product.name)}" width="496" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:0 0 14px;" />`
+        : '';
+      const priceHtml = block.showPrice
+        ? `<p style="margin:0 0 10px;font-family:${FONT_DISPLAY};font-size:16px;font-weight:700;color:${INK};">${esc(formatBlockPrice(product.basePriceCents, product.currency))}</p>`
+        : '';
+      const contentsHtml = block.showKitContents && Array.isArray(product.kitContents) && product.kitContents.length
+        ? `<ul style="margin:0 0 14px;padding-left:20px;font-family:${FONT_BODY};font-size:13px;color:#333;">${product.kitContents
+            .map((item) => `<li style="margin:0 0 4px;">${esc(kitContentLine(item))}</li>`)
+            .join('')}</ul>`
+        : '';
+      return `
+    <div style="background:${BG};border-radius:12px;padding:20px 20px 4px;margin:18px 0 22px;">
+      <h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
+      ${imageHtml}
+      ${priceHtml}
+      ${bodyText ? `<p style="margin:0 0 14px;">${esc(bodyText)}</p>` : ''}
+      ${contentsHtml}
+    </div>`;
+    }
+    case 'cta': {
+      const headingHtml = block.heading
+        ? `<h2 style="margin:22px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        : '';
+      const bodyHtml = block.body ? `<p style="margin:0 0 16px;">${esc(block.body)}</p>` : '';
+      const buttonHtml = block.buttonLabel && block.buttonUrl
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px auto 18px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(block.buttonUrl)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(block.buttonLabel)}</a></td></tr></table>`
+        : '';
+      return `${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`;
+    }
+    default:
+      return '';
+  }
+}
+
+function blockText(block, productsById) {
+  switch (block.type) {
+    case 'text':
+      return [block.heading, block.body].filter(Boolean).join('\n');
+    case 'image':
+      return block.caption ? `[image: ${block.caption}]` : '[image]';
+    case 'kit': {
+      const product = productsById.get(block.productId);
+      if (!product) return '';
+      const lines = [block.headline || `New drop: ${product.name}`];
+      if (block.showPrice) lines.push(formatBlockPrice(product.basePriceCents, product.currency));
+      const bodyText = block.body || product.tagline;
+      if (bodyText) lines.push(bodyText);
+      if (block.showKitContents && Array.isArray(product.kitContents)) {
+        for (const item of product.kitContents) lines.push(`- ${kitContentLine(item)}`);
+      }
+      return lines.filter(Boolean).join('\n');
+    }
+    case 'cta':
+      return [block.heading, block.body, block.buttonLabel && block.buttonUrl ? `${block.buttonLabel}: ${block.buttonUrl}` : null]
+        .filter(Boolean)
+        .join('\n');
+    default:
+      return '';
+  }
+}
+
+/** Renders an ordered block list into the HTML that goes inside
+ * brandedEmailHtml's `bodyHtml` slot. See the block-shapes comment above. */
+export function renderBlocksHtml(blocks, productsById) {
+  return blocks.map((block) => blockHtml(block, productsById)).join('');
+}
+
+/** Plain-text counterpart to renderBlocksHtml, for the `text` fallback
+ * every Resend send carries alongside its `html`. */
+export function renderBlocksText(blocks, productsById) {
+  return blocks.map((block) => blockText(block, productsById)).filter(Boolean).join('\n\n');
+}
+
+/** Applies fillMessageVars (the {name}-style placeholder fill) to every
+ * editable text field across a block list, so {name} works inside any
+ * block's heading/body/caption/button label, not just a single top-level
+ * message. Structural fields (type, productId, url, buttonUrl, the
+ * showImage/showPrice/showKitContents toggles) are left untouched. */
+export function fillBlockVars(blocks, vars) {
+  return blocks.map((block) => {
+    const filled = { ...block };
+    for (const key of ['heading', 'body', 'headline', 'caption', 'buttonLabel']) {
+      if (typeof filled[key] === 'string') filled[key] = fillMessageVars(filled[key], vars);
+    }
+    return filled;
+  });
+}
+
+
 // Default sign-off for a free-composed send (the admin's custom/bulk
 // email, and the newsletter/waitlist broadcasts) — overridable per-send
 // via signatureName/signatureRole. Not used for order-confirmation-style
