@@ -216,14 +216,28 @@ function withHighlight(innerHtml, highlightColor) {
     </div>`;
 }
 
+/** The same black pill button used by brandedEmailHtml's top-level `cta`
+ * and the standalone "cta" block -- shared here so the "kit" block's own
+ * button (below) renders identically rather than drifting. */
+function pillButtonHtml(label, url) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 4px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(url)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(label)}</a></td></tr></table>`;
+}
+
 function blockHtml(block, productsById) {
+  // A heading's own top margin (breathing room from whatever came before
+  // it) doubles up with withHighlight()'s box padding once a block is
+  // boxed, leaving a visibly oversized gap above the heading -- so boxed
+  // headings/images drop their top margin and let the box's padding do
+  // that job instead.
+  const boxed = !!block.highlightColor;
+
   switch (block.type) {
     case 'text': {
       const headingHtml = block.heading
-        ? `<h2 style="margin:22px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        ? `<h2 style="margin:${boxed ? 0 : 22}px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
         : '';
       const imageHtml = block.imageUrl
-        ? `<img src="${esc(block.imageUrl)}" alt="${esc(block.imageAlt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:0 0 14px;" />`
+        ? `<img src="${esc(block.imageUrl)}" alt="${esc(block.imageAlt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed || block.heading ? 0 : 14}px 0 14px;" />`
         : '';
       return withHighlight(`${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`, block.highlightColor);
     }
@@ -232,7 +246,7 @@ function blockHtml(block, productsById) {
         ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
         : '';
       return withHighlight(
-        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:14px 0 0;" />${captionHtml}`,
+        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
         block.highlightColor,
       );
     }
@@ -252,23 +266,29 @@ function blockHtml(block, productsById) {
             .map((item) => `<li style="margin:0 0 4px;">${esc(kitContentLine(item))}</li>`)
             .join('')}</ul>`
         : '';
+      // The button lives inside the kit card itself (not a separate block
+      // stacked underneath) so it's visually attached to the product it's
+      // actually for -- "Shop now"/"Add to bag" style, straight to the
+      // product page.
+      const buttonHtml = block.buttonLabel && block.buttonUrl
+        ? `<div style="text-align:center;">${pillButtonHtml(block.buttonLabel, block.buttonUrl)}</div>`
+        : '';
       return withHighlight(
         `<h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
       ${imageHtml}
       ${priceHtml}
       ${bodyText ? `<p style="margin:0 0 14px;">${esc(bodyText)}</p>` : ''}
-      ${contentsHtml}`,
+      ${contentsHtml}
+      ${buttonHtml}`,
         block.highlightColor,
       );
     }
     case 'cta': {
       const headingHtml = block.heading
-        ? `<h2 style="margin:22px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        ? `<h2 style="margin:${boxed ? 0 : 22}px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
         : '';
       const bodyHtml = block.body ? `<p style="margin:0 0 16px;">${esc(block.body)}</p>` : '';
-      const buttonHtml = block.buttonLabel && block.buttonUrl
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px auto 18px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(block.buttonUrl)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(block.buttonLabel)}</a></td></tr></table>`
-        : '';
+      const buttonHtml = block.buttonLabel && block.buttonUrl ? pillButtonHtml(block.buttonLabel, block.buttonUrl) : '';
       return withHighlight(`${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`, block.highlightColor);
     }
     default:
@@ -292,6 +312,7 @@ function blockText(block, productsById) {
       if (block.showKitContents && Array.isArray(product.kitContents)) {
         for (const item of product.kitContents) lines.push(`- ${kitContentLine(item)}`);
       }
+      if (block.buttonLabel && block.buttonUrl) lines.push(`${block.buttonLabel}: ${block.buttonUrl}`);
       return lines.filter(Boolean).join('\n');
     }
     case 'cta':

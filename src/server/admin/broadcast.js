@@ -101,6 +101,14 @@ const KitBlockSchema = z.object({
   showImage: z.boolean().optional().default(true),
   showPrice: z.boolean().optional().default(true),
   showKitContents: z.boolean().optional().default(false),
+  // The button lives on the card itself -- see emailTemplate.js's "kit"
+  // case -- rather than needing a separate cta block stacked underneath
+  // to put any call-to-action next to the product it's actually about.
+  // buttonUrl may be a site-relative path (e.g. "/shop"); resolved to an
+  // absolute URL alongside the product photo in resolveBlockImageUrls
+  // below, the same way an image block's `url` is.
+  buttonLabel: z.string().trim().max(60).optional(),
+  buttonUrl: z.string().trim().min(1).max(2000).optional(),
   // Composer's newBlock('kit') pre-fills this with the default card colour
   // so a kit announcement keeps its existing boxed look unless the admin
   // clears it -- the schema itself treats it the same as any other block.
@@ -204,10 +212,16 @@ function absoluteUrl(req, urlOrPath) {
   return `${getSiteOrigin(req)}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
 }
 
-/** Resolves standalone image blocks' `url` to an absolute URL -- see
- * absoluteUrl() above. Returns a new array; doesn't mutate the input. */
+/** Resolves standalone image blocks' `url`, and a kit block's own
+ * `buttonUrl` (e.g. a typed "/shop" rather than a full link), to an
+ * absolute URL -- see absoluteUrl() above. Returns a new array; doesn't
+ * mutate the input. */
 function resolveBlockImageUrls(req, blocks) {
-  return blocks.map((block) => (block.type === 'image' ? { ...block, url: absoluteUrl(req, block.url) } : block));
+  return blocks.map((block) => {
+    if (block.type === 'image') return { ...block, url: absoluteUrl(req, block.url) };
+    if (block.type === 'kit' && block.buttonUrl) return { ...block, buttonUrl: absoluteUrl(req, block.buttonUrl) };
+    return block;
+  });
 }
 
 /** Same resolution, applied to a kit block's product photo instead --

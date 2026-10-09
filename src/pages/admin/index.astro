@@ -5594,6 +5594,8 @@ import Layout from "../../layouts/Layout.astro";
         showImage: boolean;
         showPrice: boolean;
         showKitContents: boolean;
+        buttonLabel?: string;
+        buttonUrl?: string;
         highlightColor?: string;
       }
     | { type: "cta"; heading?: string; body?: string; buttonLabel?: string; buttonUrl?: string; highlightColor?: string };
@@ -5629,8 +5631,10 @@ import Layout from "../../layouts/Layout.astro";
     if (type === "text") return { type, heading: "", body: "" };
     if (type === "image") return { type, url: "", alt: "", caption: "" };
     if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
-    // Pre-filled so a kit announcement keeps its existing boxed look by
-    // default -- the admin can clear or recolour it like any other block.
+    // Pre-filled so a kit announcement keeps its existing boxed look, and
+    // a "Shop now" button straight to the one real product page, unless
+    // the admin clears or changes either -- the admin can always edit
+    // both like any other block field.
     return {
       type: "kit",
       productId: "",
@@ -5639,6 +5643,8 @@ import Layout from "../../layouts/Layout.astro";
       showImage: true,
       showPrice: true,
       showKitContents: false,
+      buttonLabel: "Shop now",
+      buttonUrl: "/shop",
       highlightColor: DEFAULT_HIGHLIGHT_COLOR,
     };
   }
@@ -5791,7 +5797,12 @@ import Layout from "../../layouts/Layout.astro";
             <label><input type="checkbox" class="f-show-price" ${block.showPrice ? "checked" : ""} /> Show price</label>
             <label><input type="checkbox" class="f-show-contents" ${block.showKitContents ? "checked" : ""} /> Show "what's in the kit"</label>
           </div>
-          <p class="admin-muted" style="margin-top:8px;">Pulls the product's real photo, tagline, price and kit contents at send time — editing them here only overrides the headline/body copy for this send, the product record itself is untouched.</p>`;
+          <p class="admin-muted" style="margin-top:8px;">Pulls the product's real photo, tagline, price and kit contents at send time — editing them here only overrides the headline/body copy for this send, the product record itself is untouched.</p>
+          <label>Button <span class="admin-muted">(optional — e.g. "Shop now", linking straight to the product)</span></label>
+          <div class="admin-grid">
+            <label>Button label<input type="text" class="f-btn-label" maxlength="60" value="${bcEscHtml(block.buttonLabel || "")}" /></label>
+            <label>Button link<input type="text" class="f-btn-url" placeholder="https://… or /shop" value="${bcEscHtml(block.buttonUrl || "")}" /></label>
+          </div>`;
         wrap.querySelector(".f-product")?.addEventListener("change", (e) => {
           const productId = (e.target as HTMLSelectElement).value;
           set("productId", productId);
@@ -5816,6 +5827,8 @@ import Layout from "../../layouts/Layout.astro";
         wrap.querySelector(".f-show-image")?.addEventListener("change", (e) => set("showImage", (e.target as HTMLInputElement).checked));
         wrap.querySelector(".f-show-price")?.addEventListener("change", (e) => set("showPrice", (e.target as HTMLInputElement).checked));
         wrap.querySelector(".f-show-contents")?.addEventListener("change", (e) => set("showKitContents", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-btn-label")?.addEventListener("input", (e) => set("buttonLabel", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-btn-url")?.addEventListener("input", (e) => set("buttonUrl", (e.target as HTMLInputElement).value));
         appendHighlightControl(wrap, block, set);
         return wrap;
       }
