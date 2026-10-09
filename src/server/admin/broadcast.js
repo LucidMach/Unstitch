@@ -48,6 +48,14 @@ import {
   DEFAULT_SIGNATURE_ROLE,
   plainTextSignature,
 } from '../../lib/emailTemplate.js';
+import {
+  getGeneralBroadcastDraft,
+  setGeneralBroadcastDraft,
+  clearGeneralBroadcastDraft,
+  getAllWaitlistBroadcastDrafts,
+  setWaitlistBroadcastDraft,
+  clearWaitlistBroadcastDraft,
+} from '../../lib/settings.js';
 
 // A signed unsubscribe link needs to keep working for as long as someone
 // might still have the email sitting in their inbox -- long enough that
@@ -124,6 +132,49 @@ const BroadcastWaitlistSchema = z.object({
   preview: z.boolean().optional().default(false),
 });
 
+// Drafts (save-draft/clear-draft modes below) are deliberately looser than
+// a real send -- a draft can have an empty subject, an incomplete kit
+// block with no product chosen yet, zero blocks, whatever's mid-thought
+// when the admin clicks away. DraftBlockSchema only bounds field sizes and
+// known keys, not business completeness; BlockSchema (above) still gates
+// what can actually be sent.
+const DraftBlockSchema = z
+  .object({
+    type: z.enum(['text', 'image', 'kit', 'cta']),
+    heading: z.string().max(200).optional(),
+    body: z.string().max(10000).optional(),
+    imageUrl: z.string().max(2000).optional(),
+    imageAlt: z.string().max(200).optional(),
+    url: z.string().max(2000).optional(),
+    alt: z.string().max(200).optional(),
+    caption: z.string().max(300).optional(),
+    productId: z.string().max(100).optional(),
+    headline: z.string().max(200).optional(),
+    showImage: z.boolean().optional(),
+    showPrice: z.boolean().optional(),
+    showKitContents: z.boolean().optional(),
+    buttonLabel: z.string().max(60).optional(),
+    buttonUrl: z.string().max(2000).optional(),
+  })
+  .passthrough();
+
+const SaveDraftSchema = z.object({
+  mode: z.literal('save-draft'),
+  kind: z.enum(['general', 'waitlist']),
+  productId: z.string().uuid().optional(),
+  subject: z.string().max(200).optional().default(''),
+  blocks: z.array(DraftBlockSchema).max(20).optional().default([]),
+  gifUrl: z.string().max(2000).optional().default(''),
+  signatureName: z.string().max(100).optional().default(''),
+  signatureRole: z.string().max(150).optional().default(''),
+});
+
+const ClearDraftSchema = z.object({
+  mode: z.literal('clear-draft'),
+  kind: z.enum(['general', 'waitlist']),
+  productId: z.string().uuid().optional(),
+});
+
 function nameForSubscriber(sub) {
   return sub.name || sub.email.split('@')[0];
 }
@@ -135,7 +186,7 @@ function unsubscribeUrlFor(req, subscriberId) {
 
 // A standalone image block, or a kit block's product photo, can be typed/
 // stored as either a full URL or a site-relative path (e.g. the product's
-// own `imageUrl`, which defaults to "/SlowBloom.png" -- see
+// own `imageUrl`, which defaults to "/slow-bloom-hero.jpg" -- see
 // prisma/schema.prisma). Resend has no notion of "relative to this site",
 // so anything not already absolute is resolved against the site origin
 // before it goes anywhere near an email.
@@ -224,7 +275,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const [generalCount, pending, products] = await Promise.all([
+      const [generalCount, pending, products, generalDraft, waitlistDrafts] = await Promise.all([
         prisma.subscriber.count({ where: { unsubscribedAt: null } }),
         prisma.subscriber.groupBy({
           by: ['productId'],
@@ -239,6 +290,12 @@ export default async function handler(req, res) {
           select: { id: true, name: true, tagline: true, imageUrl: true, basePriceCents: true, currency: true, kitContents: true },
           orderBy: { name: 'asc' },
         }),
+        // Saved composer drafts (src/lib/settings.js) -- handed back in the
+        // same GET the Broadcasts tab already makes on load/tab-switch, so
+        // the general card and every waitlist card can restore their last
+        // saved draft without a separate round trip each.
+        getGeneralBroadcastDraft(),
+        getAllWaitlistBroadcastDrafts(),
       ]);
 
       const productIds = pending.map((p) => p.productId).filter(Boolean);
@@ -255,7 +312,7 @@ export default async function handler(req, res) {
         }))
         .sort((a, b) => b.pendingCount - a.pendingCount);
 
-      return sendJson(res, 200, { generalCount, waitlists, products });
+      return sendJson(res, 200, { generalCount, waitlists, products, drafts: { general: generalDraft, waitlist: waitlistDrafts } });
     } catch (err) {
       console.error('[admin/broadcast] GET failed:', err);
       return sendJson(res, 500, { error: 'Failed to load broadcast stats.' });
@@ -273,6 +330,57 @@ export default async function handler(req, res) {
   }
 
   const body = parseRequestBody(req);
+
+  // Draft save/clear are handled before the preview/send gate below --
+  // neither needs RESEND_API_KEY configured (saving a draft shouldn't be
+  // blocked by email not being set up yet), and neither sends anything.
+  if (body?.mode === 'save-draft') {
+    const parseResult = SaveDraftSchema.safeParse(body);
+    if (!parseResult.success) {
+      const formatted = formatZodError(parseResult.error);
+      return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+    }
+    const { kind, productId, subject, blocks, gifUrl, signatureName, signatureRole } = parseResult.data;
+    if (kind === 'waitlist' && !productId) {
+      return sendJson(res, 400, { error: 'productId is required for a waitlist draft.' });
+    }
+    try {
+      const draft = { subject, blocks, gifUrl, signatureName, signatureRole, savedAt: new Date().toISOString() };
+      if (kind === 'general') {
+        await setGeneralBroadcastDraft(draft);
+      } else {
+        await setWaitlistBroadcastDraft(productId, draft);
+      }
+      return sendJson(res, 200, { ok: true, savedAt: draft.savedAt });
+    } catch (err) {
+      console.error('[admin/broadcast] Failed to save draft:', err);
+      return sendJson(res, 500, { error: 'Failed to save draft.' });
+    }
+  }
+
+  if (body?.mode === 'clear-draft') {
+    const parseResult = ClearDraftSchema.safeParse(body);
+    if (!parseResult.success) {
+      const formatted = formatZodError(parseResult.error);
+      return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+    }
+    const { kind, productId } = parseResult.data;
+    if (kind === 'waitlist' && !productId) {
+      return sendJson(res, 400, { error: 'productId is required to clear a waitlist draft.' });
+    }
+    try {
+      if (kind === 'general') {
+        await clearGeneralBroadcastDraft();
+      } else {
+        await clearWaitlistBroadcastDraft(productId);
+      }
+      return sendJson(res, 200, { ok: true });
+    } catch (err) {
+      console.error('[admin/broadcast] Failed to clear draft:', err);
+      return sendJson(res, 500, { error: 'Failed to clear draft.' });
+    }
+  }
+
   const isPreview = body && body.preview === true;
   if (!isPreview && !process.env.RESEND_API_KEY) {
     return sendJson(res, 503, { error: 'RESEND_API_KEY is not configured.' });

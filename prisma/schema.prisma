@@ -334,11 +334,18 @@ model Product {
   givingInternalValueCentsPerTile Int     @default(0) @map("giving_internal_value_cents_per_tile")
   givingDescription                String? @map("giving_description")
 
-  // Product photo shown on the PDP, in the cart, and next to units in the
-  // admin Inventory tab. Defaulted to the one real photo the site has today
-  // so existing rows backfill correctly on `db push`; swap per-product once
-  // a second SKU with its own photo exists.
-  imageUrl String? @default("/SlowBloom.png") @map("image_url")
+  // Product photo shown on the PDP, in the cart, next to units in the admin
+  // Inventory tab, and as the photo a broadcast "kit announcement" block
+  // pulls in (src/lib/emailTemplate.js's renderBlocksHtml) -- this needs to
+  // be a real, directly-fetchable public URL (not an astro:assets-processed
+  // path, which only resolves inside a build-rendered page), so it's kept
+  // as a plain file under /public rather than an import from src/assets.
+  // "/SlowBloom.png" (this field's original default) stopped resolving to
+  // anything once a later round moved that file into src/assets for the
+  // product gallery (see git history on public/SlowBloom.png) -- swap
+  // per-product once a second SKU with its own photo exists, and keep this
+  // pointed at a real /public file if the photo ever changes again.
+  imageUrl String? @default("/slow-bloom-hero.jpg") @map("image_url")
 
   // Digital passport content (src/pages/passport.astro) — all editable from
   // the admin "Passport" tab (src/server/admin/product.js, section:

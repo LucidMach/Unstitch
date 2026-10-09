@@ -26,6 +26,13 @@ import { DEFAULT_ORDER_MESSAGE } from './emailTemplate.js';
 export const SETTING_KEYS = {
   DEFAULT_ORDER_MESSAGE: 'default_order_message',
   EMAIL_TEMPLATES: 'email_templates',
+  // Broadcast composer drafts (src/server/admin/broadcast.js) -- one saved
+  // draft for the general newsletter card, and a single row holding a
+  // { [productId]: draft } map for every per-product waitlist card, rather
+  // than one Setting row per product (keeps this a fixed two keys
+  // regardless of how many products/drops ever exist).
+  BROADCAST_DRAFT_GENERAL: 'broadcast_draft_general',
+  BROADCAST_DRAFT_WAITLIST: 'broadcast_draft_waitlist',
 };
 
 const STANDARD_TEMPLATE_ID = 'standard';
@@ -155,4 +162,70 @@ export async function getDefaultOrderMessage() {
     console.warn('[settings] Failed to resolve default order message, using fallback:', err);
     return DEFAULT_ORDER_MESSAGE;
   }
+}
+
+/**
+ * Broadcast composer drafts (admin Broadcasts tab, src/server/admin/
+ * broadcast.js) -- lets an admin save an in-progress newsletter/waitlist
+ * send and come back to it later, rather than losing it on a page reload
+ * or a tab switch (the waitlist cards rebuild from scratch every time the
+ * Broadcasts tab stats refresh). A draft is whatever was typed, saved
+ * as-is -- no business validation here (an incomplete block, an empty
+ * subject) since a draft is explicitly a work in progress, not a send.
+ *
+ * @typedef {{subject: string, blocks: unknown[], gifUrl?: string, signatureName?: string, signatureRole?: string, savedAt: string}} BroadcastDraft
+ */
+
+/** @returns {Promise<BroadcastDraft|null>} */
+export async function getGeneralBroadcastDraft() {
+  const raw = await getSetting(SETTING_KEYS.BROADCAST_DRAFT_GENERAL, '');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn('[settings] Failed to parse broadcast_draft_general, ignoring:', err);
+    return null;
+  }
+}
+
+/** @param {BroadcastDraft} draft */
+export async function setGeneralBroadcastDraft(draft) {
+  await setSetting(SETTING_KEYS.BROADCAST_DRAFT_GENERAL, JSON.stringify(draft));
+}
+
+export async function clearGeneralBroadcastDraft() {
+  await setSetting(SETTING_KEYS.BROADCAST_DRAFT_GENERAL, '');
+}
+
+/** @returns {Promise<Record<string, BroadcastDraft>>} productId -> draft */
+async function getWaitlistBroadcastDraftMap() {
+  const raw = await getSetting(SETTING_KEYS.BROADCAST_DRAFT_WAITLIST, '');
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (err) {
+    console.warn('[settings] Failed to parse broadcast_draft_waitlist, ignoring:', err);
+    return {};
+  }
+}
+
+/** @returns {Promise<Record<string, BroadcastDraft>>} the full productId -> draft map, for the Broadcasts tab's one GET to hand every waitlist card its draft in one request */
+export async function getAllWaitlistBroadcastDrafts() {
+  return getWaitlistBroadcastDraftMap();
+}
+
+/** @param {string} productId @param {BroadcastDraft} draft */
+export async function setWaitlistBroadcastDraft(productId, draft) {
+  const map = await getWaitlistBroadcastDraftMap();
+  map[productId] = draft;
+  await setSetting(SETTING_KEYS.BROADCAST_DRAFT_WAITLIST, JSON.stringify(map));
+}
+
+/** @param {string} productId */
+export async function clearWaitlistBroadcastDraft(productId) {
+  const map = await getWaitlistBroadcastDraftMap();
+  delete map[productId];
+  const remaining = Object.keys(map).length;
+  await setSetting(SETTING_KEYS.BROADCAST_DRAFT_WAITLIST, remaining ? JSON.stringify(map) : '');
 }

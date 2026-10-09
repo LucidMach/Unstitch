@@ -695,10 +695,12 @@ import Layout from "../../layouts/Layout.astro";
           <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="broadcast-general-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
         <div class="admin-field-row">
+          <button id="broadcast-general-save-draft" class="btn-ghost btn-ghost--small" type="button">Save draft</button>
           <button id="broadcast-general-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
           <button id="broadcast-general-send" class="btn-primary">Send to all subscribers</button>
         </div>
         <p id="broadcast-general-status" class="admin__hint" hidden></p>
+        <p id="broadcast-general-draft-status" class="admin-muted" style="margin-top:4px;"></p>
       </div>
 
       <div class="admin-card">
@@ -5708,8 +5710,8 @@ import Layout from "../../layouts/Layout.astro";
           <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
           <label>Body</label>
           <textarea class="f-body" rows="4" maxlength="10000">${bcEscHtml(block.body || "")}</textarea>
-          <label>Image <span class="admin-muted">(optional — full URL, or a site path like /SlowBloom.png)</span></label>
-          <input type="text" class="f-image-url" placeholder="https://… or /SlowBloom.png" value="${bcEscHtml(block.imageUrl || "")}" />
+          <label>Image <span class="admin-muted">(optional — full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+          <input type="text" class="f-image-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.imageUrl || "")}" />
           <label>Image alt text <span class="admin-muted">(optional)</span></label>
           <input type="text" class="f-image-alt" value="${bcEscHtml(block.imageAlt || "")}" />`;
         wrap.querySelector(".f-heading")?.addEventListener("input", (e) => set("heading", (e.target as HTMLInputElement).value));
@@ -5721,8 +5723,8 @@ import Layout from "../../layouts/Layout.astro";
 
       if (block.type === "image") {
         wrap.innerHTML = `
-          <label>Image URL <span class="admin-muted">(full URL, or a site path like /SlowBloom.png)</span></label>
-          <input type="text" class="f-url" placeholder="https://… or /SlowBloom.png" value="${bcEscHtml(block.url || "")}" />
+          <label>Image URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+          <input type="text" class="f-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.url || "")}" />
           <label>Alt text <span class="admin-muted">(optional)</span></label>
           <input type="text" class="f-alt" value="${bcEscHtml(block.alt || "")}" />
           <label>Caption <span class="admin-muted">(optional)</span></label>
@@ -5836,6 +5838,40 @@ import Layout from "../../layouts/Layout.astro";
 
   const generalComposer = createBlockComposer(document.getElementById("broadcast-general-blocks") as HTMLElement, [newBlock("text")]);
 
+  type BroadcastDraft = { subject: string; blocks: BroadcastBlock[]; gifUrl?: string; signatureName?: string; signatureRole?: string; savedAt: string };
+
+  function formatDraftSavedAt(savedAt: string): string {
+    try {
+      return new Date(savedAt).toLocaleString();
+    } catch {
+      return savedAt;
+    }
+  }
+
+  // Only ever applied once -- loadBroadcastStats() re-runs every time the
+  // Broadcasts tab is opened (to refresh subscriber/waitlist counts), and
+  // re-applying the saved draft on every one of those would stomp whatever
+  // the admin is actively typing in the general card (its composer/fields
+  // stay mounted across tab switches, unlike the waitlist cards below,
+  // which are rebuilt from scratch every refresh anyway).
+  let generalDraftApplied = false;
+
+  function applyGeneralDraft(draft: BroadcastDraft | null) {
+    const draftStatus = document.getElementById("broadcast-general-draft-status") as HTMLElement;
+    if (!draft) {
+      draftStatus.textContent = "";
+      return;
+    }
+    (document.getElementById("broadcast-general-subject") as HTMLInputElement).value = draft.subject || "";
+    (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = draft.gifUrl || "";
+    (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = draft.signatureName || "";
+    (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = draft.signatureRole || "";
+    generalComposer.setBlocks(draft.blocks?.length ? draft.blocks : [newBlock("text")]);
+    draftStatus.textContent = `Draft from ${formatDraftSavedAt(draft.savedAt)} loaded.`;
+  }
+
+  let waitlistDraftsById: Record<string, BroadcastDraft> = {};
+
   async function loadBroadcastStats() {
     try {
       const res = await api("/api/admin/broadcast");
@@ -5844,6 +5880,11 @@ import Layout from "../../layouts/Layout.astro";
         const countEl = document.getElementById("broadcast-general-count") as HTMLElement;
         countEl.textContent = String(data.generalCount ?? 0);
         broadcastProducts = data.products || [];
+        waitlistDraftsById = (data.drafts?.waitlist as Record<string, BroadcastDraft>) || {};
+        if (!generalDraftApplied) {
+          applyGeneralDraft(data.drafts?.general || null);
+          generalDraftApplied = true;
+        }
         renderBroadcastWaitlists(data.waitlists || []);
       }
     } catch {
@@ -5871,10 +5912,12 @@ import Layout from "../../layouts/Layout.astro";
             <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input type="text" class="wl-sig-role" placeholder="Designer at Unstitch" /></label>
           </div>
           <div class="admin-field-row">
+            <button type="button" class="btn-ghost btn-ghost--small wl-save-draft">Save draft</button>
             <button type="button" class="btn-ghost btn-ghost--small wl-preview">Preview</button>
             <button type="button" class="btn-primary wl-send">Notify waitlist</button>
           </div>
           <p class="wl-status admin__hint" hidden></p>
+          <p class="wl-draft-status admin-muted" style="margin-top:4px;"></p>
         </div>`,
       )
       .join("");
@@ -5882,14 +5925,50 @@ import Layout from "../../layouts/Layout.astro";
     container.querySelectorAll<HTMLElement>("[data-waitlist-product-id]").forEach((card) => {
       const productId = card.getAttribute("data-waitlist-product-id") as string;
       const status = card.querySelector(".wl-status") as HTMLElement;
+      const draftStatus = card.querySelector(".wl-draft-status") as HTMLElement;
+      const savedDraft = waitlistDraftsById[productId];
       const defaultKitBlock = newBlock("kit") as BroadcastBlock & { type: "kit" };
       defaultKitBlock.productId = productId;
-      const composer = createBlockComposer(card.querySelector(".wl-blocks") as HTMLElement, [defaultKitBlock]);
+      const composer = createBlockComposer(
+        card.querySelector(".wl-blocks") as HTMLElement,
+        savedDraft?.blocks?.length ? savedDraft.blocks : [defaultKitBlock],
+      );
+      if (savedDraft) {
+        (card.querySelector(".wl-subject") as HTMLInputElement).value = savedDraft.subject || "";
+        (card.querySelector(".wl-gif-url") as HTMLInputElement).value = savedDraft.gifUrl || "";
+        (card.querySelector(".wl-sig-name") as HTMLInputElement).value = savedDraft.signatureName || "";
+        (card.querySelector(".wl-sig-role") as HTMLInputElement).value = savedDraft.signatureRole || "";
+        draftStatus.textContent = `Draft from ${formatDraftSavedAt(savedDraft.savedAt)} loaded.`;
+      }
       const getFields = () => ({
         subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
         gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
         signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
         signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
+      });
+
+      card.querySelector(".wl-save-draft")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "save-draft",
+              kind: "waitlist",
+              productId,
+              subject,
+              blocks: composer.getBlocks(),
+              gifUrl,
+              signatureName,
+              signatureRole,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) draftStatus.textContent = `Draft saved ${formatDraftSavedAt(data.savedAt)}.`;
+          else showHint(status, data.error || "Failed to save draft.", false);
+        } catch {
+          showHint(status, "Network error saving draft.", false);
+        }
       });
 
       card.querySelector(".wl-preview")?.addEventListener("click", async () => {
@@ -5943,6 +6022,9 @@ import Layout from "../../layouts/Layout.astro";
             const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
             if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
             showHint(status, parts.join(" "), !data.failed?.length);
+            // Best-effort -- a sent broadcast's draft is stale, but a failed
+            // clear shouldn't make the send itself look like it failed.
+            api("/api/admin/broadcast", { method: "POST", body: JSON.stringify({ mode: "clear-draft", kind: "waitlist", productId }) }).catch(() => {});
             loadBroadcastStats();
           } else {
             showHint(status, data.error || "Failed to send.", false);
@@ -5981,11 +6063,43 @@ import Layout from "../../layouts/Layout.astro";
         const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
         if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
         showHint(status, parts.join(" "), !data.failed?.length);
+        // Best-effort -- a sent broadcast's draft is stale, but a failed
+        // clear shouldn't make the send itself look like it failed.
+        api("/api/admin/broadcast", { method: "POST", body: JSON.stringify({ mode: "clear-draft", kind: "general" }) }).catch(() => {});
+        (document.getElementById("broadcast-general-draft-status") as HTMLElement).textContent = "";
       } else {
         showHint(status, data.error || "Failed to send.", false);
       }
     } catch {
       showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("broadcast-general-save-draft")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const draftStatus = document.getElementById("broadcast-general-draft-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "save-draft",
+          kind: "general",
+          subject,
+          blocks: generalComposer.getBlocks(),
+          gifUrl,
+          signatureName,
+          signatureRole,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) draftStatus.textContent = `Draft saved ${formatDraftSavedAt(data.savedAt)}.`;
+      else showHint(status, data.error || "Failed to save draft.", false);
+    } catch {
+      showHint(status, "Network error saving draft.", false);
     }
   });
 
