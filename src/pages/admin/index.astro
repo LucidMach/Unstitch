@@ -5581,9 +5581,11 @@ import Layout from "../../layouts/Layout.astro";
   // name/tagline (filled in once, on picking a product) and can be
   // rewritten freely afterwards. Mirrors src/server/admin/broadcast.js's
   // block shapes exactly -- see that file's BlockSchema.
+  const DEFAULT_HIGHLIGHT_COLOR = "#f6f4f1";
+
   type BroadcastBlock =
-    | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string }
-    | { type: "image"; url: string; alt?: string; caption?: string }
+    | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string; highlightColor?: string }
+    | { type: "image"; url: string; alt?: string; caption?: string; highlightColor?: string }
     | {
         type: "kit";
         productId: string;
@@ -5592,8 +5594,9 @@ import Layout from "../../layouts/Layout.astro";
         showImage: boolean;
         showPrice: boolean;
         showKitContents: boolean;
+        highlightColor?: string;
       }
-    | { type: "cta"; heading?: string; body?: string; buttonLabel?: string; buttonUrl?: string };
+    | { type: "cta"; heading?: string; body?: string; buttonLabel?: string; buttonUrl?: string; highlightColor?: string };
 
   type BroadcastProduct = {
     id: string;
@@ -5626,7 +5629,42 @@ import Layout from "../../layouts/Layout.astro";
     if (type === "text") return { type, heading: "", body: "" };
     if (type === "image") return { type, url: "", alt: "", caption: "" };
     if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
-    return { type: "kit", productId: "", headline: "", body: "", showImage: true, showPrice: true, showKitContents: false };
+    // Pre-filled so a kit announcement keeps its existing boxed look by
+    // default -- the admin can clear or recolour it like any other block.
+    return {
+      type: "kit",
+      productId: "",
+      headline: "",
+      body: "",
+      showImage: true,
+      showPrice: true,
+      showKitContents: false,
+      highlightColor: DEFAULT_HIGHLIGHT_COLOR,
+    };
+  }
+
+  /** Appends a "Highlight this section" checkbox + colour picker to any
+   * block's field panel -- every block type can be optionally boxed with
+   * an admin-chosen background colour (src/lib/emailTemplate.js's
+   * withHighlight), not just the kit block. Shared across all four field
+   * renderers below rather than repeated per type. */
+  function appendHighlightControl(wrap: HTMLElement, block: BroadcastBlock, set: (key: string, value: unknown) => void) {
+    const row = document.createElement("div");
+    row.className = "block-card__toggles";
+    const hasColor = !!block.highlightColor;
+    row.innerHTML = `
+      <label><input type="checkbox" class="f-highlight-toggle" ${hasColor ? "checked" : ""} /> Highlight this section</label>
+      <input type="color" class="f-highlight-color" value="${bcEscHtml(block.highlightColor || DEFAULT_HIGHLIGHT_COLOR)}" style="${hasColor ? "" : "display:none;"}width:44px;padding:2px;" />`;
+    const toggle = row.querySelector(".f-highlight-toggle") as HTMLInputElement;
+    const colorInput = row.querySelector(".f-highlight-color") as HTMLInputElement;
+    toggle.addEventListener("change", () => {
+      colorInput.style.display = toggle.checked ? "" : "none";
+      set("highlightColor", toggle.checked ? colorInput.value : undefined);
+    });
+    colorInput.addEventListener("input", () => {
+      if (toggle.checked) set("highlightColor", colorInput.value);
+    });
+    wrap.appendChild(row);
   }
 
   /** Mounts a reusable block-list editor into `container` (the general
@@ -5718,6 +5756,7 @@ import Layout from "../../layouts/Layout.astro";
         wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
         wrap.querySelector(".f-image-url")?.addEventListener("input", (e) => set("imageUrl", (e.target as HTMLInputElement).value));
         wrap.querySelector(".f-image-alt")?.addEventListener("input", (e) => set("imageAlt", (e.target as HTMLInputElement).value));
+        appendHighlightControl(wrap, block, set);
         return wrap;
       }
 
@@ -5732,6 +5771,7 @@ import Layout from "../../layouts/Layout.astro";
         wrap.querySelector(".f-url")?.addEventListener("input", (e) => set("url", (e.target as HTMLInputElement).value));
         wrap.querySelector(".f-alt")?.addEventListener("input", (e) => set("alt", (e.target as HTMLInputElement).value));
         wrap.querySelector(".f-caption")?.addEventListener("input", (e) => set("caption", (e.target as HTMLInputElement).value));
+        appendHighlightControl(wrap, block, set);
         return wrap;
       }
 
@@ -5776,6 +5816,7 @@ import Layout from "../../layouts/Layout.astro";
         wrap.querySelector(".f-show-image")?.addEventListener("change", (e) => set("showImage", (e.target as HTMLInputElement).checked));
         wrap.querySelector(".f-show-price")?.addEventListener("change", (e) => set("showPrice", (e.target as HTMLInputElement).checked));
         wrap.querySelector(".f-show-contents")?.addEventListener("change", (e) => set("showKitContents", (e.target as HTMLInputElement).checked));
+        appendHighlightControl(wrap, block, set);
         return wrap;
       }
 
@@ -5793,6 +5834,7 @@ import Layout from "../../layouts/Layout.astro";
       wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
       wrap.querySelector(".f-btn-label")?.addEventListener("input", (e) => set("buttonLabel", (e.target as HTMLInputElement).value));
       wrap.querySelector(".f-btn-url")?.addEventListener("input", (e) => set("buttonUrl", (e.target as HTMLInputElement).value));
+      appendHighlightControl(wrap, block, set);
       return wrap;
     }
 

@@ -82,6 +82,7 @@ const TextBlockSchema = z.object({
   body: z.string().trim().max(10000).optional(),
   imageUrl: z.string().trim().min(1).max(2000).optional(),
   imageAlt: z.string().trim().max(200).optional(),
+  highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
 const ImageBlockSchema = z.object({
@@ -89,6 +90,7 @@ const ImageBlockSchema = z.object({
   url: z.string().trim().min(1).max(2000),
   alt: z.string().trim().max(200).optional(),
   caption: z.string().trim().max(300).optional(),
+  highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
 const KitBlockSchema = z.object({
@@ -99,6 +101,10 @@ const KitBlockSchema = z.object({
   showImage: z.boolean().optional().default(true),
   showPrice: z.boolean().optional().default(true),
   showKitContents: z.boolean().optional().default(false),
+  // Composer's newBlock('kit') pre-fills this with the default card colour
+  // so a kit announcement keeps its existing boxed look unless the admin
+  // clears it -- the schema itself treats it the same as any other block.
+  highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
 const CtaBlockSchema = z.object({
@@ -107,6 +113,7 @@ const CtaBlockSchema = z.object({
   body: z.string().trim().max(2000).optional(),
   buttonLabel: z.string().trim().max(60).optional(),
   buttonUrl: z.string().trim().url().max(2000).optional(),
+  highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
 const BlockSchema = z.discriminatedUnion('type', [TextBlockSchema, ImageBlockSchema, KitBlockSchema, CtaBlockSchema]);
@@ -155,6 +162,7 @@ const DraftBlockSchema = z
     showKitContents: z.boolean().optional(),
     buttonLabel: z.string().max(60).optional(),
     buttonUrl: z.string().max(2000).optional(),
+    highlightColor: z.string().max(20).optional(),
   })
   .passthrough();
 

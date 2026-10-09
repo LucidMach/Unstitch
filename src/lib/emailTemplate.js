@@ -201,6 +201,21 @@ function textParagraphsHtml(body) {
     .join('');
 }
 
+/**
+ * Wraps a block's inner HTML in a shaded, rounded card when the block has
+ * a `highlightColor` set -- every block type can be optionally boxed this
+ * way, not just the "kit" block, and the admin picks the colour per block
+ * (see the composer's "Highlight this section" control). Returns the
+ * inner HTML unchanged when there's no highlight colour.
+ */
+function withHighlight(innerHtml, highlightColor) {
+  if (!highlightColor) return innerHtml;
+  return `
+    <div style="background:${esc(highlightColor)};border-radius:12px;padding:18px 20px 4px;margin:18px 0 22px;">
+      ${innerHtml}
+    </div>`;
+}
+
 function blockHtml(block, productsById) {
   switch (block.type) {
     case 'text': {
@@ -210,13 +225,16 @@ function blockHtml(block, productsById) {
       const imageHtml = block.imageUrl
         ? `<img src="${esc(block.imageUrl)}" alt="${esc(block.imageAlt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:0 0 14px;" />`
         : '';
-      return `${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`;
+      return withHighlight(`${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`, block.highlightColor);
     }
     case 'image': {
       const captionHtml = block.caption
         ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
         : '';
-      return `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:14px 0 0;" />${captionHtml}`;
+      return withHighlight(
+        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:14px 0 0;" />${captionHtml}`,
+        block.highlightColor,
+      );
     }
     case 'kit': {
       const product = productsById.get(block.productId);
@@ -234,14 +252,14 @@ function blockHtml(block, productsById) {
             .map((item) => `<li style="margin:0 0 4px;">${esc(kitContentLine(item))}</li>`)
             .join('')}</ul>`
         : '';
-      return `
-    <div style="background:${BG};border-radius:12px;padding:20px 20px 4px;margin:18px 0 22px;">
-      <h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
+      return withHighlight(
+        `<h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
       ${imageHtml}
       ${priceHtml}
       ${bodyText ? `<p style="margin:0 0 14px;">${esc(bodyText)}</p>` : ''}
-      ${contentsHtml}
-    </div>`;
+      ${contentsHtml}`,
+        block.highlightColor,
+      );
     }
     case 'cta': {
       const headingHtml = block.heading
@@ -251,7 +269,7 @@ function blockHtml(block, productsById) {
       const buttonHtml = block.buttonLabel && block.buttonUrl
         ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px auto 18px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(block.buttonUrl)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(block.buttonLabel)}</a></td></tr></table>`
         : '';
-      return `${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`;
+      return withHighlight(`${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`, block.highlightColor);
     }
     default:
       return '';
