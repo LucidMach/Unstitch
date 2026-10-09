@@ -193,11 +193,28 @@ function kitContentLine(entry) {
   return String(entry ?? '');
 }
 
+/**
+ * A very small, email-safe markdown subset -- **bold** and *italic*
+ * (or _italic_) -- so an admin can emphasise a word or two in a plain
+ * textarea without a rich-text editor. Always call this AFTER esc(): the
+ * delimiters (*, _) aren't HTML-special so escaping first and matching
+ * second can't be used to break out of the escaped text, and it keeps
+ * every call site's existing esc() call doing the same job it always
+ * did. Deliberately minimal -- two rules, no nested/overlapping-emphasis
+ * handling -- to match what a plain textarea can realistically produce.
+ */
+function applyInlineMarkup(escapedText) {
+  return escapedText
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+}
+
 function textParagraphsHtml(body) {
   return (body || '')
     .split(/\n{2,}/)
     .filter((para) => para.trim().length > 0)
-    .map((para) => `<p style="margin:0 0 14px;">${esc(para).replace(/\n/g, '<br/>')}</p>`)
+    .map((para) => `<p style="margin:0 0 14px;">${applyInlineMarkup(esc(para)).replace(/\n/g, '<br/>')}</p>`)
     .join('');
 }
 
@@ -220,7 +237,12 @@ function withHighlight(innerHtml, highlightColor) {
  * and the standalone "cta" block -- shared here so the "kit" block's own
  * button (below) renders identically rather than drifting. */
 function pillButtonHtml(label, url) {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 4px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(url)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(label)}</a></td></tr></table>`;
+  // 16px bottom margin so the button has real breathing room below it --
+  // a boxed block's own bottom padding is deliberately small (4px, see
+  // withHighlight) to avoid doubling up with a paragraph's own bottom
+  // margin, but a button has none of its own, so it was sitting right on
+  // the box's edge without this.
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 16px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(url)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(label)}</a></td></tr></table>`;
 }
 
 function blockHtml(block, productsById) {
@@ -277,7 +299,7 @@ function blockHtml(block, productsById) {
         `<h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
       ${imageHtml}
       ${priceHtml}
-      ${bodyText ? `<p style="margin:0 0 14px;">${esc(bodyText)}</p>` : ''}
+      ${bodyText ? `<p style="margin:0 0 14px;">${applyInlineMarkup(esc(bodyText)).replace(/\n/g, '<br/>')}</p>` : ''}
       ${contentsHtml}
       ${buttonHtml}`,
         block.highlightColor,
@@ -287,7 +309,7 @@ function blockHtml(block, productsById) {
       const headingHtml = block.heading
         ? `<h2 style="margin:${boxed ? 0 : 22}px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
         : '';
-      const bodyHtml = block.body ? `<p style="margin:0 0 16px;">${esc(block.body)}</p>` : '';
+      const bodyHtml = block.body ? `<p style="margin:0 0 16px;">${applyInlineMarkup(esc(block.body)).replace(/\n/g, '<br/>')}</p>` : '';
       const buttonHtml = block.buttonLabel && block.buttonUrl ? pillButtonHtml(block.buttonLabel, block.buttonUrl) : '';
       return withHighlight(`${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`, block.highlightColor);
     }

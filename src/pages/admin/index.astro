@@ -5754,6 +5754,7 @@ import Layout from "../../layouts/Layout.astro";
           <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
           <label>Body</label>
           <textarea class="f-body" rows="4" maxlength="10000">${bcEscHtml(block.body || "")}</textarea>
+          <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
           <label>Image <span class="admin-muted">(optional — full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
           <input type="text" class="f-image-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.imageUrl || "")}" />
           <label>Image alt text <span class="admin-muted">(optional)</span></label>
@@ -5792,6 +5793,7 @@ import Layout from "../../layouts/Layout.astro";
           <input type="text" class="f-headline" maxlength="200" value="${bcEscHtml(block.headline || "")}" />
           <label>Body copy <span class="admin-muted">(optional — defaults to the product's tagline)</span></label>
           <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+          <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
           <div class="block-card__toggles">
             <label><input type="checkbox" class="f-show-image" ${block.showImage ? "checked" : ""} /> Show product photo</label>
             <label><input type="checkbox" class="f-show-price" ${block.showPrice ? "checked" : ""} /> Show price</label>
@@ -5839,6 +5841,7 @@ import Layout from "../../layouts/Layout.astro";
         <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
         <label>Body <span class="admin-muted">(optional)</span></label>
         <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+        <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
         <div class="admin-grid">
           <label>Button label<input type="text" class="f-btn-label" maxlength="60" value="${bcEscHtml(block.buttonLabel || "")}" /></label>
           <label>Button link<input type="url" class="f-btn-url" placeholder="https://… or mailto:…" value="${bcEscHtml(block.buttonUrl || "")}" /></label>
