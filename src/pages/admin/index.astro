@@ -727,12 +727,11 @@ import Layout from "../../layouts/Layout.astro";
     <section data-panel="broadcasts" class="admin__panel" hidden>
       <div class="admin-card">
         <h2>General newsletter</h2>
-        <p class="admin-muted">Sent to every subscriber who hasn't unsubscribed (<strong id="broadcast-general-count">—</strong> right now). Use for progress updates, behind-the-scenes notes — anything not tied to one specific drop.</p>
+        <p class="admin-muted">Sent to every subscriber who hasn't unsubscribed (<strong id="broadcast-general-count">—</strong> right now). Use for progress updates, behind-the-scenes notes, raffle winners — anything not tied to one specific drop.</p>
         <label for="broadcast-general-subject">Subject</label>
         <input id="broadcast-general-subject" type="text" maxlength="200" />
-        <label for="broadcast-general-message">Message</label>
-        <textarea id="broadcast-general-message" rows="6" maxlength="10000"></textarea>
-        <p class="admin-muted">Use <code>{"{name}"}</code> in the subject or message and each subscriber gets their own saved name filled in automatically — falls back to the part of their email before the @ for anyone without one. An unsubscribe link is added automatically; this is a marketing send, unlike the Send Email tab.</p>
+        <p class="admin-muted">Build the email from one or more blocks below — stack a kit announcement, a photo, a raffle-winner shoutout and a call-to-action in any order. Use <code>{"{name}"}</code> in any block's text and each subscriber gets their own saved name filled in automatically — falls back to the part of their email before the @ for anyone without one. An unsubscribe link is added automatically; this is a marketing send, unlike the Send Email tab.</p>
+        <div id="broadcast-general-blocks" class="block-composer"></div>
         <label for="broadcast-general-gif-url">Sign-off gif URL <span class="admin-muted">(optional)</span></label>
         <input id="broadcast-general-gif-url" type="url" placeholder="https://unstitchx.com/…/update.gif" />
         <div class="admin-grid">
@@ -740,10 +739,12 @@ import Layout from "../../layouts/Layout.astro";
           <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="broadcast-general-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
         <div class="admin-field-row">
+          <button id="broadcast-general-save-draft" class="btn-ghost btn-ghost--small" type="button">Save draft</button>
           <button id="broadcast-general-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
           <button id="broadcast-general-send" class="btn-primary">Send to all subscribers</button>
         </div>
         <p id="broadcast-general-status" class="admin__hint" hidden></p>
+        <p id="broadcast-general-draft-status" class="admin-muted" style="margin-top:4px;"></p>
       </div>
 
       <div class="admin-card">
@@ -1169,6 +1170,100 @@ import Layout from "../../layouts/Layout.astro";
     border-color: #ece8e1;
     margin-bottom: 14px;
     padding: 16px 18px;
+  }
+
+  /* --- Broadcast block composer (newsletter/waitlist sends, section 0.24) --- */
+  .block-composer__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 14px 0;
+  }
+
+  .block-card {
+    background: #ffffff;
+    border: 1.5px solid #ece8e1;
+    border-radius: var(--radius, 6px);
+    padding: 14px 16px 16px;
+  }
+
+  .block-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .block-card__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444444;
+  }
+
+  .block-card__actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .block-card__actions button {
+    border: 1.5px solid #dcd9d4;
+    background: #ffffff;
+    border-radius: 5px;
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ink, #111111);
+  }
+
+  .block-card__actions button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .block-card__actions button:hover:not(:disabled) {
+    border-color: var(--ink, #111111);
+  }
+
+  .block-card__remove {
+    color: #a33a3a;
+    border-color: #e7cfcf !important;
+  }
+
+  .block-card__body label {
+    margin: 10px 0 5px;
+  }
+
+  .block-card__toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  .block-card__toggles label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+    font-weight: 500;
+    font-size: 0.82rem;
+    margin: 0;
+  }
+
+  .block-card__toggles input[type="checkbox"] {
+    width: auto;
+  }
+
+  .block-composer__add-row {
+    margin-top: 6px;
+  }
+
+  .block-composer__add-row select {
+    max-width: 260px;
   }
 
   #email-template-list input.tpl-name {
@@ -5717,6 +5812,364 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   // --- Broadcasts (general newsletter + per-drop waitlist notifications) ---
+  // Block composer: a broadcast's email body is an ordered list of content
+  // blocks (text/update, photo, kit announcement, call-to-action) rather
+  // than one free-text message, so a single send can mix a drop
+  // announcement with a photo and a raffle-winner shoutout. Every block's
+  // copy is still plain editable text, not auto-generated-and-locked --
+  // the "kit" block's headline/body only *default* from the product's
+  // name/tagline (filled in once, on picking a product) and can be
+  // rewritten freely afterwards. Mirrors src/server/admin/broadcast.js's
+  // block shapes exactly -- see that file's BlockSchema.
+  const DEFAULT_HIGHLIGHT_COLOR = "#f6f4f1";
+
+  type BroadcastBlock =
+    | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string; highlightColor?: string }
+    | { type: "image"; url: string; alt?: string; caption?: string; highlightColor?: string }
+    | {
+        type: "kit";
+        productId: string;
+        headline?: string;
+        body?: string;
+        showImage: boolean;
+        showPrice: boolean;
+        showKitContents: boolean;
+        buttonLabel?: string;
+        buttonUrl?: string;
+        highlightColor?: string;
+      }
+    | { type: "cta"; heading?: string; body?: string; buttonLabel?: string; buttonUrl?: string; highlightColor?: string };
+
+  type BroadcastProduct = {
+    id: string;
+    name: string;
+    tagline: string | null;
+    imageUrl: string | null;
+    basePriceCents: number;
+    currency: string;
+    kitContents: unknown[];
+  };
+
+  let broadcastProducts: BroadcastProduct[] = [];
+
+  function bcEscHtml(value: string): string {
+    return (value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+  }
+
+  function bcFormatPrice(cents: number, currency: string): string {
+    return `${(currency || "AUD").toUpperCase()} $${(cents / 100).toFixed(2)}`;
+  }
+
+  const BLOCK_TITLES: Record<BroadcastBlock["type"], string> = {
+    text: "Text / update",
+    image: "Photo",
+    kit: "Kit announcement",
+    cta: "Call-to-action",
+  };
+
+  function newBlock(type: BroadcastBlock["type"]): BroadcastBlock {
+    if (type === "text") return { type, heading: "", body: "" };
+    if (type === "image") return { type, url: "", alt: "", caption: "" };
+    if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
+    // Pre-filled so a kit announcement keeps its existing boxed look, and
+    // a "Shop now" button straight to the one real product page, unless
+    // the admin clears or changes either -- the admin can always edit
+    // both like any other block field.
+    return {
+      type: "kit",
+      productId: "",
+      headline: "",
+      body: "",
+      showImage: true,
+      showPrice: true,
+      showKitContents: false,
+      buttonLabel: "Shop now",
+      buttonUrl: "/shop",
+      highlightColor: DEFAULT_HIGHLIGHT_COLOR,
+    };
+  }
+
+  /** Appends a "Highlight this section" checkbox + colour picker to any
+   * block's field panel -- every block type can be optionally boxed with
+   * an admin-chosen background colour (src/lib/emailTemplate.js's
+   * withHighlight), not just the kit block. Shared across all four field
+   * renderers below rather than repeated per type. */
+  function appendHighlightControl(wrap: HTMLElement, block: BroadcastBlock, set: (key: string, value: unknown) => void) {
+    const row = document.createElement("div");
+    row.className = "block-card__toggles";
+    const hasColor = !!block.highlightColor;
+    row.innerHTML = `
+      <label><input type="checkbox" class="f-highlight-toggle" ${hasColor ? "checked" : ""} /> Highlight this section</label>
+      <input type="color" class="f-highlight-color" value="${bcEscHtml(block.highlightColor || DEFAULT_HIGHLIGHT_COLOR)}" style="${hasColor ? "" : "display:none;"}width:44px;padding:2px;" />`;
+    const toggle = row.querySelector(".f-highlight-toggle") as HTMLInputElement;
+    const colorInput = row.querySelector(".f-highlight-color") as HTMLInputElement;
+    toggle.addEventListener("change", () => {
+      colorInput.style.display = toggle.checked ? "" : "none";
+      set("highlightColor", toggle.checked ? colorInput.value : undefined);
+    });
+    colorInput.addEventListener("input", () => {
+      if (toggle.checked) set("highlightColor", colorInput.value);
+    });
+    wrap.appendChild(row);
+  }
+
+  /** Mounts a reusable block-list editor into `container` (the general
+   * newsletter card, or one per-product waitlist card) and returns a
+   * getter/setter for its current block list. Each card gets its own
+   * independent composer instance/state. */
+  function createBlockComposer(container: HTMLElement, initial: BroadcastBlock[] = []) {
+    let blocks: BroadcastBlock[] = initial;
+
+    const listEl = document.createElement("div");
+    listEl.className = "block-composer__list";
+    const addRow = document.createElement("div");
+    addRow.className = "block-composer__add-row admin-field-row";
+    addRow.innerHTML = `
+      <select class="bc-add-select">
+        <option value="">+ Add a block…</option>
+        <option value="text">Text / update</option>
+        <option value="image">Photo</option>
+        <option value="kit">Kit announcement</option>
+        <option value="cta">Call-to-action</option>
+      </select>`;
+    container.appendChild(listEl);
+    container.appendChild(addRow);
+
+    const addSelect = addRow.querySelector(".bc-add-select") as HTMLSelectElement;
+    addSelect.addEventListener("change", () => {
+      const type = addSelect.value as BroadcastBlock["type"] | "";
+      if (!type) return;
+      blocks.push(newBlock(type));
+      addSelect.value = "";
+      render();
+    });
+
+    function render() {
+      listEl.innerHTML = "";
+      blocks.forEach((block, index) => listEl.appendChild(renderCard(block, index)));
+    }
+
+    function renderCard(block: BroadcastBlock, index: number): HTMLElement {
+      const card = document.createElement("div");
+      card.className = "block-card";
+      card.innerHTML = `
+        <div class="block-card__header">
+          <span class="block-card__title">${BLOCK_TITLES[block.type]}</span>
+          <span class="block-card__actions">
+            <button type="button" class="bc-move-up" ${index === 0 ? "disabled" : ""} title="Move up">↑</button>
+            <button type="button" class="bc-move-down" ${index === blocks.length - 1 ? "disabled" : ""} title="Move down">↓</button>
+            <button type="button" class="block-card__remove bc-remove" title="Remove block">✕</button>
+          </span>
+        </div>
+        <div class="block-card__body"></div>`;
+
+      card.querySelector(".bc-remove")?.addEventListener("click", () => {
+        blocks.splice(index, 1);
+        render();
+      });
+      card.querySelector(".bc-move-up")?.addEventListener("click", () => {
+        if (index === 0) return;
+        [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
+        render();
+      });
+      card.querySelector(".bc-move-down")?.addEventListener("click", () => {
+        if (index === blocks.length - 1) return;
+        [blocks[index + 1], blocks[index]] = [blocks[index], blocks[index + 1]];
+        render();
+      });
+
+      (card.querySelector(".block-card__body") as HTMLElement).appendChild(renderFields(block, index));
+      return card;
+    }
+
+    function renderFields(block: BroadcastBlock, index: number): HTMLElement {
+      const wrap = document.createElement("div");
+      const set = (key: string, value: unknown) => {
+        (blocks[index] as any)[key] = value;
+      };
+
+      if (block.type === "text") {
+        wrap.innerHTML = `
+          <label>Heading <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
+          <label>Body</label>
+          <textarea class="f-body" rows="4" maxlength="10000">${bcEscHtml(block.body || "")}</textarea>
+          <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
+          <label>Image <span class="admin-muted">(optional — full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+          <input type="text" class="f-image-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.imageUrl || "")}" />
+          <label>Image alt text <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-image-alt" value="${bcEscHtml(block.imageAlt || "")}" />`;
+        wrap.querySelector(".f-heading")?.addEventListener("input", (e) => set("heading", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+        wrap.querySelector(".f-image-url")?.addEventListener("input", (e) => set("imageUrl", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-image-alt")?.addEventListener("input", (e) => set("imageAlt", (e.target as HTMLInputElement).value));
+        appendHighlightControl(wrap, block, set);
+        return wrap;
+      }
+
+      if (block.type === "image") {
+        wrap.innerHTML = `
+          <label>Image URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+          <input type="text" class="f-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.url || "")}" />
+          <label>Alt text <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-alt" value="${bcEscHtml(block.alt || "")}" />
+          <label>Caption <span class="admin-muted">(optional)</span></label>
+          <input type="text" class="f-caption" maxlength="300" value="${bcEscHtml(block.caption || "")}" />`;
+        wrap.querySelector(".f-url")?.addEventListener("input", (e) => set("url", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-alt")?.addEventListener("input", (e) => set("alt", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-caption")?.addEventListener("input", (e) => set("caption", (e.target as HTMLInputElement).value));
+        appendHighlightControl(wrap, block, set);
+        return wrap;
+      }
+
+      if (block.type === "kit") {
+        const options = broadcastProducts
+          .map((p) => `<option value="${p.id}" ${p.id === block.productId ? "selected" : ""}>${bcEscHtml(p.name)}</option>`)
+          .join("");
+        wrap.innerHTML = `
+          <label>Product</label>
+          <select class="f-product"><option value="">Choose a product…</option>${options}</select>
+          <label>Headline <span class="admin-muted">(optional — defaults to "New drop: {product name}")</span></label>
+          <input type="text" class="f-headline" maxlength="200" value="${bcEscHtml(block.headline || "")}" />
+          <label>Body copy <span class="admin-muted">(optional — defaults to the product's tagline)</span></label>
+          <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+          <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
+          <div class="block-card__toggles">
+            <label><input type="checkbox" class="f-show-image" ${block.showImage ? "checked" : ""} /> Show product photo</label>
+            <label><input type="checkbox" class="f-show-price" ${block.showPrice ? "checked" : ""} /> Show price</label>
+            <label><input type="checkbox" class="f-show-contents" ${block.showKitContents ? "checked" : ""} /> Show "what's in the kit"</label>
+          </div>
+          <p class="admin-muted" style="margin-top:8px;">Pulls the product's real photo, tagline, price and kit contents at send time — editing them here only overrides the headline/body copy for this send, the product record itself is untouched.</p>
+          <label>Button <span class="admin-muted">(optional — e.g. "Shop now", linking straight to the product)</span></label>
+          <div class="admin-grid">
+            <label>Button label<input type="text" class="f-btn-label" maxlength="60" value="${bcEscHtml(block.buttonLabel || "")}" /></label>
+            <label>Button link<input type="text" class="f-btn-url" placeholder="https://… or /shop" value="${bcEscHtml(block.buttonUrl || "")}" /></label>
+          </div>`;
+        wrap.querySelector(".f-product")?.addEventListener("change", (e) => {
+          const productId = (e.target as HTMLSelectElement).value;
+          set("productId", productId);
+          // Prefill editable copy from the product the first time one's
+          // picked, but never clobber copy the admin's already written.
+          const product = broadcastProducts.find((p) => p.id === productId);
+          if (product && !block.headline && !block.body) {
+            const headlineInput = wrap.querySelector(".f-headline") as HTMLInputElement;
+            const bodyInput = wrap.querySelector(".f-body") as HTMLTextAreaElement;
+            if (headlineInput && !headlineInput.value) {
+              headlineInput.value = `New drop: ${product.name}`;
+              set("headline", headlineInput.value);
+            }
+            if (bodyInput && !bodyInput.value && product.tagline) {
+              bodyInput.value = product.tagline;
+              set("body", bodyInput.value);
+            }
+          }
+        });
+        wrap.querySelector(".f-headline")?.addEventListener("input", (e) => set("headline", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+        wrap.querySelector(".f-show-image")?.addEventListener("change", (e) => set("showImage", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-show-price")?.addEventListener("change", (e) => set("showPrice", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-show-contents")?.addEventListener("change", (e) => set("showKitContents", (e.target as HTMLInputElement).checked));
+        wrap.querySelector(".f-btn-label")?.addEventListener("input", (e) => set("buttonLabel", (e.target as HTMLInputElement).value));
+        wrap.querySelector(".f-btn-url")?.addEventListener("input", (e) => set("buttonUrl", (e.target as HTMLInputElement).value));
+        appendHighlightControl(wrap, block, set);
+        return wrap;
+      }
+
+      // cta
+      wrap.innerHTML = `
+        <label>Heading <span class="admin-muted">(optional)</span></label>
+        <input type="text" class="f-heading" maxlength="200" value="${bcEscHtml(block.heading || "")}" />
+        <label>Body <span class="admin-muted">(optional)</span></label>
+        <textarea class="f-body" rows="3" maxlength="2000">${bcEscHtml(block.body || "")}</textarea>
+        <p class="admin-muted" style="margin:2px 0 8px;font-size:12px;">Supports <strong>**bold**</strong> and <em>*italic*</em> (or _italic_).</p>
+        <div class="admin-grid">
+          <label>Button label<input type="text" class="f-btn-label" maxlength="60" value="${bcEscHtml(block.buttonLabel || "")}" /></label>
+          <label>Button link<input type="url" class="f-btn-url" placeholder="https://… or mailto:…" value="${bcEscHtml(block.buttonUrl || "")}" /></label>
+        </div>`;
+      wrap.querySelector(".f-heading")?.addEventListener("input", (e) => set("heading", (e.target as HTMLInputElement).value));
+      wrap.querySelector(".f-body")?.addEventListener("input", (e) => set("body", (e.target as HTMLTextAreaElement).value));
+      wrap.querySelector(".f-btn-label")?.addEventListener("input", (e) => set("buttonLabel", (e.target as HTMLInputElement).value));
+      wrap.querySelector(".f-btn-url")?.addEventListener("input", (e) => set("buttonUrl", (e.target as HTMLInputElement).value));
+      appendHighlightControl(wrap, block, set);
+      return wrap;
+    }
+
+    render();
+    return {
+      getBlocks: (): BroadcastBlock[] => blocks,
+      setBlocks: (next: BroadcastBlock[]) => {
+        blocks = next;
+        render();
+      },
+    };
+  }
+
+  /** Strips out fully-empty blocks (added via "+ Add a block" then never
+   * filled in) and surfaces one validation error, rather than silently
+   * sending a blank section or letting the server reject the whole send
+   * over one stray block. Returns null (and shows the hint) if nothing
+   * sendable remains. */
+  function validateBroadcastBlocks(blocks: BroadcastBlock[], status: HTMLElement): BroadcastBlock[] | null {
+    const cleaned = blocks.filter((b) => {
+      if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
+      if (b.type === "image") return !!b.url?.trim();
+      if (b.type === "kit") return !!b.productId;
+      if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
+      return false;
+    });
+    if (cleaned.length === 0) {
+      showHint(status, "Add at least one block with some content.", false);
+      return null;
+    }
+    const incompleteKit = cleaned.find((b) => b.type === "kit" && !(b as any).productId);
+    if (incompleteKit) {
+      showHint(status, "A kit announcement block needs a product selected.", false);
+      return null;
+    }
+    const incompleteCta = cleaned.find((b) => b.type === "cta" && ((b as any).buttonLabel?.trim() ? !(b as any).buttonUrl?.trim() : !!(b as any).buttonUrl?.trim()));
+    if (incompleteCta) {
+      showHint(status, "A call-to-action block needs both a button label and a link, or neither.", false);
+      return null;
+    }
+    return cleaned;
+  }
+
+  const generalComposer = createBlockComposer(document.getElementById("broadcast-general-blocks") as HTMLElement, [newBlock("text")]);
+
+  type BroadcastDraft = { subject: string; blocks: BroadcastBlock[]; gifUrl?: string; signatureName?: string; signatureRole?: string; savedAt: string };
+
+  function formatDraftSavedAt(savedAt: string): string {
+    try {
+      return new Date(savedAt).toLocaleString();
+    } catch {
+      return savedAt;
+    }
+  }
+
+  // Only ever applied once -- loadBroadcastStats() re-runs every time the
+  // Broadcasts tab is opened (to refresh subscriber/waitlist counts), and
+  // re-applying the saved draft on every one of those would stomp whatever
+  // the admin is actively typing in the general card (its composer/fields
+  // stay mounted across tab switches, unlike the waitlist cards below,
+  // which are rebuilt from scratch every refresh anyway).
+  let generalDraftApplied = false;
+
+  function applyGeneralDraft(draft: BroadcastDraft | null) {
+    const draftStatus = document.getElementById("broadcast-general-draft-status") as HTMLElement;
+    if (!draft) {
+      draftStatus.textContent = "";
+      return;
+    }
+    (document.getElementById("broadcast-general-subject") as HTMLInputElement).value = draft.subject || "";
+    (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = draft.gifUrl || "";
+    (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = draft.signatureName || "";
+    (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = draft.signatureRole || "";
+    generalComposer.setBlocks(draft.blocks?.length ? draft.blocks : [newBlock("text")]);
+    draftStatus.textContent = `Draft from ${formatDraftSavedAt(draft.savedAt)} loaded.`;
+  }
+
+  let waitlistDraftsById: Record<string, BroadcastDraft> = {};
+
   async function loadBroadcastStats() {
     try {
       const res = await api("/api/admin/broadcast");
@@ -5724,68 +6177,17 @@ import Layout from "../../layouts/Layout.astro";
       if (res.ok) {
         const countEl = document.getElementById("broadcast-general-count") as HTMLElement;
         countEl.textContent = String(data.generalCount ?? 0);
+        broadcastProducts = data.products || [];
+        waitlistDraftsById = (data.drafts?.waitlist as Record<string, BroadcastDraft>) || {};
+        if (!generalDraftApplied) {
+          applyGeneralDraft(data.drafts?.general || null);
+          generalDraftApplied = true;
+        }
         renderBroadcastWaitlists(data.waitlists || []);
       }
     } catch {
       // Silent -- the per-product cards just stay on their "Loading…" state.
     }
-  }
-
-  // Shared by the general-newsletter card and every per-product waitlist
-  // card below -- both are "read these fields, POST /api/admin/broadcast,
-  // show the result" with only the payload shape, confirm wording, and
-  // success verb actually differing between them.
-  type BroadcastFields = { subject: string; message: string; gifUrl: string; signatureName: string; signatureRole: string };
-  function wireBroadcastSendPreview(opts: {
-    previewBtn: Element | null;
-    sendBtn: Element | null;
-    status: HTMLElement;
-    getFields: () => BroadcastFields;
-    buildPayload: (fields: BroadcastFields, extra: { preview?: true }) => Record<string, unknown>;
-    confirmMessage: string;
-    successPrefix: string;
-    onSent?: () => void;
-  }) {
-    const { previewBtn, sendBtn, status, getFields, buildPayload, confirmMessage, successPrefix, onSent } = opts;
-
-    previewBtn?.addEventListener("click", async () => {
-      const fields = getFields();
-      if (!fields.subject || !fields.message) return showHint(status, "Fill in subject and message to preview.", false);
-      try {
-        const res = await api("/api/admin/broadcast", {
-          method: "POST",
-          body: JSON.stringify(buildPayload(fields, { preview: true })),
-        });
-        const data = await res.json();
-        if (res.ok && data.html) openEmailPreview(data.html);
-        else showHint(status, data.error || "Failed to build preview.", false);
-      } catch {
-        showHint(status, "Network error.", false);
-      }
-    });
-
-    sendBtn?.addEventListener("click", async () => {
-      const fields = getFields();
-      if (!fields.subject || !fields.message) return showHint(status, "Fill in all fields.", false);
-      if (!window.confirm(confirmMessage)) return;
-      try {
-        const res = await api("/api/admin/broadcast", {
-          method: "POST",
-          body: JSON.stringify(buildPayload(fields, {})),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          const parts = [`${successPrefix} ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-          if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
-          showHint(status, parts.join(" "), !data.failed?.length);
-          onSent?.();
-        } else {
-          showHint(status, data.error || "Failed to send.", false);
-        }
-      } catch {
-        showHint(status, "Network error.", false);
-      }
-    });
   }
 
   function renderBroadcastWaitlists(waitlists: { productId: string; productName: string; pendingCount: number }[]) {
@@ -5800,74 +6202,233 @@ import Layout from "../../layouts/Layout.astro";
         <div class="admin-card admin-card--nested" data-waitlist-product-id="${w.productId}">
           <h3>${w.productName.replace(/</g, "&lt;")} <span class="admin-muted">(${w.pendingCount} waiting)</span></h3>
           <label>Subject<input type="text" class="wl-subject" maxlength="200" /></label>
-          <label>Message<textarea class="wl-message" rows="4" maxlength="10000"></textarea></label>
+          <p class="admin-muted">Build the notification from one or more blocks — a "Kit announcement" block defaults to this product, but you can add a photo, an update or a call-to-action alongside it.</p>
+          <div class="wl-blocks block-composer"></div>
           <label>Sign-off gif URL <span class="admin-muted">(optional)</span><input type="url" class="wl-gif-url" placeholder="https://unstitchx.com/…/drop.gif" /></label>
           <div class="admin-grid">
             <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input type="text" class="wl-sig-name" placeholder="Astra" /></label>
             <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input type="text" class="wl-sig-role" placeholder="Designer at Unstitch" /></label>
           </div>
           <div class="admin-field-row">
+            <button type="button" class="btn-ghost btn-ghost--small wl-save-draft">Save draft</button>
             <button type="button" class="btn-ghost btn-ghost--small wl-preview">Preview</button>
             <button type="button" class="btn-primary wl-send">Notify waitlist</button>
           </div>
           <p class="wl-status admin__hint" hidden></p>
+          <p class="wl-draft-status admin-muted" style="margin-top:4px;"></p>
         </div>`,
       )
       .join("");
 
     container.querySelectorAll<HTMLElement>("[data-waitlist-product-id]").forEach((card) => {
       const productId = card.getAttribute("data-waitlist-product-id") as string;
-      wireBroadcastSendPreview({
-        previewBtn: card.querySelector(".wl-preview"),
-        sendBtn: card.querySelector(".wl-send"),
-        status: card.querySelector(".wl-status") as HTMLElement,
-        getFields: () => ({
-          subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
-          message: (card.querySelector(".wl-message") as HTMLTextAreaElement).value.trim(),
-          gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
-          signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
-          signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
-        }),
-        buildPayload: (f, extra) => ({
-          mode: "waitlist",
-          productId,
-          subject: f.subject,
-          message: f.message,
-          gifUrl: f.gifUrl || undefined,
-          signatureName: f.signatureName || undefined,
-          signatureRole: f.signatureRole || undefined,
-          ...extra,
-        }),
-        confirmMessage: "Send this to everyone waiting on this product's drop? This can't be undone.",
-        successPrefix: "Notified",
-        // Refreshes the pending count now that this batch is notified.
-        onSent: loadBroadcastStats,
+      const status = card.querySelector(".wl-status") as HTMLElement;
+      const draftStatus = card.querySelector(".wl-draft-status") as HTMLElement;
+      const savedDraft = waitlistDraftsById[productId];
+      const defaultKitBlock = newBlock("kit") as BroadcastBlock & { type: "kit" };
+      defaultKitBlock.productId = productId;
+      const composer = createBlockComposer(
+        card.querySelector(".wl-blocks") as HTMLElement,
+        savedDraft?.blocks?.length ? savedDraft.blocks : [defaultKitBlock],
+      );
+      if (savedDraft) {
+        (card.querySelector(".wl-subject") as HTMLInputElement).value = savedDraft.subject || "";
+        (card.querySelector(".wl-gif-url") as HTMLInputElement).value = savedDraft.gifUrl || "";
+        (card.querySelector(".wl-sig-name") as HTMLInputElement).value = savedDraft.signatureName || "";
+        (card.querySelector(".wl-sig-role") as HTMLInputElement).value = savedDraft.signatureRole || "";
+        draftStatus.textContent = `Draft from ${formatDraftSavedAt(savedDraft.savedAt)} loaded.`;
+      }
+      const getFields = () => ({
+        subject: (card.querySelector(".wl-subject") as HTMLInputElement).value.trim(),
+        gifUrl: (card.querySelector(".wl-gif-url") as HTMLInputElement).value.trim(),
+        signatureName: (card.querySelector(".wl-sig-name") as HTMLInputElement).value.trim(),
+        signatureRole: (card.querySelector(".wl-sig-role") as HTMLInputElement).value.trim(),
+      });
+
+      card.querySelector(".wl-save-draft")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "save-draft",
+              kind: "waitlist",
+              productId,
+              subject,
+              blocks: composer.getBlocks(),
+              gifUrl,
+              signatureName,
+              signatureRole,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) draftStatus.textContent = `Draft saved ${formatDraftSavedAt(data.savedAt)}.`;
+          else showHint(status, data.error || "Failed to save draft.", false);
+        } catch {
+          showHint(status, "Network error saving draft.", false);
+        }
+      });
+
+      card.querySelector(".wl-preview")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject) return showHint(status, "Fill in a subject to preview.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              blocks,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+              preview: true,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.html) openEmailPreview(data.html);
+          else showHint(status, data.error || "Failed to build preview.", false);
+        } catch {
+          showHint(status, "Network error.", false);
+        }
+      });
+
+      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        if (!subject) return showHint(status, "Fill in a subject.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
+        if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              blocks,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
+            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+            showHint(status, parts.join(" "), !data.failed?.length);
+            // Best-effort -- a sent broadcast's draft is stale, but a failed
+            // clear shouldn't make the send itself look like it failed.
+            api("/api/admin/broadcast", { method: "POST", body: JSON.stringify({ mode: "clear-draft", kind: "waitlist", productId }) }).catch(() => {});
+            loadBroadcastStats();
+          } else {
+            showHint(status, data.error || "Failed to send.", false);
+          }
+        } catch {
+          showHint(status, "Network error.", false);
+        }
       });
     });
   }
 
-  wireBroadcastSendPreview({
-    previewBtn: document.getElementById("broadcast-general-preview"),
-    sendBtn: document.getElementById("broadcast-general-send"),
-    status: document.getElementById("broadcast-general-status") as HTMLElement,
-    getFields: () => ({
-      subject: (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim(),
-      message: (document.getElementById("broadcast-general-message") as HTMLTextAreaElement).value.trim(),
-      gifUrl: (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim(),
-      signatureName: (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim(),
-      signatureRole: (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim(),
-    }),
-    buildPayload: (f, extra) => ({
-      mode: "general",
-      subject: f.subject,
-      message: f.message,
-      gifUrl: f.gifUrl || undefined,
-      signatureName: f.signatureName || undefined,
-      signatureRole: f.signatureRole || undefined,
-      ...extra,
-    }),
-    confirmMessage: "Send this to every subscriber who hasn't unsubscribed? This can't be undone.",
-    successPrefix: "Sent to",
+  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    if (!subject) return showHint(status, "Fill in a subject.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
+    if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
+          subject,
+          blocks,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        showHint(status, parts.join(" "), !data.failed?.length);
+        // Best-effort -- a sent broadcast's draft is stale, but a failed
+        // clear shouldn't make the send itself look like it failed.
+        api("/api/admin/broadcast", { method: "POST", body: JSON.stringify({ mode: "clear-draft", kind: "general" }) }).catch(() => {});
+        (document.getElementById("broadcast-general-draft-status") as HTMLElement).textContent = "";
+      } else {
+        showHint(status, data.error || "Failed to send.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("broadcast-general-save-draft")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const draftStatus = document.getElementById("broadcast-general-draft-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "save-draft",
+          kind: "general",
+          subject,
+          blocks: generalComposer.getBlocks(),
+          gifUrl,
+          signatureName,
+          signatureRole,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) draftStatus.textContent = `Draft saved ${formatDraftSavedAt(data.savedAt)}.`;
+      else showHint(status, data.error || "Failed to save draft.", false);
+    } catch {
+      showHint(status, "Network error saving draft.", false);
+    }
+  });
+
+  document.getElementById("broadcast-general-preview")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
+    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
+    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
+    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    if (!subject) return showHint(status, "Fill in a subject to preview.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
+          subject,
+          blocks,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+          preview: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.html) openEmailPreview(data.html);
+      else showHint(status, data.error || "Failed to build preview.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
   });
 
   // --- Email templates (named library of order-confirmation messages) ---

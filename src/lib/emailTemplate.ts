@@ -162,6 +162,276 @@ export function fillMessageVars(template?: string, vars?: Record<string, any>): 
   return template.replace(/\{(\w+)\}/g, (match, key) => (vars && key in vars ? vars[key] : match));
 }
 
+/**
+ * Newsletter/broadcast content blocks (src/server/admin/broadcast.js).
+ * A broadcast is an ordered list of these rather than one free-text
+ * `message`, so a single send can mix a drop announcement, a photo, a
+ * raffle-winner shoutout and a call-to-action in any order -- every
+ * block's own heading/body/caption copy is still plain admin-written
+ * text, never auto-generated-and-locked, even the "kit" block's
+ * headline/body, which only default from the product's real name/
+ * tagline and can be freely rewritten per send.
+ *
+ * Block shapes (all fields besides `type` optional unless noted):
+ *   { type: 'text', heading?, body?, imageUrl?, imageAlt? }
+ *   { type: 'image', url (required), alt?, caption? }
+ *   { type: 'kit', productId (required), headline?, body?, showImage?, showPrice?, showKitContents? }
+ *   { type: 'cta', heading?, body?, buttonLabel?, buttonUrl? }
+ *
+ * `productsById` is a Map<string, BroadcastProduct> for every productId a
+ * "kit" block references -- see src/server/admin/broadcast.ts's
+ * loadProductsForBlocks(). A kit block whose product isn't in the map
+ * (shouldn't happen -- the caller checks for a missing product before
+ * calling this) renders as nothing rather than crashing the whole send.
+ */
+
+interface HighlightableBlock {
+  highlightColor?: string;
+}
+
+export interface TextBlock extends HighlightableBlock {
+  type: 'text';
+  heading?: string;
+  body?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+}
+
+export interface ImageBlock extends HighlightableBlock {
+  type: 'image';
+  url: string;
+  alt?: string;
+  caption?: string;
+}
+
+export interface KitBlock extends HighlightableBlock {
+  type: 'kit';
+  productId: string;
+  headline?: string;
+  body?: string;
+  showImage?: boolean;
+  showPrice?: boolean;
+  showKitContents?: boolean;
+  // The button lives on the card itself -- see the "kit" case below --
+  // rather than needing a separate cta block stacked underneath to put
+  // any call-to-action next to the product it's actually about.
+  buttonLabel?: string;
+  buttonUrl?: string;
+}
+
+export interface CtaBlock extends HighlightableBlock {
+  type: 'cta';
+  heading?: string;
+  body?: string;
+  buttonLabel?: string;
+  buttonUrl?: string;
+}
+
+export type BroadcastBlock = TextBlock | ImageBlock | KitBlock | CtaBlock;
+
+export interface BroadcastProduct {
+  name: string;
+  tagline?: string | null;
+  imageUrl?: string | null;
+  basePriceCents: number;
+  currency: string;
+  kitContents: unknown;
+}
+
+export type ProductsById = Map<string, BroadcastProduct>;
+
+function formatBlockPrice(cents: number, currency: string): string {
+  return `${(currency || 'AUD').toUpperCase()} $${(cents / 100).toFixed(2)}`;
+}
+
+function kitContentLine(entry: unknown): string {
+  if (typeof entry === 'string') return entry;
+  if (entry && typeof entry === 'object' && 'item' in entry) return String((entry as { item: unknown }).item);
+  return String(entry ?? '');
+}
+
+/**
+ * A very small, email-safe markdown subset -- **bold** and *italic*
+ * (or _italic_) -- so an admin can emphasise a word or two in a plain
+ * textarea without a rich-text editor. Always call this AFTER esc(): the
+ * delimiters (*, _) aren't HTML-special so escaping first and matching
+ * second can't be used to break out of the escaped text, and it keeps
+ * every call site's existing esc() call doing the same job it always
+ * did. Deliberately minimal -- two rules, no nested/overlapping-emphasis
+ * handling -- to match what a plain textarea can realistically produce.
+ */
+function applyInlineMarkup(escapedText: string): string {
+  return escapedText
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+}
+
+function textParagraphsHtml(body?: string): string {
+  return (body || '')
+    .split(/\n{2,}/)
+    .filter((para) => para.trim().length > 0)
+    .map((para) => `<p style="margin:0 0 14px;">${applyInlineMarkup(esc(para)).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+}
+
+/**
+ * Wraps a block's inner HTML in a shaded, rounded card when the block has
+ * a `highlightColor` set -- every block type can be optionally boxed this
+ * way, not just the "kit" block, and the admin picks the colour per block
+ * (see the composer's "Highlight this section" control). Returns the
+ * inner HTML unchanged when there's no highlight colour.
+ */
+function withHighlight(innerHtml: string, highlightColor?: string): string {
+  if (!highlightColor) return innerHtml;
+  return `
+    <div style="background:${esc(highlightColor)};border-radius:12px;padding:18px 20px 4px;margin:18px 0 22px;">
+      ${innerHtml}
+    </div>`;
+}
+
+/** The same black pill button used by brandedEmailHtml's top-level `cta`
+ * and the standalone "cta" block -- shared here so the "kit" block's own
+ * button (below) renders identically rather than drifting. */
+function pillButtonHtml(label: string, url: string): string {
+  // 16px bottom margin so the button has real breathing room below it --
+  // a boxed block's own bottom padding is deliberately small (4px, see
+  // withHighlight) to avoid doubling up with a paragraph's own bottom
+  // margin, but a button has none of its own, so it was sitting right on
+  // the box's edge without this.
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 16px;"><tr><td style="border-radius:999px;background:${INK};"><a href="${esc(url)}" style="display:inline-block;padding:13px 30px;font-family:${FONT_BODY};font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${PAPER};text-decoration:none;">${esc(label)}</a></td></tr></table>`;
+}
+
+function blockHtml(block: BroadcastBlock, productsById: ProductsById): string {
+  // A heading's own top margin (breathing room from whatever came before
+  // it) doubles up with withHighlight()'s box padding once a block is
+  // boxed, leaving a visibly oversized gap above the heading -- so boxed
+  // headings/images drop their top margin and let the box's padding do
+  // that job instead.
+  const boxed = !!block.highlightColor;
+
+  switch (block.type) {
+    case 'text': {
+      const headingHtml = block.heading
+        ? `<h2 style="margin:${boxed ? 0 : 22}px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        : '';
+      const imageHtml = block.imageUrl
+        ? `<img src="${esc(block.imageUrl)}" alt="${esc(block.imageAlt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed || block.heading ? 0 : 14}px 0 14px;" />`
+        : '';
+      return withHighlight(`${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`, block.highlightColor);
+    }
+    case 'image': {
+      const captionHtml = block.caption
+        ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
+        : '';
+      return withHighlight(
+        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
+        block.highlightColor,
+      );
+    }
+    case 'kit': {
+      const product = productsById.get(block.productId);
+      if (!product) return '';
+      const headline = block.headline || `New drop: ${product.name}`;
+      const bodyText = block.body || product.tagline || '';
+      const imageHtml = block.showImage && product.imageUrl
+        ? `<img src="${esc(product.imageUrl)}" alt="${esc(product.name)}" width="496" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:0 0 14px;" />`
+        : '';
+      const priceHtml = block.showPrice
+        ? `<p style="margin:0 0 10px;font-family:${FONT_DISPLAY};font-size:16px;font-weight:700;color:${INK};">${esc(formatBlockPrice(product.basePriceCents, product.currency))}</p>`
+        : '';
+      const kitContentsList: unknown[] = Array.isArray(product.kitContents) ? product.kitContents : [];
+      const contentsHtml = block.showKitContents && kitContentsList.length
+        ? `<ul style="margin:0 0 14px;padding-left:20px;font-family:${FONT_BODY};font-size:13px;color:#333;">${kitContentsList
+            .map((item) => `<li style="margin:0 0 4px;">${esc(kitContentLine(item))}</li>`)
+            .join('')}</ul>`
+        : '';
+      // The button lives inside the kit card itself (not a separate block
+      // stacked underneath) so it's visually attached to the product it's
+      // actually for -- "Shop now"/"Add to bag" style, straight to the
+      // product page.
+      const buttonHtml = block.buttonLabel && block.buttonUrl
+        ? `<div style="text-align:center;">${pillButtonHtml(block.buttonLabel, block.buttonUrl)}</div>`
+        : '';
+      return withHighlight(
+        `<h2 style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(headline)}</h2>
+      ${imageHtml}
+      ${priceHtml}
+      ${bodyText ? `<p style="margin:0 0 14px;">${applyInlineMarkup(esc(bodyText)).replace(/\n/g, '<br/>')}</p>` : ''}
+      ${contentsHtml}
+      ${buttonHtml}`,
+        block.highlightColor,
+      );
+    }
+    case 'cta': {
+      const headingHtml = block.heading
+        ? `<h2 style="margin:${boxed ? 0 : 22}px 0 10px;font-family:${FONT_DISPLAY};font-size:18px;font-weight:700;color:${INK};">${esc(block.heading)}</h2>`
+        : '';
+      const bodyHtml = block.body ? `<p style="margin:0 0 16px;">${applyInlineMarkup(esc(block.body)).replace(/\n/g, '<br/>')}</p>` : '';
+      const buttonHtml = block.buttonLabel && block.buttonUrl ? pillButtonHtml(block.buttonLabel, block.buttonUrl) : '';
+      return withHighlight(`${headingHtml}${bodyHtml}${buttonHtml ? `<div style="text-align:center;">${buttonHtml}</div>` : ''}`, block.highlightColor);
+    }
+    default:
+      return '';
+  }
+}
+
+function blockText(block: BroadcastBlock, productsById: ProductsById): string {
+  switch (block.type) {
+    case 'text':
+      return [block.heading, block.body].filter(Boolean).join('\n');
+    case 'image':
+      return block.caption ? `[image: ${block.caption}]` : '[image]';
+    case 'kit': {
+      const product = productsById.get(block.productId);
+      if (!product) return '';
+      const lines = [block.headline || `New drop: ${product.name}`];
+      if (block.showPrice) lines.push(formatBlockPrice(product.basePriceCents, product.currency));
+      const bodyText = block.body || product.tagline;
+      if (bodyText) lines.push(bodyText);
+      if (block.showKitContents && Array.isArray(product.kitContents)) {
+        for (const item of product.kitContents) lines.push(`- ${kitContentLine(item)}`);
+      }
+      if (block.buttonLabel && block.buttonUrl) lines.push(`${block.buttonLabel}: ${block.buttonUrl}`);
+      return lines.filter((line): line is string => Boolean(line)).join('\n');
+    }
+    case 'cta':
+      return [block.heading, block.body, block.buttonLabel && block.buttonUrl ? `${block.buttonLabel}: ${block.buttonUrl}` : null]
+        .filter((line): line is string => Boolean(line))
+        .join('\n');
+    default:
+      return '';
+  }
+}
+
+/** Renders an ordered block list into the HTML that goes inside
+ * brandedEmailHtml's `bodyHtml` slot. See the block-shapes comment above. */
+export function renderBlocksHtml(blocks: BroadcastBlock[], productsById: ProductsById): string {
+  return blocks.map((block) => blockHtml(block, productsById)).join('');
+}
+
+/** Plain-text counterpart to renderBlocksHtml, for the `text` fallback
+ * every Resend send carries alongside its `html`. */
+export function renderBlocksText(blocks: BroadcastBlock[], productsById: ProductsById): string {
+  return blocks.map((block) => blockText(block, productsById)).filter(Boolean).join('\n\n');
+}
+
+/** Applies fillMessageVars (the {name}-style placeholder fill) to every
+ * editable text field across a block list, so {name} works inside any
+ * block's heading/body/caption/button label, not just a single top-level
+ * message. Structural fields (type, productId, url, buttonUrl, the
+ * showImage/showPrice/showKitContents toggles) are left untouched. */
+export function fillBlockVars(blocks: BroadcastBlock[], vars: Record<string, any>): BroadcastBlock[] {
+  return blocks.map((block) => {
+    const filled: Record<string, any> = { ...block };
+    for (const key of ['heading', 'body', 'headline', 'caption', 'buttonLabel']) {
+      if (typeof filled[key] === 'string') filled[key] = fillMessageVars(filled[key], vars);
+    }
+    return filled as BroadcastBlock;
+  });
+}
+
+
 // Default sign-off for a free-composed send (the admin's custom/bulk
 // email, and the newsletter/waitlist broadcasts) — overridable per-send
 // via signatureName/signatureRole. Not used for order-confirmation-style

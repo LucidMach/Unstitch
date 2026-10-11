@@ -225,7 +225,7 @@ describe('renderBlocksHtml (broadcast block composer)', () => {
   });
 
   it("defaults a kit block's headline/body from the product, and supports bold/italic in a custom body", () => {
-    const html = renderBlocksHtml([{ type: 'kit', productId: 'p1', body: 'Only **3** left!' }], productMap());
+    const html = renderBlocksHtml([{ type: 'kit', productId: 'p1', body: 'Only **3** left!', showPrice: true }], productMap());
     expect(html).toContain('New drop: Slow Bloom Kit');
     expect(html).toContain('<strong>3</strong>');
     expect(html).toContain('AUD $49.99');
@@ -287,10 +287,11 @@ describe('fillBlockVars ({name} personalization across block fields)', () => {
       ],
       { name: 'Jane' },
     );
-    expect(filled[0].heading).toBe('Hi Jane');
-    expect(filled[0].body).toBe('Welcome, Jane!');
-    expect(filled[1].productId).toBe('p1');
-    expect(filled[1].buttonUrl).toBe('/shop');
+    const [textBlock, kitBlock] = filled as [any, any];
+    expect(textBlock.heading).toBe('Hi Jane');
+    expect(textBlock.body).toBe('Welcome, Jane!');
+    expect(kitBlock.productId).toBe('p1');
+    expect(kitBlock.buttonUrl).toBe('/shop');
   });
 });
 
