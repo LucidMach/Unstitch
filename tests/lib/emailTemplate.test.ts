@@ -7,6 +7,9 @@ import {
   DEFAULT_ORDER_MESSAGE,
   ORDERS_FROM_EMAIL,
   GENERAL_FROM_EMAIL,
+  renderBlocksHtml,
+  renderBlocksText,
+  fillBlockVars,
 } from '../../src/lib/emailTemplate.js';
 
 describe('esc', () => {
@@ -165,6 +168,129 @@ describe('orderShippedEmail', () => {
     const { html } = orderShippedEmail({ orderNumber: '<b>UX</b>', lookupLink: 'https://example.com' });
     expect(html).not.toContain('<b>UX</b>');
     expect(html).toContain('&lt;b&gt;UX&lt;/b&gt;');
+  });
+});
+
+describe('renderBlocksHtml (broadcast block composer)', () => {
+  function productMap(overrides: Record<string, any> = {}) {
+    return new Map([
+      [
+        'p1',
+        {
+          name: 'Slow Bloom Kit',
+          tagline: 'A slow-stitch kit for curious hands',
+          imageUrl: 'https://unstitchx.com/slow-bloom-hero.jpg',
+          basePriceCents: 4999,
+          currency: 'aud',
+          kitContents: ['Fabric panel', 'Needle set'],
+          ...overrides,
+        },
+      ],
+    ]);
+  }
+
+  it('converts **bold** and *italic*/_italic_ markup to <strong>/<em> in a text block body', () => {
+    const html = renderBlocksHtml([{ type: 'text', body: '**bold** and *italic* and _also italic_' }], new Map());
+    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<em>also italic</em>');
+  });
+
+  it('escapes HTML in block body before applying markup, so markup cannot be used to inject tags', () => {
+    const html = renderBlocksHtml([{ type: 'text', body: '**<img src=x onerror=alert(1)>**' }], new Map());
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).toContain('<strong>&lt;img src=x onerror=alert(1)&gt;</strong>');
+  });
+
+  it('leaves the highlight background off by default and applies a custom colour per block when set', () => {
+    const plain = renderBlocksHtml([{ type: 'text', heading: 'Plain', body: 'x' }], new Map());
+    expect(plain).not.toContain('border-radius:12px;padding:18px 20px 4px');
+
+    const highlighted = renderBlocksHtml([{ type: 'image', url: 'https://x/img.png', highlightColor: '#ff00aa' }], new Map());
+    expect(highlighted).toContain('background:#ff00aa;border-radius:12px');
+  });
+
+  it('removes a boxed block\'s normal top margin above its heading so the highlight padding does not double up with it', () => {
+    const unboxed = renderBlocksHtml([{ type: 'text', heading: 'Hi' }], new Map());
+    expect(unboxed).toContain('margin:22px 0 10px');
+
+    const boxed = renderBlocksHtml([{ type: 'text', heading: 'Hi', highlightColor: '#f6f4f1' }], new Map());
+    expect(boxed).toContain('margin:0px 0 10px');
+    expect(boxed).not.toContain('margin:22px 0 10px');
+  });
+
+  it('renders nothing for a kit block whose product no longer exists, rather than throwing', () => {
+    expect(() => renderBlocksHtml([{ type: 'kit', productId: 'missing' }], new Map())).not.toThrow();
+    expect(renderBlocksHtml([{ type: 'kit', productId: 'missing' }], new Map())).toBe('');
+  });
+
+  it("defaults a kit block's headline/body from the product, and supports bold/italic in a custom body", () => {
+    const html = renderBlocksHtml([{ type: 'kit', productId: 'p1', body: 'Only **3** left!' }], productMap());
+    expect(html).toContain('New drop: Slow Bloom Kit');
+    expect(html).toContain('<strong>3</strong>');
+    expect(html).toContain('AUD $49.99');
+  });
+
+  it('attaches the CTA button directly inside the kit block, with real breathing room beneath it', () => {
+    const html = renderBlocksHtml(
+      [{ type: 'kit', productId: 'p1', buttonLabel: 'Add to bag', buttonUrl: 'https://unstitchx.com/shop' }],
+      productMap(),
+    );
+    expect(html).toContain('margin:6px auto 16px');
+    expect(html).toContain('Add to bag');
+    expect(html).toContain('href="https://unstitchx.com/shop"');
+    // Headline and button must come out of the SAME block (no separate stacked block needed).
+    const headlineIndex = html.indexOf('New drop: Slow Bloom Kit');
+    const buttonIndex = html.indexOf('Add to bag');
+    expect(headlineIndex).toBeGreaterThanOrEqual(0);
+    expect(buttonIndex).toBeGreaterThan(headlineIndex);
+  });
+
+  it('supports an optional recolourable highlight on the kit block too, not just a fixed look', () => {
+    const noHighlight = renderBlocksHtml([{ type: 'kit', productId: 'p1' }], productMap());
+    expect(noHighlight).not.toContain('border-radius:12px;padding:18px 20px 4px');
+
+    const customHighlight = renderBlocksHtml([{ type: 'kit', productId: 'p1', highlightColor: '#eedfe9' }], productMap());
+    expect(customHighlight).toContain('background:#eedfe9;border-radius:12px');
+  });
+
+  it('renders a cta block with bold/italic body text and an optional highlight colour', () => {
+    const html = renderBlocksHtml(
+      [{ type: 'cta', heading: 'Raffle winners', body: 'Congrats to *both* winners!', buttonLabel: 'See results', buttonUrl: 'https://unstitchx.com/raffle', highlightColor: '#eedfe9' }],
+      new Map(),
+    );
+    expect(html).toContain('background:#eedfe9;border-radius:12px');
+    expect(html).toContain('<em>both</em>');
+    expect(html).toContain('See results');
+  });
+});
+
+describe('renderBlocksText (plain-text fallback for blocks)', () => {
+  it('includes kit block headline, price, and button as plain lines', () => {
+    const text = renderBlocksText(
+      [{ type: 'kit', productId: 'p1', buttonLabel: 'Add to bag', buttonUrl: 'https://unstitchx.com/shop' }],
+      new Map([
+        ['p1', { name: 'Slow Bloom Kit', tagline: 't', imageUrl: 'x', basePriceCents: 1000, currency: 'aud', kitContents: [], showPrice: true }],
+      ]),
+    );
+    expect(text).toContain('New drop: Slow Bloom Kit');
+    expect(text).toContain('Add to bag: https://unstitchx.com/shop');
+  });
+});
+
+describe('fillBlockVars ({name} personalization across block fields)', () => {
+  it('fills {name} into heading/body across a block list without touching structural fields', () => {
+    const filled = fillBlockVars(
+      [
+        { type: 'text', heading: 'Hi {name}', body: 'Welcome, {name}!' },
+        { type: 'kit', productId: 'p1', buttonUrl: '/shop' },
+      ],
+      { name: 'Jane' },
+    );
+    expect(filled[0].heading).toBe('Hi Jane');
+    expect(filled[0].body).toBe('Welcome, Jane!');
+    expect(filled[1].productId).toBe('p1');
+    expect(filled[1].buttonUrl).toBe('/shop');
   });
 });
 
