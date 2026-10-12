@@ -153,6 +153,31 @@ describe('orderConfirmationEmail', () => {
     expect(html).toContain('Melbourne VIC 3000');
     expect(text).toContain('1 Example St <Unit 2>, Melbourne VIC 3000');
   });
+
+  it('shows a Tile for Change row with the program name when tiles were contributed', () => {
+    const { html, text } = orderConfirmationEmail({
+      ...baseOpts,
+      givingTilesContributed: 6,
+      givingProgramName: 'Community Workshop Melbourne',
+    });
+    expect(html).toContain('6 tiles to Community Workshop Melbourne');
+    expect(text).toContain('Tile for Change: 6 tiles to Community Workshop Melbourne');
+  });
+
+  it('singularizes "tile" and falls back to a generic phrase with no program name', () => {
+    const { html, text } = orderConfirmationEmail({
+      ...baseOpts,
+      givingTilesContributed: 1,
+    });
+    expect(html).toContain('1 tile contributed');
+    expect(text).toContain('Tile for Change: 1 tile contributed');
+  });
+
+  it('omits the Tile for Change row entirely when nothing was contributed', () => {
+    const { html, text } = orderConfirmationEmail(baseOpts);
+    expect(html).not.toContain('Tile for Change');
+    expect(text).not.toContain('Tile for Change');
+  });
 });
 
 describe('orderShippedEmail', () => {

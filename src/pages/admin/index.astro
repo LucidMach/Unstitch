@@ -4209,7 +4209,7 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api("/api/admin/inventory");
       if (!res.ok) throw new Error("Failed to load inventory");
-      const { drops } = (await res.json()) as { drops: DropSummary[] };
+      const { drops, givingSummary } = (await res.json()) as { drops: DropSummary[]; givingSummary?: any };
       inventoryLoaded = true;
       loadingEl.hidden = true;
       contentEl.hidden = false;
@@ -4554,7 +4554,44 @@ import Layout from "../../layouts/Layout.astro";
         })
         .join("");
 
-      contentEl.innerHTML = globalHeroHtml + dropsHtml;
+      // Tile for Change — real figures, not a per-kit constant. See
+      // GivingLedgerEntry (prisma/schema.prisma), written by
+      // api/stripe-webhook.js / api/admin/manual-order.js. Lives here
+      // (production/fulfilment) rather than the Pricing tab.
+      const gs = givingSummary || {};
+      const givingOrderCount = gs.orderCount ?? 0;
+      const givingHtml = `
+        <div class="admin-card" style="margin-top: 20px;">
+          <h2>Tile for Change</h2>
+          <p class="admin-muted">
+            Per-kit count is set in Pricing &rarr; Cost recipe. A full public-facing impact page is planned for
+            later — this is just the tracking.
+          </p>
+          <div class="admin-grid">
+            <div>
+              <span class="admin-muted">Giving program</span>
+              <p style="margin:4px 0 0;font-weight:600;">${esc(gs.programName || "No program linked yet")}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Tiles per kit</span>
+              <p style="margin:4px 0 0;font-weight:600;">${gs.tilesPerKit ?? 0}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Tiles contributed to date</span>
+              <p style="margin:4px 0 0;font-weight:600;">${gs.tilesContributedToDate ?? 0}</p>
+            </div>
+            <div>
+              <span class="admin-muted">From</span>
+              <p style="margin:4px 0 0;font-weight:600;">${givingOrderCount} order${givingOrderCount === 1 ? "" : "s"}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Internal value to date</span>
+              <p style="margin:4px 0 0;font-weight:600;">${centsToDollarsStr(gs.internalValueCentsToDate ?? 0)}</p>
+            </div>
+          </div>
+        </div>`;
+
+      contentEl.innerHTML = globalHeroHtml + givingHtml + dropsHtml;
 
       // Populate units table for every drop initially
       drops.forEach((d) => renderDropUnitsTable(d.id));

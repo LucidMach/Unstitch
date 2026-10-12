@@ -686,7 +686,7 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
             const dateStr = formatEventDate(event.startsAt);
             if (dateStr || event.location) {
               const span = document.createElement('span');
-              span.textContent = ' — ' + [dateStr, event.location].filter(Boolean).join(', ');
+              span.textContent = ' · ' + [dateStr, event.location].filter(Boolean).join(', ');
               li.appendChild(span);
             }
             moreList.appendChild(li);
@@ -713,7 +713,7 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
             li.appendChild(titleSpan);
             const dateStr = formatEventDate(event.startsAt);
             if (dateStr || event.location) {
-              li.appendChild(document.createTextNode(' — ' + [dateStr, event.location].filter(Boolean).join(', ')));
+              li.appendChild(document.createTextNode(' · ' + [dateStr, event.location].filter(Boolean).join(', ')));
             }
             pastList.appendChild(li);
           }

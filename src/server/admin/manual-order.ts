@@ -84,6 +84,8 @@ interface ManualOrderEmailOptions {
   message?: string;
   signatureName?: string;
   signatureRole?: string;
+  givingTilesContributed?: number;
+  givingProgramName?: string;
 }
 
 async function sendManualOrderEmail({
@@ -100,6 +102,8 @@ async function sendManualOrderEmail({
   message,
   signatureName,
   signatureRole,
+  givingTilesContributed,
+  givingProgramName,
 }: ManualOrderEmailOptions) {
   if (!process.env.RESEND_API_KEY) {
     console.log('[admin/manual-order] Dev/mock order email:', { email, orderNumber });
@@ -127,6 +131,8 @@ async function sendManualOrderEmail({
       message: resolvedMessage,
       signatureName,
       signatureRole,
+      givingTilesContributed,
+      givingProgramName,
     });
     const result = await resend.emails.send({
       from: fromEmail,
@@ -295,7 +301,7 @@ export default async function handler(req: any, res: any): Promise<any> {
     resolvedShipDate = candidate;
   }
 
-  const product = await prisma.product.findUnique({ where: { slug: SLUG } });
+  const product = await prisma.product.findUnique({ where: { slug: SLUG }, include: { costRecipe: { include: { givingProgram: true } } } });
   if (!product || !product.isActive) {
     return sendJson(res, 404, { error: 'Product not available.' });
   }
@@ -357,6 +363,10 @@ export default async function handler(req: any, res: any): Promise<any> {
     const deliveryTag = (DELIVERY_METHOD_TAGS as Record<string, string>)[deliveryMethod];
     const feeNote = deliveryFeeCents > 0 ? `(delivery $${(deliveryFeeCents / 100).toFixed(2)})` : null;
     const internalNote = [tag, deliveryTag, feeNote, note].filter(Boolean).join(' ') || null;
+    // Set inside the transaction below if this product gives — see the
+    // matching comment on the GivingLedgerEntry write further down.
+    let givingTilesContributed = 0;
+    let givingProgramName: string | undefined;
 
     const order = await prisma.$transaction(async (tx: any) => {
       const customer = await tx.customer.upsert({
@@ -455,6 +465,29 @@ export default async function handler(req: any, res: any): Promise<any> {
         });
       }
 
+      // Tile for Change ledger — same real-tracking write as the Stripe
+      // checkout path (api/stripe-webhook.js), so a cash sale, a comp'd
+      // workshop kit, or a commission contributes exactly like an online
+      // order instead of silently going unrecorded.
+      if (product.givingTilesPerKit > 0) {
+        givingTilesContributed = product.givingTilesPerKit * quantity;
+        // The giving-program link lives on ProductCostRecipe, not on
+        // Product itself (see prisma/schema.prisma / prisma/seed.ts —
+        // only the cost recipe's create() sets givingProgramId).
+        givingProgramName = product.costRecipe?.givingProgram?.name;
+        await tx.givingLedgerEntry.create({
+          data: {
+            orderId: order.id,
+            tilesContributed: givingTilesContributed,
+            internalValueCents: product.givingInternalValueCentsPerTile
+              ? product.givingInternalValueCentsPerTile * givingTilesContributed
+              : null,
+            givingProgramId: product.costRecipe?.givingProgramId || null,
+            description: product.givingDescription || null,
+          },
+        });
+      }
+
       return order;
     });
 
@@ -467,6 +500,8 @@ export default async function handler(req: any, res: any): Promise<any> {
         totalCents: grandTotalCents,
         currency: product.currency,
         items: [{ name: product.name, quantity }],
+        givingTilesContributed,
+        givingProgramName,
         deliveryMethodLabel: deliveryMethodLabel(deliveryMethod === 'NONE' ? null : deliveryMethod) || undefined,
         deliveryFeeCents,
         deliveryAddress: hasFullAddress

@@ -100,7 +100,7 @@ function generateShareEmailHtml({ projectName, email, tileCount, foldCount, hasP
               <!-- Footer -->
               <tr>
                 <td style="padding: 20px 32px 28px; background-color: #fafafa; border-top: 1px solid #f0f0f0; text-align: center;">
-                  <p style="margin: 0 0 6px; font-size: 11px; color: #888888;">Unstitch — Modular Parametric Textile System</p>
+                  <p style="margin: 0 0 6px; font-size: 11px; color: #888888;">Unstitch | Modular Parametric Textile System</p>
                   <p style="margin: 0; font-size: 11px; color: #aaaaaa;">Naarm, Melbourne Australia · zero-waste modular textiles</p>
                 </td>
               </tr>
@@ -218,13 +218,13 @@ export default async function handler(req: any, res: any): Promise<any> {
         'Your design file (unstitch-design.json) is attached to this email.',
         'To re-open your creation, open the Unstitch Playground (https://unstitch.com/playground) and click Load -> Import .JSON File.',
         '',
-        'Unstitch — Naarm, Melbourne Australia',
+        'Unstitch | Naarm, Melbourne Australia',
       ].join('\n');
 
       let sendResult = await resend.emails.send({
         from: FROM_EMAIL,
         to: email,
-        subject: `Your Unstitch 3D Creation — ${projectName || 'Design File'}`,
+        subject: `Your Unstitch 3D Creation: ${projectName || 'Design File'}`,
         text: plainText,
         html: generateShareEmailHtml({ projectName, email, tileCount, foldCount, hasPreview }),
         attachments,
@@ -241,7 +241,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         sendResult = await resend.emails.send({
           from: 'Unstitch 3D Studio <onboarding@resend.dev>',
           to: email,
-          subject: `Your Unstitch 3D Creation — ${projectName || 'Design File'}`,
+          subject: `Your Unstitch 3D Creation: ${projectName || 'Design File'}`,
           text: plainText,
           html: generateShareEmailHtml({ projectName, email, tileCount, foldCount, hasPreview }),
           attachments,

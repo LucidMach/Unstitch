@@ -49,6 +49,66 @@ const DROP = {
   productId: 'prod-1',
 };
 
+describe('admin/inventory API handler — GET', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env.SESSION_SECRET = 'test-secret-for-admin-inventory';
+  });
+
+  it('includes a Tile for Change givingSummary alongside the drops', async () => {
+    vi.spyOn(prisma.drop, 'findMany').mockResolvedValue([
+      { ...DROP, product: { id: 'prod-1', name: 'Slow Bloom', slug: 'slow-bloom', sku: 'UX-SLOWBLOOM' }, units: [] },
+    ] as any);
+    vi.spyOn(prisma.givingLedgerEntry, 'aggregate').mockResolvedValue({
+      _sum: { tilesContributed: 18, internalValueCents: 900 },
+      _count: 6,
+    } as any);
+    vi.spyOn(prisma.product, 'findFirst').mockResolvedValue({
+      givingTilesPerKit: 3,
+      costRecipe: { givingProgram: { name: 'Community Workshop Melbourne' } },
+    } as any);
+
+    const req = { method: 'GET', headers: { cookie: adminCookieHeader() } };
+    const res = createMockRes();
+
+    await inventoryHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.givingSummary).toEqual({
+      tilesPerKit: 3,
+      programName: 'Community Workshop Melbourne',
+      tilesContributedToDate: 18,
+      internalValueCentsToDate: 900,
+      orderCount: 6,
+    });
+  });
+
+  it('falls back to safe defaults when nothing has been linked/contributed yet', async () => {
+    vi.spyOn(prisma.drop, 'findMany').mockResolvedValue([
+      { ...DROP, product: { id: 'prod-1', name: 'Slow Bloom', slug: 'slow-bloom', sku: 'UX-SLOWBLOOM' }, units: [] },
+    ] as any);
+    vi.spyOn(prisma.givingLedgerEntry, 'aggregate').mockResolvedValue({
+      _sum: { tilesContributed: null, internalValueCents: null },
+      _count: 0,
+    } as any);
+    vi.spyOn(prisma.product, 'findFirst').mockResolvedValue(null);
+
+    const req = { method: 'GET', headers: { cookie: adminCookieHeader() } };
+    const res = createMockRes();
+
+    await inventoryHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.givingSummary).toEqual({
+      tilesPerKit: 0,
+      programName: null,
+      tilesContributedToDate: 0,
+      internalValueCentsToDate: 0,
+      orderCount: 0,
+    });
+  });
+});
+
 describe('admin/inventory API handler — restock/void happy paths', () => {
   beforeEach(() => {
     vi.restoreAllMocks();

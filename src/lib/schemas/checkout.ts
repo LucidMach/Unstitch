@@ -59,6 +59,14 @@ export const CreateCheckoutSessionSchema = z.object({
     .optional()
     .nullable()
     .transform((val) => (val ? val : undefined)),
+
+  // "Keep me posted on new drops and restocks" checkbox in the bag
+  // drawer, next to the gift-message toggle above. Carried through as
+  // Checkout Session metadata (api/create-checkout-session.js) and, once
+  // payment succeeds, used by api/stripe-webhook.js to add this email to
+  // the Subscriber list -- never silently reversing an earlier
+  // unsubscribe, same rule src/server/subscribe.js already follows.
+  marketingOptIn: z.boolean().optional().default(false),
 });
 
 export type CreateCheckoutSessionInput = z.infer<typeof CreateCheckoutSessionSchema>;
