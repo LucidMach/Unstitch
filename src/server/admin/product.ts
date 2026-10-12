@@ -155,43 +155,26 @@ export default async function handler(req: any, res: any): Promise<any> {
     if (idParam) {
       product = await prisma.product.findUnique({
         where: { id: idParam },
-        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
+        include: { costRecipe: { include: { materialSource: true } } },
       });
     } else if (slugParam) {
       product = await prisma.product.findUnique({
         where: { slug: slugParam },
-        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
+        include: { costRecipe: { include: { materialSource: true } } },
       });
     } else {
       product = await prisma.product.findUnique({
         where: { slug: SLUG },
-        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
+        include: { costRecipe: { include: { materialSource: true } } },
       });
       if (!product) {
         product = await prisma.product.findFirst({
           orderBy: { createdAt: 'desc' },
-          include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
+          include: { costRecipe: { include: { materialSource: true } } },
         });
       }
     }
     if (!product) return sendJson(res, 404, { error: 'Product not found.' });
-
-    // Tile for Change — aggregate how much this product has actually
-    // contributed so far (see GivingLedgerEntry, written by
-    // api/stripe-webhook.js and api/admin/manual-order.js), so the Pricing
-    // tab can show a real running total next to the per-kit input instead
-    // of just the per-kit constant. Scoped through Order -> OrderItem so
-    // this stays correct if a second product is ever added.
-    const givingAgg = await prisma.givingLedgerEntry.aggregate({
-      where: { order: { items: { some: { productId: product.id } } } },
-      _sum: { tilesContributed: true, internalValueCents: true },
-      _count: true,
-    });
-    const givingSummary = {
-      tilesContributedToDate: givingAgg._sum.tilesContributed || 0,
-      internalValueCentsToDate: givingAgg._sum.internalValueCents || 0,
-      orderCount: givingAgg._count || 0,
-    };
 
     // Included so the Passport tab's "Made" field can prefill from the
     // actual active drop, same lookup used by the "drop" section above.
@@ -200,7 +183,7 @@ export default async function handler(req: any, res: any): Promise<any> {
       activeDrop = await prisma.drop.findFirst({ where: { productId: product.id }, orderBy: { createdAt: 'desc' } });
     }
 
-    const payload: any = { product, activeDrop, givingSummary };
+    const payload: any = { product, activeDrop };
     if (includeProducts) {
       payload.products = await prisma.product.findMany({
         select: { id: true, name: true, slug: true, sku: true, basePriceCents: true, isActive: true },
