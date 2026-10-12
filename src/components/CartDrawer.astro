@@ -59,6 +59,11 @@
       <span data-cart-total>$0.00</span>
     </div>
 
+    <label class="cart-sheet__gift-toggle">
+      <input type="checkbox" data-cart-newsletter-optin />
+      <span>Keep me posted on new drops and restocks</span>
+    </label>
+
     <button type="button" class="btn btn-filled cart-sheet__checkout" data-cart-checkout disabled>
       Checkout
     </button>
@@ -276,11 +281,14 @@
     const giftWrap = !!giftToggle?.checked;
     const giftMessage = giftWrap ? (giftMessageEl?.value.trim() || undefined) : undefined;
 
+    const newsletterToggle = document.querySelector<HTMLInputElement>("[data-cart-newsletter-optin]");
+    const marketingOptIn = !!newsletterToggle?.checked;
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: item.id, quantity: item.qty, postcode: currentQuote.postcode, giftWrap, giftMessage }),
+        body: JSON.stringify({ slug: item.id, quantity: item.qty, postcode: currentQuote.postcode, giftWrap, giftMessage, marketingOptIn }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) {

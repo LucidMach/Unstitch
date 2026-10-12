@@ -39,6 +39,7 @@ import passport from '../src/server/passport.js';
 import passportConfirmTransfer from '../src/server/passport-confirm-transfer.js';
 import events from '../src/server/events.js';
 import unsubscribe from '../src/server/unsubscribe.js';
+import resubscribe from '../src/server/resubscribe.js';
 
 const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   contact,
@@ -54,6 +55,7 @@ const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   'passport-confirm-transfer': passportConfirmTransfer,
   events,
   unsubscribe,
+  resubscribe,
 };
 
 export default async function handler(req: any, res: any): Promise<any> {

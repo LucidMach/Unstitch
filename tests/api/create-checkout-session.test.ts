@@ -185,6 +185,28 @@ describe('create-checkout-session API handler', () => {
     expect(callArgs.metadata.unitIds).toBe(JSON.stringify(['unit-1', 'unit-2']));
   });
 
+  it('carries marketingOptIn through to Stripe metadata as a string, defaulting to false', async () => {
+    const req = {
+      method: 'POST',
+      headers: { 'x-real-ip': nextIp() },
+      body: validBody({ marketingOptIn: true }),
+    };
+    const res = createMockRes();
+    await checkoutHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(mockSessionsCreate.mock.calls[0][0].metadata.marketingOptIn).toBe('true');
+
+    const req2 = {
+      method: 'POST',
+      headers: { 'x-real-ip': nextIp() },
+      body: validBody(),
+    };
+    const res2 = createMockRes();
+    await checkoutHandler(req2, res2);
+    expect(res2.statusCode).toBe(200);
+    expect(mockSessionsCreate.mock.calls[1][0].metadata.marketingOptIn).toBe('false');
+  });
+
   it('releases reserved units when the Stripe API call fails', async () => {
     mockSessionsCreate.mockRejectedValue(new Error('Stripe is down'));
     const executeRawSpy = vi.spyOn(prisma, '$executeRaw').mockResolvedValue(2 as any);

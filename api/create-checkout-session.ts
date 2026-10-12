@@ -51,7 +51,7 @@ export default async function handler(req: any, res: any): Promise<any> {
     return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
   }
 
-  const { slug, quantity, email, postcode, giftWrap, giftMessage } = parseResult.data;
+  const { slug, quantity, email, postcode, giftWrap, giftMessage, marketingOptIn } = parseResult.data;
 
   // Single query instead of the previous product.findUnique -> drop.findFirst
   // pair: pull the product and its one candidate live drop together. Still
@@ -211,6 +211,10 @@ export default async function handler(req: any, res: any): Promise<any> {
         // api/stripe-webhook.js and written onto the created Order.
         giftWrap: String(!!giftWrap),
         giftMessage: giftMessage || '',
+        // Bag drawer's "keep me posted" checkbox -- read back out in
+        // api/stripe-webhook.js to (maybe) add this email to the
+        // Subscriber list once payment actually succeeds.
+        marketingOptIn: String(!!marketingOptIn),
       },
     });
 

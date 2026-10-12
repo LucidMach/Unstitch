@@ -214,9 +214,37 @@ async function handleCheckoutCompleted(session: any) {
   const order = await prisma.$transaction(async (tx: any) => {
     const customer = await tx.customer.upsert({
       where: { email },
-      update: { name: customerDetails?.name || undefined },
-      create: { email, name: customerDetails?.name || null },
+      update: {
+        name: customerDetails?.name || undefined,
+        // Only ever flips false -> true here -- a later order with the
+        // box unchecked shouldn't erase an opt-in given on an earlier one.
+        ...(metadata.marketingOptIn === 'true' ? { marketingOptIn: true } : {}),
+      },
+      create: { email, name: customerDetails?.name || null, marketingOptIn: metadata.marketingOptIn === 'true' },
     });
+
+    // Bag drawer's "keep me posted on new drops and restocks" checkbox
+    // (src/components/CartDrawer.astro), carried through as Checkout
+    // Session metadata by create-checkout-session.js. Mirrors the same
+    // upsert shape api/subscribe.js uses for storefront sign-ups --
+    // deliberately does NOT touch unsubscribedAt, so a buyer who
+    // previously unsubscribed isn't silently resubscribed just because
+    // they bought something and happened to tick this box; that needs
+    // the actual resubscribe link (api/resubscribe.js) instead.
+    if (metadata.marketingOptIn === 'true') {
+      await tx.subscriber.upsert({
+        where: { email },
+        update: {
+          name: customerDetails?.name || undefined,
+          source: 'checkout',
+        },
+        create: {
+          email,
+          name: customerDetails?.name || null,
+          source: 'checkout',
+        },
+      });
+    }
 
     let deliveryAddressId = null;
     if (shipping?.address) {

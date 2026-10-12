@@ -221,6 +221,106 @@ describe('Stripe webhook handler (/api/stripe-webhook)', () => {
     expect(mockTx.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
+  it('adds the buyer to the Subscriber list when the checkout "keep me posted" box was checked', async () => {
+    const webhookSecret = 'whsec_marketing_optin';
+    const { handler, prisma } = await loadHandler({ webhookSecret });
+
+    vi.spyOn(prisma.payment, 'findUnique').mockResolvedValue(null);
+
+    const mockTx = {
+      customer: { upsert: vi.fn().mockResolvedValue({ id: 'cust-1', email: 'buyer@example.com' }) },
+      subscriber: { upsert: vi.fn().mockResolvedValue({}) },
+      address: { create: vi.fn() },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-1', orderNumber: 'UX-2026-000002' }) },
+      orderItem: { create: vi.fn().mockResolvedValue({}) },
+      payment: { create: vi.fn().mockResolvedValue({}) },
+      product: { findUnique: vi.fn().mockResolvedValue({ id: 'prod-1', name: 'Slow Bloom Kit' }) },
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (fn: any) => fn(mockTx));
+
+    const session = {
+      id: 'cs_test_optin',
+      payment_intent: 'pi_test_optin',
+      customer_details: { email: 'buyer@example.com', name: 'Buyer Name' },
+      customer_email: null,
+      amount_total: 15000,
+      currency: 'aud',
+      metadata: {
+        unitIds: JSON.stringify(['unit-1']),
+        productId: 'prod-1',
+        deliveryFeeCents: '1000',
+        deliveryZoneId: '',
+        marketingOptIn: 'true',
+      },
+    };
+    const req = createSignedReq({ id: 'evt_optin', type: 'checkout.session.completed', data: { object: session } }, webhookSecret);
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockTx.customer.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ marketingOptIn: true }),
+        update: expect.objectContaining({ marketingOptIn: true }),
+      })
+    );
+    expect(mockTx.subscriber.upsert).toHaveBeenCalledWith({
+      where: { email: 'buyer@example.com' },
+      update: { name: 'Buyer Name', source: 'checkout' },
+      create: { email: 'buyer@example.com', name: 'Buyer Name', source: 'checkout' },
+    });
+    // Never touches unsubscribedAt -- ticking this box at checkout must
+    // not silently reverse an earlier unsubscribe (see resubscribe.js,
+    // which is the only code path allowed to do that).
+    const upsertArg = mockTx.subscriber.upsert.mock.calls[0][0];
+    expect(upsertArg.update).not.toHaveProperty('unsubscribedAt');
+    expect(upsertArg.create).not.toHaveProperty('unsubscribedAt');
+  });
+
+  it('does not touch the Subscriber list when the "keep me posted" box was left unchecked', async () => {
+    const webhookSecret = 'whsec_marketing_optout';
+    const { handler, prisma } = await loadHandler({ webhookSecret });
+
+    vi.spyOn(prisma.payment, 'findUnique').mockResolvedValue(null);
+
+    const mockTx = {
+      customer: { upsert: vi.fn().mockResolvedValue({ id: 'cust-1', email: 'buyer2@example.com' }) },
+      subscriber: { upsert: vi.fn().mockResolvedValue({}) },
+      address: { create: vi.fn() },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-2', orderNumber: 'UX-2026-000003' }) },
+      orderItem: { create: vi.fn().mockResolvedValue({}) },
+      payment: { create: vi.fn().mockResolvedValue({}) },
+      product: { findUnique: vi.fn().mockResolvedValue({ id: 'prod-1', name: 'Slow Bloom Kit' }) },
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (fn: any) => fn(mockTx));
+
+    const session = {
+      id: 'cs_test_optout',
+      payment_intent: 'pi_test_optout',
+      customer_details: { email: 'buyer2@example.com', name: 'Buyer Two' },
+      customer_email: null,
+      amount_total: 15000,
+      currency: 'aud',
+      metadata: {
+        unitIds: JSON.stringify(['unit-1']),
+        productId: 'prod-1',
+        deliveryFeeCents: '1000',
+        deliveryZoneId: '',
+        marketingOptIn: 'false',
+      },
+    };
+    const req = createSignedReq({ id: 'evt_optout', type: 'checkout.session.completed', data: { object: session } }, webhookSecret);
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockTx.subscriber.upsert).not.toHaveBeenCalled();
+  });
+
   it('is idempotent: an existing Payment.providerPaymentId skips all writes', async () => {
     const webhookSecret = 'whsec_idempotent';
     const { handler, prisma } = await loadHandler({ webhookSecret });

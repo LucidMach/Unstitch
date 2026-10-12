@@ -25,8 +25,12 @@ import Layout from "../layouts/Layout.astro";
         <div id="unsub-success" hidden>
           <p class="unsubscribe__eyebrow">Done</p>
           <h1 class="unsubscribe__title">You're unsubscribed</h1>
-          <p class="unsubscribe__body">You won't get any more emails like this one from us. If that was a mistake, just sign up again any time.</p>
-          <a href="/" class="btn btn-outline">Back to Unstitch</a>
+          <p class="unsubscribe__body">You won't get any more emails like this one from us. If that was a mistake, you can undo it below.</p>
+          <div class="unsubscribe__actions">
+            <button type="button" class="btn btn-outline" id="unsub-resubscribe-btn">Actually, resubscribe me</button>
+            <a href="/" class="btn btn-outline">Back to Unstitch</a>
+          </div>
+          <p class="unsubscribe__body" id="unsub-resubscribe-status" hidden></p>
         </div>
         <div id="unsub-error" hidden>
           <p class="unsubscribe__eyebrow">Hmm</p>
@@ -75,6 +79,15 @@ import Layout from "../layouts/Layout.astro";
     width: fit-content;
     margin: 0 auto;
   }
+  .unsubscribe__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .unsubscribe__actions .btn {
+    margin: 0;
+  }
 </style>
 
 <script>
@@ -89,6 +102,9 @@ import Layout from "../layouts/Layout.astro";
     errorEl.hidden = true;
     el.hidden = false;
   }
+
+  const resubscribeBtn = document.getElementById("unsub-resubscribe-btn") as HTMLButtonElement;
+  const resubscribeStatus = document.getElementById("unsub-resubscribe-status") as HTMLElement;
 
   const token = new URLSearchParams(window.location.search).get("token");
   if (!token) {
@@ -109,5 +125,25 @@ import Layout from "../layouts/Layout.astro";
         errorMessageEl.textContent = "Network error — please try again.";
         show(errorEl);
       });
+
+    resubscribeBtn?.addEventListener("click", async () => {
+      resubscribeBtn.disabled = true;
+      resubscribeStatus.hidden = true;
+      try {
+        const res = await fetch(`/api/resubscribe?token=${encodeURIComponent(token)}`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          resubscribeStatus.textContent = "You're back on the list — thanks for staying.";
+          resubscribeBtn.hidden = true;
+        } else {
+          resubscribeStatus.textContent = data.error || "Couldn't undo that. Get in touch and we'll add you back by hand.";
+          resubscribeBtn.disabled = false;
+        }
+      } catch {
+        resubscribeStatus.textContent = "Network error — please try again.";
+        resubscribeBtn.disabled = false;
+      }
+      resubscribeStatus.hidden = false;
+    });
   }
 </script>
