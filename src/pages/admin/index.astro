@@ -1244,6 +1244,18 @@ import Layout from "../../layouts/Layout.astro";
     margin-top: 10px;
   }
 
+  .block-card__image-slot {
+    padding: 10px 0;
+    border-top: 1px solid var(--admin-border, #e5e2dc);
+  }
+  .block-card__image-slot:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+  .block-card__image-slot .f-image-remove {
+    margin-top: 4px;
+  }
+
   .block-card__toggles label {
     display: flex;
     align-items: center;
@@ -5825,7 +5837,7 @@ import Layout from "../../layouts/Layout.astro";
 
   type BroadcastBlock =
     | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string; highlightColor?: string }
-    | { type: "image"; url: string; alt?: string; caption?: string; highlightColor?: string }
+    | { type: "image"; images: { url: string; alt?: string; caption?: string }[]; highlightColor?: string }
     | {
         type: "kit";
         productId: string;
@@ -5867,9 +5879,23 @@ import Layout from "../../layouts/Layout.astro";
     cta: "Call-to-action",
   };
 
+  /** A draft saved before the image block switched from a single
+   * url/alt/caption to a one-or-two-image `images` array still has the
+   * old shape sitting in Settings (see broadcast.ts's DraftBlockSchema,
+   * which keeps parsing it for exactly this reason). Lift it into the
+   * current shape on load so an old draft doesn't just render empty. */
+  function migrateDraftBlocks(blocks: any[]): BroadcastBlock[] {
+    return (blocks || []).map((block) => {
+      if (block && block.type === "image" && !block.images) {
+        return { type: "image", images: [{ url: block.url || "", alt: block.alt || "", caption: block.caption || "" }], highlightColor: block.highlightColor };
+      }
+      return block;
+    });
+  }
+
   function newBlock(type: BroadcastBlock["type"]): BroadcastBlock {
     if (type === "text") return { type, heading: "", body: "" };
-    if (type === "image") return { type, url: "", alt: "", caption: "" };
+    if (type === "image") return { type, images: [{ url: "", alt: "", caption: "" }] };
     if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
     // Pre-filled so a kit announcement keeps its existing boxed look, and
     // a "Shop now" button straight to the one real product page, unless
@@ -6008,16 +6034,42 @@ import Layout from "../../layouts/Layout.astro";
       }
 
       if (block.type === "image") {
+        // One or two images (see src/lib/emailTemplate.ts's blockHtml "image"
+        // case) -- two render side by side, so this block renders one slot
+        // per image plus an "Add a second image" row while there's room
+        // for another.
+        const images = block.images && block.images.length ? block.images : [{ url: "", alt: "", caption: "" }];
+        const setImage = (i: number, key: "url" | "alt" | "caption", value: string) => {
+          const next = images.map((img, idx) => (idx === i ? { ...img, [key]: value } : img));
+          set("images", next);
+        };
+        const slotHtml = (img: { url?: string; alt?: string; caption?: string }, i: number) => `
+          <div class="block-card__image-slot" data-image-index="${i}">
+            <label>Image ${images.length > 1 ? i + 1 : ""} URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+            <input type="text" class="f-image-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(img.url || "")}" />
+            <label>Alt text <span class="admin-muted">(optional)</span></label>
+            <input type="text" class="f-image-alt" value="${bcEscHtml(img.alt || "")}" />
+            <label>Caption <span class="admin-muted">(optional)</span></label>
+            <input type="text" class="f-image-caption" maxlength="300" value="${bcEscHtml(img.caption || "")}" />
+            ${images.length > 1 ? `<button type="button" class="admin-link-btn f-image-remove">Remove this image</button>` : ""}
+          </div>`;
         wrap.innerHTML = `
-          <label>Image URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
-          <input type="text" class="f-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.url || "")}" />
-          <label>Alt text <span class="admin-muted">(optional)</span></label>
-          <input type="text" class="f-alt" value="${bcEscHtml(block.alt || "")}" />
-          <label>Caption <span class="admin-muted">(optional)</span></label>
-          <input type="text" class="f-caption" maxlength="300" value="${bcEscHtml(block.caption || "")}" />`;
-        wrap.querySelector(".f-url")?.addEventListener("input", (e) => set("url", (e.target as HTMLInputElement).value));
-        wrap.querySelector(".f-alt")?.addEventListener("input", (e) => set("alt", (e.target as HTMLInputElement).value));
-        wrap.querySelector(".f-caption")?.addEventListener("input", (e) => set("caption", (e.target as HTMLInputElement).value));
+          ${images.map((img, i) => slotHtml(img, i)).join("")}
+          ${images.length < 2 ? `<button type="button" class="admin-link-btn f-image-add">+ Add a second image (side by side)</button>` : ""}`;
+        wrap.querySelectorAll(".block-card__image-slot").forEach((slot) => {
+          const i = Number((slot as HTMLElement).dataset.imageIndex);
+          slot.querySelector(".f-image-url")?.addEventListener("input", (e) => setImage(i, "url", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-alt")?.addEventListener("input", (e) => setImage(i, "alt", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-caption")?.addEventListener("input", (e) => setImage(i, "caption", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-remove")?.addEventListener("click", () => {
+            set("images", images.filter((_, idx) => idx !== i));
+            render();
+          });
+        });
+        wrap.querySelector(".f-image-add")?.addEventListener("click", () => {
+          set("images", [...images, { url: "", alt: "", caption: "" }]);
+          render();
+        });
         appendHighlightControl(wrap, block, set);
         return wrap;
       }
@@ -6110,13 +6162,19 @@ import Layout from "../../layouts/Layout.astro";
    * over one stray block. Returns null (and shows the hint) if nothing
    * sendable remains. */
   function validateBroadcastBlocks(blocks: BroadcastBlock[], status: HTMLElement): BroadcastBlock[] | null {
-    const cleaned = blocks.filter((b) => {
-      if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
-      if (b.type === "image") return !!b.url?.trim();
-      if (b.type === "kit") return !!b.productId;
-      if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
-      return false;
-    });
+    const cleaned = blocks
+      // An image block's second slot can be added and left blank -- drop
+      // any image with no URL before the emptiness check below, so a
+      // half-filled slot doesn't reach the server (ImageBlockSchema
+      // requires every image in the array to have a URL).
+      .map((b) => (b.type === "image" ? { ...b, images: (b.images || []).filter((img) => img.url?.trim()) } : b))
+      .filter((b) => {
+        if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
+        if (b.type === "image") return b.images.length > 0;
+        if (b.type === "kit") return !!b.productId;
+        if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
+        return false;
+      });
     if (cleaned.length === 0) {
       showHint(status, "Add at least one block with some content.", false);
       return null;
@@ -6164,7 +6222,7 @@ import Layout from "../../layouts/Layout.astro";
     (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = draft.gifUrl || "";
     (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = draft.signatureName || "";
     (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = draft.signatureRole || "";
-    generalComposer.setBlocks(draft.blocks?.length ? draft.blocks : [newBlock("text")]);
+    generalComposer.setBlocks(draft.blocks?.length ? migrateDraftBlocks(draft.blocks) : [newBlock("text")]);
     draftStatus.textContent = `Draft from ${formatDraftSavedAt(draft.savedAt)} loaded.`;
   }
 
@@ -6229,7 +6287,7 @@ import Layout from "../../layouts/Layout.astro";
       defaultKitBlock.productId = productId;
       const composer = createBlockComposer(
         card.querySelector(".wl-blocks") as HTMLElement,
-        savedDraft?.blocks?.length ? savedDraft.blocks : [defaultKitBlock],
+        savedDraft?.blocks?.length ? migrateDraftBlocks(savedDraft.blocks) : [defaultKitBlock],
       );
       if (savedDraft) {
         (card.querySelector(".wl-subject") as HTMLInputElement).value = savedDraft.subject || "";

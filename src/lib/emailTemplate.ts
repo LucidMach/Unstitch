@@ -174,7 +174,8 @@ export function fillMessageVars(template?: string, vars?: Record<string, any>): 
  *
  * Block shapes (all fields besides `type` optional unless noted):
  *   { type: 'text', heading?, body?, imageUrl?, imageAlt? }
- *   { type: 'image', url (required), alt?, caption? }
+ *   { type: 'image', images (1-2 of {url (required), alt?, caption?}) --
+ *     two render side by side 
  *   { type: 'kit', productId (required), headline?, body?, showImage?, showPrice?, showKitContents? }
  *   { type: 'cta', heading?, body?, buttonLabel?, buttonUrl? }
  *
@@ -197,11 +198,17 @@ export interface TextBlock extends HighlightableBlock {
   imageAlt?: string;
 }
 
-export interface ImageBlock extends HighlightableBlock {
-  type: 'image';
+export interface ImageItem {
   url: string;
   alt?: string;
   caption?: string;
+}
+
+export interface ImageBlock extends HighlightableBlock {
+  type: 'image';
+  // One image, or two to render side by side (an HTML <table> layout --
+  // flexbox/grid aren't reliable across email clients, Outlook above all).
+  images: ImageItem[];
 }
 
 export interface KitBlock extends HighlightableBlock {
@@ -321,11 +328,28 @@ function blockHtml(block: BroadcastBlock, productsById: ProductsById): string {
       return withHighlight(`${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`, block.highlightColor);
     }
     case 'image': {
-      const captionHtml = block.caption
-        ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
-        : '';
+      const images = (block.images || []).filter((img) => img && img.url);
+      if (images.length === 0) return '';
+      if (images.length === 1) {
+        const [img] = images;
+        const captionHtml = img.caption
+          ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(img.caption)}</p>`
+          : '';
+        return withHighlight(
+          `<img src="${esc(img.url)}" alt="${esc(img.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
+          block.highlightColor,
+        );
+      }
+      // Two images -- laid out side by side with a <table>, not
+      // flexbox/grid, because Outlook's Word-based rendering engine
+      // ignores both; a table is the one layout trick every email
+      // client still honours.
+      const cell = (img: ImageItem, side: 'left' | 'right') => `<td width="50%" valign="top" style="padding:0 ${side === 'left' ? '6px 0 0' : '0 0 6px'};">
+            <img src="${esc(img.url)}" alt="${esc(img.alt || '')}" width="256" style="display:block;width:100%;max-width:100%;border-radius:10px;" />
+            ${img.caption ? `<p style="margin:8px 0 0;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(img.caption)}</p>` : ''}
+          </td>`;
       return withHighlight(
-        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:${boxed ? 0 : 14}px 0 18px;"><tr>${cell(images[0], 'left')}${cell(images[1], 'right')}</tr></table>`,
         block.highlightColor,
       );
     }
@@ -380,8 +404,11 @@ function blockText(block: BroadcastBlock, productsById: ProductsById): string {
   switch (block.type) {
     case 'text':
       return [block.heading, block.body].filter(Boolean).join('\n');
-    case 'image':
-      return block.caption ? `[image: ${block.caption}]` : '[image]';
+    case 'image': {
+      const images = (block.images || []).filter((img) => img && img.url);
+      if (images.length === 0) return '';
+      return images.map((img) => (img.caption ? `[image: ${img.caption}]` : '[image]')).join('\n');
+    }
     case 'kit': {
       const product = productsById.get(block.productId);
       if (!product) return '';
@@ -426,6 +453,11 @@ export function fillBlockVars(blocks: BroadcastBlock[], vars: Record<string, any
     const filled: Record<string, any> = { ...block };
     for (const key of ['heading', 'body', 'headline', 'caption', 'buttonLabel']) {
       if (typeof filled[key] === 'string') filled[key] = fillMessageVars(filled[key], vars);
+    }
+    if (Array.isArray(filled.images)) {
+      filled.images = filled.images.map((img: ImageItem) =>
+        img && typeof img.caption === 'string' ? { ...img, caption: fillMessageVars(img.caption, vars) } : img,
+      );
     }
     return filled as BroadcastBlock;
   });
