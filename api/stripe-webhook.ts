@@ -53,6 +53,8 @@ async function sendOrderConfirmationEmail({
   deliveryFeeCents,
   deliveryAddress,
   message,
+  givingTilesContributed,
+  givingProgramName,
 }: {
   email: string;
   orderId: string;
@@ -64,6 +66,8 @@ async function sendOrderConfirmationEmail({
   deliveryFeeCents: number;
   deliveryAddress: any;
   message?: string;
+  givingTilesContributed?: number;
+  givingProgramName?: string;
 }) {
   // Every order gets a magic link back to its own status page — no
   // account/password needed (see api/order-lookup.js). Reuses the same
@@ -90,6 +94,8 @@ async function sendOrderConfirmationEmail({
       deliveryFeeCents,
       deliveryAddress,
       message,
+      givingTilesContributed,
+      givingProgramName,
     });
 
     const send = (from: string) =>
@@ -210,6 +216,11 @@ async function handleCheckoutCompleted(session: any) {
   // Captured inside the transaction below (product name isn't known until
   // then) so the confirmation email can show an item breakdown.
   let orderItemsForEmail: Array<{ name: string; quantity: number }> = [];
+  // Tile for Change — real figures for this specific order (not just the
+  // per-kit constant), set below alongside the GivingLedgerEntry write so
+  // the confirmation email and the ledger always agree.
+  let givingTilesContributed = 0;
+  let givingProgramName: string | undefined;
 
   const order = await prisma.$transaction(async (tx: any) => {
     const customer = await tx.customer.upsert({
@@ -286,7 +297,7 @@ async function handleCheckoutCompleted(session: any) {
     });
 
     if (productId && unitIds.length > 0) {
-      const product = await tx.product.findUnique({ where: { id: productId } });
+      const product = await tx.product.findUnique({ where: { id: productId }, include: { givingProgram: true } });
       if (product) {
         orderItemsForEmail = [{ name: product.name, quantity: unitIds.length }];
         const unitPriceCents = Math.round(totalCents / unitIds.length);
@@ -303,6 +314,28 @@ async function handleCheckoutCompleted(session: any) {
           });
         }
         await markUnitsSold(tx, unitIds, customer.id);
+
+        // Tile for Change — one ledger row per order (this site sells one
+        // SKU at a time, see src/server/admin/product.js's header comment),
+        // so the order's total units stand in for "per order item" here.
+        // Makes the Terms/Privacy/About pages' "we keep an internal record
+        // of contributions" claim actually true instead of just marketing
+        // copy — see prisma/schema.prisma's GivingLedgerEntry.
+        if (product.givingTilesPerKit > 0) {
+          givingTilesContributed = product.givingTilesPerKit * unitIds.length;
+          givingProgramName = product.givingProgram?.name;
+          await tx.givingLedgerEntry.create({
+            data: {
+              orderId: order.id,
+              tilesContributed: givingTilesContributed,
+              internalValueCents: product.givingInternalValueCentsPerTile
+                ? product.givingInternalValueCentsPerTile * givingTilesContributed
+                : null,
+              givingProgramId: product.givingProgramId || null,
+              description: product.givingDescription || null,
+            },
+          });
+        }
       }
     }
 
@@ -347,6 +380,8 @@ async function handleCheckoutCompleted(session: any) {
         }
       : null,
     message: defaultMessage,
+    givingTilesContributed,
+    givingProgramName,
   }).catch(() => {});
 }
 

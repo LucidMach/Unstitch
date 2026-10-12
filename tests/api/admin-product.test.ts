@@ -135,6 +135,14 @@ describe('admin/product API handler — price/copy edit happy paths', () => {
       status: 'LIVE',
       createdAt: new Date('2026-01-01'),
     } as any);
+    // The handler also aggregates the Tile for Change ledger for this
+    // product (prisma.givingLedgerEntry.aggregate) — unmocked, this falls
+    // through to the real Prisma Client the same way drop.findFirst did
+    // above, so it needs the same treatment.
+    vi.spyOn(prisma.givingLedgerEntry, 'aggregate').mockResolvedValue({
+      _sum: { tilesContributed: 0, internalValueCents: 0 },
+      _count: 0,
+    } as any);
 
     const req = { method: 'GET', headers: { cookie: adminCookieHeader() } };
     const res = createMockRes();
@@ -357,6 +365,10 @@ describe('admin/product API handler — multi-product support & product creation
       basePriceCents: 3500,
     } as any);
     vi.spyOn(prisma.drop, 'findFirst').mockResolvedValue(null);
+    vi.spyOn(prisma.givingLedgerEntry, 'aggregate').mockResolvedValue({
+      _sum: { tilesContributed: 0, internalValueCents: 0 },
+      _count: 0,
+    } as any);
 
     const req = {
       method: 'GET',
@@ -371,7 +383,7 @@ describe('admin/product API handler — multi-product support & product creation
     expect(res.body.product.slug).toBe('desert-bloom');
     expect(findSpy).toHaveBeenCalledWith({
       where: { slug: 'desert-bloom' },
-      include: { costRecipe: { include: { materialSource: true } } },
+      include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
     });
   });
 

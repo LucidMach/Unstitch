@@ -616,6 +616,12 @@ export interface OrderConfirmationEmailOptions {
   signatureName?: string;
   signatureRole?: string;
   gifUrl?: string;
+  // Tile for Change: the real number of tiles this order contributed (see
+  // GivingLedgerEntry, written alongside the order) and the program name,
+  // if one's attached — not just the per-kit constant, so a multi-kit order
+  // shows its actual total. Omitted entirely when the product gives 0.
+  givingTilesContributed?: number;
+  givingProgramName?: string;
 }
 
 export function orderConfirmationEmail({
@@ -631,6 +637,8 @@ export function orderConfirmationEmail({
   signatureName,
   signatureRole,
   gifUrl,
+  givingTilesContributed,
+  givingProgramName,
 }: OrderConfirmationEmailOptions): { html: string; text: string } {
   const amount = (totalCents / 100).toFixed(2);
   const itemsLine =
@@ -651,6 +659,15 @@ export function orderConfirmationEmail({
   if (deliveryLine) rows.push({ label: 'Delivery', value: deliveryLine });
   if (addressLine) rows.push({ label: 'Shipping to', value: addressLine });
   rows.push({ label: 'Total', value: `${currency.toUpperCase()} $${amount}` });
+  if (typeof givingTilesContributed === 'number' && givingTilesContributed > 0) {
+    const tileWord = givingTilesContributed === 1 ? 'tile' : 'tiles';
+    rows.push({
+      label: 'Tile for Change',
+      value: givingProgramName
+        ? `${givingTilesContributed} ${tileWord} to ${givingProgramName}`
+        : `${givingTilesContributed} ${tileWord} contributed`,
+    });
+  }
 
   // A custom message (e.g. for a commission or workshop order entered via
   // api/admin/manual-order.js) replaces the default paragraph entirely
@@ -679,6 +696,14 @@ export function orderConfirmationEmail({
   if (itemsLine) textLines.push(`Items: ${itemsLine}`);
   if (deliveryLine) textLines.push(`Delivery: ${deliveryLine}`);
   if (addressLine) textLines.push(`Shipping to: ${addressLine}`);
+  if (typeof givingTilesContributed === 'number' && givingTilesContributed > 0) {
+    const tileWord = givingTilesContributed === 1 ? 'tile' : 'tiles';
+    textLines.push(
+      givingProgramName
+        ? `Tile for Change: ${givingTilesContributed} ${tileWord} to ${givingProgramName}`
+        : `Tile for Change: ${givingTilesContributed} ${tileWord} contributed`
+    );
+  }
   textLines.push(
     `Total: ${currency.toUpperCase()} $${amount}`,
     '',

@@ -29,6 +29,11 @@ const product = {
   priceCents: 2900, // AUD 29 — the real confirmed retail price.
   totalUnits: 11, // Whole batch size for this drop.
   tilesPerKit: 22,
+  // Real seeded figure (Product.givingTilesPerKit) — kept here only as the
+  // pre-JS fallback; applyLiveProductData() below overwrites it from
+  // /api/drop-status so an admin edit to the Pricing tab's giving-tiles
+  // field reaches this static page without a redeploy.
+  givingTilesPerKit: 3,
   colourPalette: ["#383433", "#90c4c4", "#002644"],
   // "Feel" spec (was labelled "Rigidity") — rendered as two stacked lines.
   feel: ["Soft", "Low-rigidity"],
@@ -47,7 +52,7 @@ const included = [
   { label: "Wrap Build Mat", icon: "/assets/icons/furoshiki-wrap.svg" },
   { label: "Unstitch Mail", icon: "/assets/icons/mail-postcard.svg" },
   { label: "Tiles", icon: "/assets/icons/tile.svg" },
-  { label: "x3 Tile for Change", icon: "/assets/icons/tile-for-change.svg" },
+  { label: `x${product.givingTilesPerKit} Tile for Change`, icon: "/assets/icons/tile-for-change.svg", giving: true },
   { label: "Product Passport", icon: "/assets/icons/digital-passport.svg" },
   { label: "Gift Message (optional)", icon: "/assets/icons/gifting-message.svg" },
 ];
@@ -168,7 +173,7 @@ const galleryImages = [
                 <div class="product-included__icon" aria-hidden="true">
                   <img src={item.icon} alt="" width="48" height="48" loading="lazy" />
                 </div>
-                <p class="product-included__label">{item.label}</p>
+                <p class="product-included__label" data-giving-label={item.giving ? "true" : undefined}>{item.label}</p>
               </div>
             ))}
           </div>
@@ -894,6 +899,26 @@ const galleryImages = [
               return `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="${icon}" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label">${escHtml(label)}</p></div>`;
             })
             .join("");
+        }
+      }
+
+      // Tile for Change figure: kitContents above is a separate, admin-free
+      // JSON blob that doesn't carry this line item, so it's kept in sync
+      // independently from Product.givingTilesPerKit (the same field the
+      // admin Pricing tab's "Giving tiles per kit" input writes to) rather
+      // than relying on kitContents to include it. Runs after the
+      // kitContents rebuild above since that overwrites the whole grid.
+      if (typeof data.givingTilesPerKit === "number" && data.givingTilesPerKit >= 0) {
+        const gridEl = document.querySelector<HTMLElement>("[data-included-grid]");
+        const label = `x${data.givingTilesPerKit} Tile for Change`;
+        const existingGivingEl = gridEl?.querySelector<HTMLElement>("[data-giving-label]");
+        if (existingGivingEl) {
+          existingGivingEl.textContent = label;
+        } else if (gridEl && data.givingTilesPerKit > 0) {
+          gridEl.insertAdjacentHTML(
+            "beforeend",
+            `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="/assets/icons/tile-for-change.svg" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label" data-giving-label="true">${escHtml(label)}</p></div>`
+          );
         }
       }
 

@@ -390,6 +390,33 @@ import Layout from "../../layouts/Layout.astro";
           <button id="recipe-save" class="btn-primary">Recalculate &amp; save</button>
           <p id="recipe-status" class="admin__hint" hidden></p>
         </div>
+
+        <div class="admin-card">
+          <h2>Tile for Change</h2>
+          <p class="admin-muted">
+            Real contributions tracked against this product, not just the per-kit figure above. Set the per-kit
+            count in the Cost recipe card; the program name is set when the product is seeded/linked.
+            A full public-facing impact page is planned for later — this is just the tracking.
+          </p>
+          <div class="admin-grid">
+            <div>
+              <span class="admin-muted">Giving program</span>
+              <p id="giving-program-name" style="margin:4px 0 0;font-weight:600;">—</p>
+            </div>
+            <div>
+              <span class="admin-muted">Tiles contributed to date</span>
+              <p id="giving-tiles-to-date" style="margin:4px 0 0;font-weight:600;">—</p>
+            </div>
+            <div>
+              <span class="admin-muted">From</span>
+              <p id="giving-orders-count" style="margin:4px 0 0;font-weight:600;">—</p>
+            </div>
+            <div>
+              <span class="admin-muted">Internal value to date</span>
+              <p id="giving-value-to-date" style="margin:4px 0 0;font-weight:600;">—</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -4952,7 +4979,7 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api(`/api/admin/product?includeProducts=true&slug=${encodeURIComponent(currentProductSlug)}`);
       if (!res.ok) throw new Error("Failed to load product");
-      const { product, products } = await res.json();
+      const { product, products, givingSummary } = await res.json();
       currentProductId = product.id;
       currentProductSlug = product.slug;
       if (Array.isArray(products) && products.length) {
@@ -4962,6 +4989,28 @@ import Layout from "../../layouts/Layout.astro";
       productLoaded = true;
       (document.getElementById("pricing-loading") as HTMLElement).hidden = true;
       (document.getElementById("pricing-content") as HTMLElement).hidden = false;
+
+      // Tile for Change — real figures, not just the per-kit constant
+      // already in the Cost recipe card below. See GivingLedgerEntry
+      // (prisma/schema.prisma) and the ledger writes in
+      // api/stripe-webhook.js / api/admin/manual-order.js.
+      const givingProgramEl = document.getElementById("giving-program-name") as HTMLElement | null;
+      const givingTilesToDateEl = document.getElementById("giving-tiles-to-date") as HTMLElement | null;
+      const givingOrdersEl = document.getElementById("giving-orders-count") as HTMLElement | null;
+      const givingValueEl = document.getElementById("giving-value-to-date") as HTMLElement | null;
+      if (givingProgramEl) {
+        givingProgramEl.textContent = product.givingProgram?.name || "No program linked yet";
+      }
+      if (givingTilesToDateEl) {
+        givingTilesToDateEl.textContent = String(givingSummary?.tilesContributedToDate ?? 0);
+      }
+      if (givingOrdersEl) {
+        const n = givingSummary?.orderCount ?? 0;
+        givingOrdersEl.textContent = `${n} order${n === 1 ? "" : "s"}`;
+      }
+      if (givingValueEl) {
+        givingValueEl.textContent = centsToDollarsStr(givingSummary?.internalValueCentsToDate ?? 0);
+      }
 
       (document.getElementById("price-override") as HTMLInputElement).value = centsToDollarsStr(product.basePriceCents);
       (document.getElementById("copy-tagline") as HTMLInputElement).value = product.tagline || "";
