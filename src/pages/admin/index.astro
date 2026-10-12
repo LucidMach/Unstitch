@@ -738,9 +738,14 @@ import Layout from "../../layouts/Layout.astro";
           <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="broadcast-general-sig-name" type="text" placeholder="Astra" /></label>
           <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="broadcast-general-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
+        <div class="admin-grid">
+          <label>Test email <span class="admin-muted">(sends one real email here instead of subscribers)</span><input id="broadcast-general-test-email" type="email" placeholder="you@example.com" /></label>
+          <label>Limit to first N subscribers <span class="admin-muted">(optional, by signup order — leave blank to send to everyone)</span><input id="broadcast-general-limit" type="number" min="1" step="1" placeholder="e.g. 5" /></label>
+        </div>
         <div class="admin-field-row">
           <button id="broadcast-general-save-draft" class="btn-ghost btn-ghost--small" type="button">Save draft</button>
           <button id="broadcast-general-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
+          <button id="broadcast-general-send-test" class="btn-ghost btn-ghost--small" type="button">Send test email</button>
           <button id="broadcast-general-send" class="btn-primary">Send to all subscribers</button>
         </div>
         <p id="broadcast-general-status" class="admin__hint" hidden></p>
@@ -6267,9 +6272,14 @@ import Layout from "../../layouts/Layout.astro";
             <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input type="text" class="wl-sig-name" placeholder="Astra" /></label>
             <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input type="text" class="wl-sig-role" placeholder="Designer at Unstitch" /></label>
           </div>
+          <div class="admin-grid">
+            <label>Test email <span class="admin-muted">(sends one real email here instead of the waitlist)</span><input type="email" class="wl-test-email" placeholder="you@example.com" /></label>
+            <label>Limit to first N <span class="admin-muted">(optional, by signup order — leave blank for everyone waiting)</span><input type="number" min="1" step="1" class="wl-limit" placeholder="e.g. 5" /></label>
+          </div>
           <div class="admin-field-row">
             <button type="button" class="btn-ghost btn-ghost--small wl-save-draft">Save draft</button>
             <button type="button" class="btn-ghost btn-ghost--small wl-preview">Preview</button>
+            <button type="button" class="btn-ghost btn-ghost--small wl-send-test">Send test email</button>
             <button type="button" class="btn-primary wl-send">Notify waitlist</button>
           </div>
           <p class="wl-status admin__hint" hidden></p>
@@ -6354,12 +6364,13 @@ import Layout from "../../layouts/Layout.astro";
         }
       });
 
-      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+      card.querySelector(".wl-send-test")?.addEventListener("click", async () => {
+        const testEmail = (card.querySelector(".wl-test-email") as HTMLInputElement).value.trim();
+        if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
         const { subject, gifUrl, signatureName, signatureRole } = getFields();
         if (!subject) return showHint(status, "Fill in a subject.", false);
         const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
         if (!blocks) return;
-        if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
         try {
           const res = await api("/api/admin/broadcast", {
             method: "POST",
@@ -6371,6 +6382,41 @@ import Layout from "../../layouts/Layout.astro";
               gifUrl: gifUrl || undefined,
               signatureName: signatureName || undefined,
               signatureRole: signatureRole || undefined,
+              testEmail,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) showHint(status, `Test email sent to ${data.email}.`, true);
+          else showHint(status, data.error || "Failed to send test.", false);
+        } catch {
+          showHint(status, "Network error.", false);
+        }
+      });
+
+      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        const limitRaw = (card.querySelector(".wl-limit") as HTMLInputElement).value.trim();
+        const limit = limitRaw ? Number(limitRaw) : undefined;
+        if (limitRaw && (!Number.isInteger(limit) || (limit as number) < 1)) return showHint(status, "Limit must be a whole number of 1 or more.", false);
+        if (!subject) return showHint(status, "Fill in a subject.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
+        const confirmMessage = limit
+          ? `Send this to the first ${limit} subscriber${limit === 1 ? "" : "s"} waiting on this product's drop, by signup order? This can't be undone.`
+          : "Send this to everyone waiting on this product's drop? This can't be undone.";
+        if (!window.confirm(confirmMessage)) return;
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              blocks,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+              limit,
             }),
           });
           const data = await res.json();
@@ -6392,16 +6438,23 @@ import Layout from "../../layouts/Layout.astro";
     });
   }
 
-  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+  function getGeneralCommonFields() {
+    return {
+      subject: (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim(),
+      gifUrl: (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim(),
+      signatureName: (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim(),
+      signatureRole: (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim(),
+    };
+  }
+
+  document.getElementById("broadcast-general-send-test")?.addEventListener("click", async () => {
     const status = document.getElementById("broadcast-general-status") as HTMLElement;
-    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
-    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
-    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    const testEmail = (document.getElementById("broadcast-general-test-email") as HTMLInputElement).value.trim();
+    if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
+    const { subject, gifUrl, signatureName, signatureRole } = getGeneralCommonFields();
     if (!subject) return showHint(status, "Fill in a subject.", false);
     const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
     if (!blocks) return;
-    if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
     try {
       const res = await api("/api/admin/broadcast", {
         method: "POST",
@@ -6412,6 +6465,41 @@ import Layout from "../../layouts/Layout.astro";
           gifUrl: gifUrl || undefined,
           signatureName: signatureName || undefined,
           signatureRole: signatureRole || undefined,
+          testEmail,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, `Test email sent to ${data.email}.`, true);
+      else showHint(status, data.error || "Failed to send test.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const { subject, gifUrl, signatureName, signatureRole } = getGeneralCommonFields();
+    const limitRaw = (document.getElementById("broadcast-general-limit") as HTMLInputElement).value.trim();
+    const limit = limitRaw ? Number(limitRaw) : undefined;
+    if (limitRaw && (!Number.isInteger(limit) || (limit as number) < 1)) return showHint(status, "Limit must be a whole number of 1 or more.", false);
+    if (!subject) return showHint(status, "Fill in a subject.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
+    const confirmMessage = limit
+      ? `Send this to the first ${limit} subscriber${limit === 1 ? "" : "s"} by signup order? This can't be undone.`
+      : "Send this to every subscriber who hasn't unsubscribed? This can't be undone.";
+    if (!window.confirm(confirmMessage)) return;
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
+          subject,
+          blocks,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+          limit,
         }),
       });
       const data = await res.json();

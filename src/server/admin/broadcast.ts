@@ -145,6 +145,15 @@ const CtaBlockSchema = z.object({
 
 const BlockSchema = z.discriminatedUnion('type', [TextBlockSchema, ImageBlockSchema, KitBlockSchema, CtaBlockSchema]);
 
+// testEmail sends exactly one real email (through the same render + send
+// path as a live broadcast, so it exercises image-URL resolution and
+// actual Resend delivery, unlike `preview` which just returns HTML) to
+// the given address, and returns without touching the subscriber list
+// at all -- it's mutually exclusive with a real send, checked first in
+// the handler below. `limit` caps a real send to the first N eligible
+// recipients by signup order (createdAt ascending), for a staged
+// rollout or a spot-check against real inboxes before sending to
+// everyone.
 const BroadcastGeneralSchema = z.object({
   mode: z.literal('general'),
   subject: z.string().trim().min(1).max(200),
@@ -153,6 +162,8 @@ const BroadcastGeneralSchema = z.object({
   signatureName: z.string().trim().max(100).optional(),
   signatureRole: z.string().trim().max(150).optional(),
   preview: z.boolean().optional().default(false),
+  testEmail: z.string().trim().email().max(300).optional(),
+  limit: z.number().int().positive().max(MAX_SEND).optional(),
 });
 
 const BroadcastWaitlistSchema = z.object({
@@ -164,6 +175,8 @@ const BroadcastWaitlistSchema = z.object({
   signatureName: z.string().trim().max(100).optional(),
   signatureRole: z.string().trim().max(150).optional(),
   preview: z.boolean().optional().default(false),
+  testEmail: z.string().trim().email().max(300).optional(),
+  limit: z.number().int().positive().max(MAX_SEND).optional(),
 });
 
 // Drafts (save-draft/clear-draft modes below) are deliberately looser than
@@ -505,7 +518,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { subject, blocks, gifUrl, signatureName, signatureRole } = parseResult.data;
+      const { subject, blocks, gifUrl, signatureName, signatureRole, testEmail, limit } = parseResult.data;
 
       const { productsById, missingProductId } = await loadProductsForBlocks(blocks);
       if (missingProductId) {
@@ -530,9 +543,32 @@ export default async function handler(req: any, res: any): Promise<any> {
         return sendJson(res, 200, { ok: true, preview: true, html, text });
       }
 
+      // A real send to one address, through the same render + Resend path
+      // a live broadcast uses -- not the preview's HTML-only round trip --
+      // so an admin can check actual inbox rendering (image loading,
+      // client quirks) before it goes to real subscribers. Checked before
+      // the subscriber list is even loaded; it never touches it.
+      if (testEmail) {
+        const { subject: filledSubject, html, text } = renderFor({
+          req,
+          subject,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
+          gifUrl,
+          signatureName,
+          signatureRole,
+          name: 'there',
+        });
+        const outcome = await sendEmailWithRetry(resend, { from: fromEmail, to: testEmail, subject: `[Test] ${filledSubject}`, html, text });
+        if (!outcome.ok) return sendJson(res, 502, { error: `Test send failed: ${outcome.error}` });
+        return sendJson(res, 200, { ok: true, test: true, email: testEmail });
+      }
+
       const recipients = await prisma.subscriber.findMany({
         where: { unsubscribedAt: null },
         select: { id: true, name: true, email: true },
+        orderBy: { createdAt: 'asc' },
+        ...(limit ? { take: limit } : {}),
       });
       if (recipients.length === 0) {
         return sendJson(res, 400, { error: 'No subscribers to send to yet.' });
@@ -570,7 +606,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         const formatted = formatZodError(parseResult.error);
         return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
       }
-      const { productId, subject, blocks, gifUrl, signatureName, signatureRole } = parseResult.data;
+      const { productId, subject, blocks, gifUrl, signatureName, signatureRole, testEmail, limit } = parseResult.data;
 
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, name: true } });
       if (!product) return sendJson(res, 404, { error: 'Product not found.' });
@@ -600,7 +636,31 @@ export default async function handler(req: any, res: any): Promise<any> {
         return sendJson(res, 200, { ok: true, preview: true, html, text, productName: product.name });
       }
 
-      const recipients = await prisma.subscriber.findMany({ where, select: { id: true, name: true, email: true } });
+      // See the "general" mode's testEmail handling above -- same idea,
+      // one real send through the actual Resend path, never touching the
+      // waitlist itself.
+      if (testEmail) {
+        const { subject: filledSubject, html, text } = renderFor({
+          req,
+          subject,
+          blocks: resolvedBlocks,
+          productsById: resolvedProductsById,
+          gifUrl,
+          signatureName,
+          signatureRole,
+          name: 'there',
+        });
+        const outcome = await sendEmailWithRetry(resend, { from: fromEmail, to: testEmail, subject: `[Test] ${filledSubject}`, html, text });
+        if (!outcome.ok) return sendJson(res, 502, { error: `Test send failed: ${outcome.error}` });
+        return sendJson(res, 200, { ok: true, test: true, email: testEmail, productName: product.name });
+      }
+
+      const recipients = await prisma.subscriber.findMany({
+        where,
+        select: { id: true, name: true, email: true },
+        orderBy: { createdAt: 'asc' },
+        ...(limit ? { take: limit } : {}),
+      });
       if (recipients.length === 0) {
         return sendJson(res, 400, { error: `No one on ${product.name}'s waitlist to notify.` });
       }
