@@ -22,6 +22,20 @@ import Layout from "../layouts/Layout.astro";
  *     open items it flagged (business name/ABN confirmation, solicitor
  *     review before this is truly final).
  *
+ * TWO DELIBERATE DEPARTURES FROM THE DRAFT — flagged for review, not
+ * silently resolved either way:
+ *   1. Delivery area: the draft describes nationwide delivery via
+ *      Australia Post. This page says Victoria-only, because that's what
+ *      checkout can actually fulfil right now (src/lib/deliveryZones.ts
+ *      only resolves Victorian postcodes). If/when interstate delivery
+ *      is wired up, this page's wording should change back to match.
+ *   2. "Caring for your kit": the draft's line is an unconditional "if a
+ *      tile broke in your first use, it is on us." This page instead
+ *      points a first-use failure at the Faulty/damaged/not-as-described
+ *      clause (an Australian Consumer Law remedy) rather than promising
+ *      something unconditional that isn't actually a policy decision
+ *      made elsewhere on this page.
+ *
  * Tab selection is driven by the CSS radio-input trick from the original
  * draft (no JS needed for the tabs themselves), plus a small script so
  * footer links like /legal#terms open directly on that tab.
@@ -169,7 +183,7 @@ import Layout from "../layouts/Layout.astro";
         <h3>In short</h3>
         <ul>
           <li>Every kit is handmade with care from rescued fabric to ensure minimal waste during production, released in small limited drops. No two items are completely identical, and you might notice variations between kits in colour, material, or texture.</li>
-          <li>Adding to cart holds your spot briefly; it isn't a confirmed order until payment goes through.</li>
+          <li>Adding to cart holds your item briefly; it isn't a confirmed order until payment goes through.</li>
           <li>Nothing here overrides your rights under Australian Consumer Law.</li>
           <li>Full delivery, return, and refund detail are available on our Shipping &amp; Returns page.</li>
         </ul>
@@ -217,7 +231,7 @@ import Layout from "../layouts/Layout.astro";
         <details>
           <summary><span class="legal-marker"></span>Delivery</summary>
           <div class="legal-qa">
-            <p>We currently deliver locally in Melbourne and Greater Melbourne ourselves, and via Australia Post further afield. Delivery areas, costs, and timeframes are set out in full on our Shipping &amp; Returns page, which forms part of these terms.</p>
+            <p>We currently deliver within Victoria only; local Melbourne deliveries are hand-delivered by us, and we send everywhere else in Victoria via Australia Post. Delivery areas, costs, and timeframes are set out in full on our Shipping &amp; Returns page, which forms part of these terms.</p>
           </div>
         </details>
 
@@ -307,7 +321,7 @@ import Layout from "../layouts/Layout.astro";
         <details open>
           <summary><span class="legal-marker"></span>Delivery areas and methods</summary>
           <div class="legal-qa">
-            <p><strong>We currently deliver within Victoria only.</strong> Local Melbourne delivery applies if you're within a 0–10km radius of our studio: your kit is hand-delivered by us, wrapped the way it's meant to be seen. Elsewhere in Victoria, we send it via Australia Post.</p>
+            <p><strong>We currently deliver within Victoria only.</strong> Local Melbourne delivery applies if you're within a 0–10km radius of our studio: your kit is hand-delivered by us. Elsewhere in Victoria, we send it via Australia Post.</p>
             <p>If you're outside Victoria and would like to buy a kit, email <a href="mailto:eshop@unstitchx.com">eshop@unstitchx.com</a> and we'll see what we can arrange. Interstate delivery isn't set up yet, but we're happy to talk about it.</p>
             <p>This delivery approach is designed to get your Unstitch product to you with a minimal carbon footprint, while keeping the business sustainable to run.</p>
           </div>
@@ -366,7 +380,7 @@ import Layout from "../layouts/Layout.astro";
           <summary><span class="legal-marker"></span>Caring for your kit</summary>
           <div class="legal-qa">
             <p>Because every kit is cut from a rescued fabric batch, the exact material can differ from drop to drop, so the most accurate care guidance for your specific kit lives on its Digital Passport page, tied to that batch. As a general rule: keep tiles dry, spot-clean rather than machine wash, and avoid strong heat or harsh chemicals.</p>
-            <p>Interlocking tabs loosening slightly after a lot of building and rebuilding is normal wear, not a fault; it's part of how a reusable, no-glue system behaves over time. A tab that's cracked, split, or fails on first use is a different story, and is covered above.</p>
+            <p>Interlocking tabs loosening slightly after a lot of building and rebuilding is normal wear, not a fault, it's part of how a reusable, no-glue system behaves over time. A tile that's cracked, split, or fails on first use is a different story: that's covered under Faulty, damaged, or not-as-described items above.</p>
           </div>
         </details>
       </div>
