@@ -65,10 +65,18 @@ import type { BroadcastDraft } from '../../lib/settings.js';
 // "it expired" is never the reason an unsubscribe click fails.
 const UNSUBSCRIBE_TOKEN_TTL_SECONDS = 2 * 365 * 24 * 60 * 60; // ~2 years
 
-// Resend's own rate limit isn't hardcoded here -- if real sends start
-// getting 429s back, lower BATCH_SIZE and/or raise BATCH_DELAY_MS.
-const BATCH_SIZE = 10;
-const BATCH_DELAY_MS = 300;
+// Resend's account-wide API limit is 10 requests/second (shared across
+// every API key and every other thing hitting Resend at the same time,
+// not just this send -- see https://resend.com/docs/api-reference/rate-limit).
+// BATCH_SIZE stays comfortably under that so one broadcast doesn't eat
+// the whole budget, and BATCH_DELAY_MS clears a full second so one
+// batch's trailing requests can't land in the same rate-limit window as
+// the next batch's opening ones.
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 1100;
+// A 429 from Resend is retried once, after RETRY_DELAY_MS, rather than
+// recorded as a permanent failure straight away -- sendOneWithRetry below.
+const RETRY_DELAY_MS = 1200;
 // Defensive sanity cap, not a real expected ceiling -- catches a runaway
 // query rather than a deliberately large but legitimate send.
 const MAX_SEND = 5000;
@@ -242,6 +250,12 @@ function absoluteUrl(req: any, urlOrPath?: string | null): string | undefined {
  * mutate the input. */
 function resolveBlockImageUrls(req: any, blocks: BroadcastBlock[]): BroadcastBlock[] {
   return blocks.map((block) => {
+    // A text block's optional photo was never resolved here, so a
+    // site-relative path (e.g. "/assets/learn/...") rendered fine in the
+    // admin preview (same browser origin as the path) but broke in the
+    // actual sent email, which has no origin to resolve a relative URL
+    // against.
+    if (block.type === 'text' && block.imageUrl) return { ...block, imageUrl: absoluteUrl(req, block.imageUrl) };
     if (block.type === 'image') {
       return { ...block, images: block.images.map((img) => ({ ...img, url: absoluteUrl(req, img.url) as string })) };
     }
@@ -320,6 +334,31 @@ function renderFor({
     unsubscribeUrl,
   });
   return { subject: filledSubject, html, text: fullMessage };
+}
+
+/** Sends one email, retrying once after RETRY_DELAY_MS if Resend's own
+ * reply says the account hit its 10 req/sec rate limit (BATCH_SIZE/
+ * BATCH_DELAY_MS above already try to stay under that, but a burst of
+ * other API activity on the same account can still tip it over) --
+ * everything else (a bad address, Resend being unreachable) fails
+ * immediately rather than retrying something that won't change. */
+async function sendEmailWithRetry(resend: any, params: { from: string; to: string; subject: string; html: string; text: string }): Promise<{ ok: true } | { ok: false; error: string }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      if (!resend) throw new Error('Resend is not configured');
+      const result = await resend.emails.send(params);
+      if (!result.error) return { ok: true };
+      const isRateLimited = result.error.name === 'rate_limit_exceeded' || result.error.statusCode === 429;
+      if (isRateLimited && attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+      return { ok: false, error: result.error.message || result.error.name || 'unknown reason' };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Send failed' };
+    }
+  }
+  return { ok: false, error: 'unknown reason' };
 }
 
 /** Sequential small batches rather than one giant Promise.all, so a large
@@ -514,16 +553,8 @@ export default async function handler(req: any, res: any): Promise<any> {
           name: nameForSubscriber(sub),
           subscriberId: sub.id,
         });
-        try {
-          if (!resend) throw new Error('Resend is not configured');
-          const result = await resend.emails.send({ from: fromEmail, to: sub.email, subject: filledSubject, html, text });
-          if (result.error) {
-            return { email: sub.email, ok: false, error: result.error.message || result.error.name || 'unknown reason' };
-          }
-          return { email: sub.email, ok: true };
-        } catch (err) {
-          return { email: sub.email, ok: false, error: err instanceof Error ? err.message : 'Send failed' };
-        }
+        const outcome = await sendEmailWithRetry(resend, { from: fromEmail, to: sub.email, subject: filledSubject, html, text });
+        return outcome.ok ? { email: sub.email, ok: true } : { email: sub.email, ok: false, error: outcome.error };
       });
 
       const failed = results.filter((r) => !r.ok);
@@ -589,16 +620,8 @@ export default async function handler(req: any, res: any): Promise<any> {
           name: nameForSubscriber(sub),
           subscriberId: sub.id,
         });
-        try {
-          if (!resend) throw new Error('Resend is not configured');
-          const result = await resend.emails.send({ from: fromEmail, to: sub.email, subject: filledSubject, html, text });
-          if (result.error) {
-            return { email: sub.email, id: sub.id, ok: false, error: result.error.message || result.error.name || 'unknown reason' };
-          }
-          return { email: sub.email, id: sub.id, ok: true };
-        } catch (err) {
-          return { email: sub.email, id: sub.id, ok: false, error: err instanceof Error ? err.message : 'Send failed' };
-        }
+        const outcome = await sendEmailWithRetry(resend, { from: fromEmail, to: sub.email, subject: filledSubject, html, text });
+        return outcome.ok ? { email: sub.email, id: sub.id, ok: true } : { email: sub.email, id: sub.id, ok: false, error: outcome.error };
       });
 
       const failed = results.filter((r) => !r.ok);

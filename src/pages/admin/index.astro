@@ -5775,7 +5775,7 @@ import Layout from "../../layouts/Layout.astro";
       const data = await res.json();
       if (res.ok) {
         const parts = [`Sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}.`];
-        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
         if (data.skippedInvalid?.length) parts.push(`Skipped invalid: ${data.skippedInvalid.join(", ")}`);
         showHint(status, parts.join(" "), !data.failed?.length && !data.skippedInvalid?.length);
       } else {
@@ -6376,7 +6376,7 @@ import Layout from "../../layouts/Layout.astro";
           const data = await res.json();
           if (res.ok) {
             const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
             showHint(status, parts.join(" "), !data.failed?.length);
             // Best-effort -- a sent broadcast's draft is stale, but a failed
             // clear shouldn't make the send itself look like it failed.
@@ -6417,7 +6417,7 @@ import Layout from "../../layouts/Layout.astro";
       const data = await res.json();
       if (res.ok) {
         const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
         showHint(status, parts.join(" "), !data.failed?.length);
         // Best-effort -- a sent broadcast's draft is stale, but a failed
         // clear shouldn't make the send itself look like it failed.
