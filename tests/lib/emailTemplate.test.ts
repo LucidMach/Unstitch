@@ -206,8 +206,39 @@ describe('renderBlocksHtml (broadcast block composer)', () => {
     const plain = renderBlocksHtml([{ type: 'text', heading: 'Plain', body: 'x' }], new Map());
     expect(plain).not.toContain('border-radius:12px;padding:18px 20px 4px');
 
-    const highlighted = renderBlocksHtml([{ type: 'image', url: 'https://x/img.png', highlightColor: '#ff00aa' }], new Map());
+    const highlighted = renderBlocksHtml(
+      [{ type: 'image', images: [{ url: 'https://x/img.png' }], highlightColor: '#ff00aa' }],
+      new Map(),
+    );
     expect(highlighted).toContain('background:#ff00aa;border-radius:12px');
+  });
+
+  it('renders a single image full-width, and two images side by side in a table', () => {
+    const single = renderBlocksHtml([{ type: 'image', images: [{ url: 'https://x/one.png', caption: 'One' }] }], new Map());
+    expect(single).toContain('<img src="https://x/one.png"');
+    expect(single).not.toContain('<table');
+
+    const sideBySide = renderBlocksHtml(
+      [
+        {
+          type: 'image',
+          images: [
+            { url: 'https://x/one.png', caption: 'One' },
+            { url: 'https://x/two.png', caption: 'Two' },
+          ],
+        },
+      ],
+      new Map(),
+    );
+    expect(sideBySide).toContain('<table');
+    expect(sideBySide).toContain('https://x/one.png');
+    expect(sideBySide).toContain('https://x/two.png');
+    expect(sideBySide).toContain('One');
+    expect(sideBySide).toContain('Two');
+  });
+
+  it('skips an image block with no images rather than rendering an empty tag', () => {
+    expect(renderBlocksHtml([{ type: 'image', images: [] }], new Map())).toBe('');
   });
 
   it('removes a boxed block\'s normal top margin above its heading so the highlight padding does not double up with it', () => {

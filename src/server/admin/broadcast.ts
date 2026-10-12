@@ -88,11 +88,19 @@ const TextBlockSchema = z.object({
   highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
-const ImageBlockSchema = z.object({
-  type: z.literal('image'),
+// A single image item within an image block. An image block holds one or
+// two of these -- two render side by side (an HTML <table> layout, since
+// flexbox/grid can't be relied on across email clients, Outlook above
+// all) rather than stacked.
+const ImageItemSchema = z.object({
   url: z.string().trim().min(1).max(2000),
   alt: z.string().trim().max(200).optional(),
   caption: z.string().trim().max(300).optional(),
+});
+
+const ImageBlockSchema = z.object({
+  type: z.literal('image'),
+  images: z.array(ImageItemSchema).min(1).max(2),
   highlightColor: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be a hex colour like #f6f4f1').optional(),
 });
 
@@ -163,9 +171,22 @@ const DraftBlockSchema = z
     body: z.string().max(10000).optional(),
     imageUrl: z.string().max(2000).optional(),
     imageAlt: z.string().max(200).optional(),
+    // url/alt/caption: legacy single-image shape, kept optional here so an
+    // older saved draft still parses; the composer migrates it to
+    // `images` on load (see migrateDraftBlocks in admin/index.astro).
     url: z.string().max(2000).optional(),
     alt: z.string().max(200).optional(),
     caption: z.string().max(300).optional(),
+    images: z
+      .array(
+        z.object({
+          url: z.string().max(2000).optional(),
+          alt: z.string().max(200).optional(),
+          caption: z.string().max(300).optional(),
+        }),
+      )
+      .max(2)
+      .optional(),
     productId: z.string().max(100).optional(),
     headline: z.string().max(200).optional(),
     showImage: z.boolean().optional(),
@@ -221,7 +242,9 @@ function absoluteUrl(req: any, urlOrPath?: string | null): string | undefined {
  * mutate the input. */
 function resolveBlockImageUrls(req: any, blocks: BroadcastBlock[]): BroadcastBlock[] {
   return blocks.map((block) => {
-    if (block.type === 'image') return { ...block, url: absoluteUrl(req, block.url) as string };
+    if (block.type === 'image') {
+      return { ...block, images: block.images.map((img) => ({ ...img, url: absoluteUrl(req, img.url) as string })) };
+    }
     if (block.type === 'kit' && block.buttonUrl) return { ...block, buttonUrl: absoluteUrl(req, block.buttonUrl) };
     return block;
   });
