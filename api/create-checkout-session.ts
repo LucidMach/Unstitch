@@ -167,7 +167,7 @@ export default async function handler(req: any, res: any): Promise<any> {
               // anyone glance at a completed order and see exactly which
               // postcode this fee was quoted for, without needing to cross-
               // reference the admin panel.
-              name: `Delivery — ${deliveryZone.name} (postcode ${postcode})`,
+              name: `Delivery (${deliveryZone.name}, postcode ${postcode})`,
             },
             unit_amount: deliveryZone.feeCents,
           },

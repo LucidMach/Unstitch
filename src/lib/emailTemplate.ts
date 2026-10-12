@@ -135,7 +135,7 @@ export function brandedEmailHtml({
       <hr style="border:none;border-top:1px solid #eee;margin:28px 0 22px;" />
       ${signatureHtml}
     </div>
-    <p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:20px 0 0;">Unstitch — Naarm, Melbourne Australia</p>
+    <p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:20px 0 0;">Unstitch | Naarm, Melbourne Australia</p>
     ${
       unsubscribeUrl
         ? `<p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:6px 0 0;"><a href="${esc(unsubscribeUrl)}" style="color:#999;text-decoration:underline;">Unsubscribe</a> from these emails</p>`
@@ -590,7 +590,7 @@ function formatAddressLine(addr?: DeliveryAddress | null): string | null {
  * (api/admin/manual-order.js) or a future one-off resend.
  */
 export const DEFAULT_ORDER_MESSAGE =
-  "Every Slow Bloom kit is made to order — please allow 5–7 business days to prepare before it ships. We'll follow up with tracking once it's on its way.";
+  "Every Slow Bloom kit is made to order, please allow 5–7 business days to prepare before it ships. We'll follow up with tracking once it's on its way.";
 
 /**
  * The one order-confirmation email, built once here so api/stripe-webhook.js
@@ -687,7 +687,7 @@ export function orderConfirmationEmail({
     'Track your order any time:',
     lookupLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   );
   return { html, text: textLines.join('\n') };
 }
@@ -707,8 +707,8 @@ export function passportTransferConfirmationEmail({
 }: PassportTransferEmailOptions): { html: string; text: string } {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Someone just tried to register your Unstitch kit's digital passport (<strong>${esc(unitSerial)}</strong>, ${esc(productName)}) using a different email address (<strong>${esc(newOwnerEmail)}</strong>).</p>
-    <p style="margin:0 0 14px;">If you sold or gifted this kit and this is expected, confirm the transfer below — it'll move the passport (and registration) over to its new owner.</p>
-    <p style="margin:0;">If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.</p>`;
+    <p style="margin:0 0 14px;">If you sold or gifted this kit and this is expected, confirm the transfer below, it'll transfer the passport (and registration) over to its new owner.</p>
+    <p style="margin:0;">If this wasn't you, you can safely ignore this email as nothing has changed yet, and no confirmation link works without you clicking it.</p>`;
   const html = brandedEmailHtml({
     eyebrow: 'Confirm passport transfer',
     heading: 'Someone wants to claim your Unstitch kit',
@@ -720,13 +720,13 @@ export function passportTransferConfirmationEmail({
     '',
     `Someone just tried to register your Unstitch kit's digital passport (${unitSerial}, ${productName}) using a different email address (${newOwnerEmail}).`,
     '',
-    'If you sold or gifted this kit and this is expected, confirm the transfer using the link below — it\'ll move the passport (and registration) over to its new owner.',
+    'If you sold or gifted this kit and this is expected, confirm the transfer using the link below, it\'ll transfer the passport (and registration) over to its new owner.',
     '',
-    "If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.",
+    "If this wasn't you, you can safely ignore this email as nothing has changed yet, and no confirmation link works without you clicking it.",
     '',
     confirmLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   ].join('\n');
   return { html, text };
 }
@@ -747,7 +747,7 @@ export function giftAcknowledgementEmail({
   const recipientBit = recipientName ? esc(recipientName) : 'the person you gave it to';
   const bodyHtml = `
     <p style="margin:0 0 14px;">Hi ${esc(giverName)},</p>
-    <p style="margin:0 0 14px;">Just a note to say thank you — the Unstitch kit you gave (<strong>${esc(productName)}</strong>, passport code <strong>${esc(unitSerial)}</strong>) has been registered by ${recipientBit}. That was a lovely gift.</p>
+    <p style="margin:0 0 14px;">Just a note to say thank you: the Unstitch kit you gave (<strong>${esc(productName)}</strong>, passport code <strong>${esc(unitSerial)}</strong>) has been registered by ${recipientBit}. That was a lovely gift.</p>
     <p style="margin:0;">We just wanted you to know it arrived safely and is officially theirs now.</p>`;
   const html = brandedEmailHtml({
     eyebrow: 'Thank you',
@@ -808,7 +808,7 @@ export function orderShippedEmail({
     'Track your order any time:',
     lookupLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   ].join('\n');
   return { html, text };
 }

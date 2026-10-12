@@ -45,7 +45,7 @@ export default async function handler(req: any, res: any): Promise<any> {
 
     if (unit.status !== 'REGISTERED' || unit.currentOwnerCustomerId !== currentOwnerCustomerId) {
       return sendJson(res, 409, {
-        error: "This transfer link is no longer valid — this kit's registration has changed since this link was sent.",
+        error: "This transfer link is no longer valid. This kit's registration has changed since this link was sent.",
       });
     }
 
@@ -62,7 +62,7 @@ export default async function handler(req: any, res: any): Promise<any> {
 
     return sendJson(res, 200, {
       confirmed: true,
-      message: `Done — this kit's passport is now registered to ${newOwnerEmail}.`,
+      message: `Done! This kit's passport is now registered to ${newOwnerEmail}.`,
     });
   } catch (err) {
     console.error('[passport-confirm-transfer] Confirmation failed:', err);

@@ -45,7 +45,7 @@ const SubmitSchema = z.object({
 });
 
 const ORDER_NOT_FOUND_MESSAGE =
-  "We couldn't find an order with that number and email. Double-check both — it's on your order confirmation email.";
+  "We couldn't find an order with that number and email. Double-check both, it's on your order confirmation email.";
 
 // A review's single star-average, stored once so listing queries don't
 // have to recompute it (see Review.rating's comment in schema.prisma).
@@ -139,7 +139,7 @@ async function handlePost(req: any, res: any) {
     return sendJson(res, 201, {
       ok: true,
       status: 'PENDING',
-      message: 'Thanks! Your review is in — we check each one before it goes live.',
+      message: 'Thanks! Your review is in. We check each one before it goes live.',
     });
   } catch (err: any) {
     console.error('[reviews] Submit failed:', err);

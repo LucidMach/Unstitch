@@ -122,7 +122,7 @@ import Layout from "../layouts/Layout.astro";
         }
       })
       .catch(() => {
-        errorMessageEl.textContent = "Network error — please try again.";
+        errorMessageEl.textContent = "Network error. Please try again.";
         show(errorEl);
       });
 
@@ -133,14 +133,14 @@ import Layout from "../layouts/Layout.astro";
         const res = await fetch(`/api/resubscribe?token=${encodeURIComponent(token)}`);
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          resubscribeStatus.textContent = "You're back on the list — thanks for staying.";
+          resubscribeStatus.textContent = "You're back on the list. Thanks for staying.";
           resubscribeBtn.hidden = true;
         } else {
           resubscribeStatus.textContent = data.error || "Couldn't undo that. Get in touch and we'll add you back by hand.";
           resubscribeBtn.disabled = false;
         }
       } catch {
-        resubscribeStatus.textContent = "Network error — please try again.";
+        resubscribeStatus.textContent = "Network error. Please try again.";
         resubscribeBtn.disabled = false;
       }
       resubscribeStatus.hidden = false;

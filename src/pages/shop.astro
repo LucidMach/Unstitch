@@ -66,16 +66,16 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
 // (see the gallery script further down) — no carousel library needed for 4
 // static photos.
 const galleryImages = [
-  { src: SlowBloomHeroImage, alt: "Slow Bloom — the turtle design, assembled" },
-  { src: SlowBloomMushroomImage, alt: "Slow Bloom — the mushroom design, assembled" },
-  { src: SlowBloomCupWarmerImage, alt: "Slow Bloom — the cup warmer design, assembled" },
+  { src: SlowBloomHeroImage, alt: "Slow Bloom kit with the turtle design assembled" },
+  { src: SlowBloomMushroomImage, alt: "Slow Bloom kit with the mushroom design assembled" },
+  { src: SlowBloomCupWarmerImage, alt: "Slow Bloom kit with the cup warmer design assembled" },
   { src: SlowBloomTurtleLifestyleImage, alt: "Slow Bloom turtle shown in a home setting" },
 ];
 ---
 
 <Layout
-  title="Slow Bloom — Modular Textile Kit | Unstitch"
-  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
+  title="Slow Bloom: Modular Textile Kit | Unstitch"
+  description="Slow Bloom: the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
   keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
   image={slowBloomOptimized.src}
   imageAlt="Slow Bloom modular textile kit"
@@ -205,10 +205,9 @@ const galleryImages = [
           </button>
           <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
           <p class="product-hero__sold-out" data-sold-out-note hidden>
-            This drop is sold out — check back for the next one, or
-            <a href="/contact">get in touch</a> to be notified.
+            This drop is sold out. Please check back for the next drop.
           </p>
-          <p class="product-hero__made-to-order">Made to order — please allow 5–7 business days before shipping.</p>
+          <p class="product-hero__made-to-order">Made to order: please allow 5–7 business days before shipping.</p>
         </div>
       </div>
     </section>
@@ -227,8 +226,8 @@ const galleryImages = [
         <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
       </div>
       <div class="reviews__empty" data-reviews-empty>
-        <p>No reviews yet — Slow Bloom just dropped.</p>
-        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of {product.totalUnits}").</p>
+        <p>No reviews yet. Slow Bloom just dropped.</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner: Slow Bloom #7 of {product.totalUnits}").</p>
       </div>
       <ul class="reviews__list" data-reviews-list hidden></ul>
     </section>
@@ -279,7 +278,7 @@ const galleryImages = [
           <label class="review-field">
             <span class="review-field__label">Order number</span>
             <input type="text" class="review-field__input" name="orderNumber" placeholder="e.g. UX-2026-123456" required />
-            <span class="review-field__hint">Found on your order confirmation email, together with the email below — that pair is what verifies you actually own a kit.</span>
+            <span class="review-field__hint">Found on your order confirmation email, together with the email below. That pair is what verifies you actually own a kit.</span>
           </label>
 
           <label class="review-field">
@@ -840,7 +839,7 @@ const galleryImages = [
       if (typeof data.name === "string" && data.name) {
         const titleEl = document.querySelector<HTMLElement>("[data-product-title]");
         if (titleEl) titleEl.textContent = data.name;
-        document.title = `${data.name} — Modular Textile Kit | Unstitch`;
+        document.title = `${data.name}: Modular Textile Kit | Unstitch`;
       }
       if (typeof data.tagline === "string" && data.tagline) {
         const eyebrowEl = document.querySelector<HTMLElement>("[data-product-eyebrow]");
@@ -1090,7 +1089,7 @@ const galleryImages = [
           const result = await res.json().catch(() => ({}));
 
           if (res.ok) {
-            reviewFeedback.textContent = result.message || "Thanks! Your review is in — we check each one before it goes live.";
+            reviewFeedback.textContent = result.message || "Thanks! Your review is in. We check each one before it goes live.";
             reviewFeedback.className = "review-form__feedback is-success";
             reviewForm.reset();
             reviewModal.querySelectorAll<HTMLElement>("[data-rating-group] .review-rating__star").forEach((star) =>
@@ -1128,7 +1127,7 @@ const galleryImages = [
         list.innerHTML = reviews
           .map((review: any) => {
             const badge = review.unitBadge
-              ? `<span class="reviews__badge">Verified Owner — Slow Bloom #${review.unitBadge.editionNumber} of ${review.unitBadge.totalUnits}</span>`
+              ? `<span class="reviews__badge">Verified Owner: Slow Bloom #${review.unitBadge.editionNumber} of ${review.unitBadge.totalUnits}</span>`
               : `<span class="reviews__badge">Verified Owner</span>`;
             const date = review.createdAt
               ? new Date(review.createdAt).toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })

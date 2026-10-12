@@ -80,7 +80,7 @@ export default async function handler(req: any, res: any): Promise<any> {
               '',
               'This link works for 30 days. If you did not request this, you can ignore this email.',
               '',
-              'Unstitch — Naarm, Melbourne Australia',
+              'Unstitch | Naarm, Melbourne Australia',
             ].join('\n'),
           })
           .catch((err) => console.error('[order-lookup-request] Email send failed:', err));
