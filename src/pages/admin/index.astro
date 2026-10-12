@@ -6364,13 +6364,16 @@ import Layout from "../../layouts/Layout.astro";
         }
       });
 
-      card.querySelector(".wl-send-test")?.addEventListener("click", async () => {
+      card.querySelector(".wl-send-test")?.addEventListener("click", async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        if (btn.disabled) return;
         const testEmail = (card.querySelector(".wl-test-email") as HTMLInputElement).value.trim();
         if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
         const { subject, gifUrl, signatureName, signatureRole } = getFields();
         if (!subject) return showHint(status, "Fill in a subject.", false);
         const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
         if (!blocks) return;
+        btn.disabled = true;
         try {
           const res = await api("/api/admin/broadcast", {
             method: "POST",
@@ -6390,6 +6393,8 @@ import Layout from "../../layouts/Layout.astro";
           else showHint(status, data.error || "Failed to send test.", false);
         } catch {
           showHint(status, "Network error.", false);
+        } finally {
+          btn.disabled = false;
         }
       });
 
@@ -6447,7 +6452,14 @@ import Layout from "../../layouts/Layout.astro";
     };
   }
 
-  document.getElementById("broadcast-general-send-test")?.addEventListener("click", async () => {
+  document.getElementById("broadcast-general-send-test")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    // Each click fires one unpaced API call (unlike the real send, which
+    // batches/paces itself) -- a rapid double-click here has nothing
+    // slowing it down, so a burst of clicks could itself trip Resend's
+    // rate limit. Disabling for the duration of the request is simpler
+    // and more honest than trying to pace single ad-hoc test sends.
+    if (btn.disabled) return;
     const status = document.getElementById("broadcast-general-status") as HTMLElement;
     const testEmail = (document.getElementById("broadcast-general-test-email") as HTMLInputElement).value.trim();
     if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
@@ -6455,6 +6467,7 @@ import Layout from "../../layouts/Layout.astro";
     if (!subject) return showHint(status, "Fill in a subject.", false);
     const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
     if (!blocks) return;
+    btn.disabled = true;
     try {
       const res = await api("/api/admin/broadcast", {
         method: "POST",
@@ -6473,6 +6486,8 @@ import Layout from "../../layouts/Layout.astro";
       else showHint(status, data.error || "Failed to send test.", false);
     } catch {
       showHint(status, "Network error.", false);
+    } finally {
+      btn.disabled = false;
     }
   });
 
