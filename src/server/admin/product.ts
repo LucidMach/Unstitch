@@ -155,22 +155,22 @@ export default async function handler(req: any, res: any): Promise<any> {
     if (idParam) {
       product = await prisma.product.findUnique({
         where: { id: idParam },
-        include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
+        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
       });
     } else if (slugParam) {
       product = await prisma.product.findUnique({
         where: { slug: slugParam },
-        include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
+        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
       });
     } else {
       product = await prisma.product.findUnique({
         where: { slug: SLUG },
-        include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
+        include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
       });
       if (!product) {
         product = await prisma.product.findFirst({
           orderBy: { createdAt: 'desc' },
-          include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
+          include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
         });
       }
     }

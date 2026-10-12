@@ -383,7 +383,7 @@ describe('admin/product API handler — multi-product support & product creation
     expect(res.body.product.slug).toBe('desert-bloom');
     expect(findSpy).toHaveBeenCalledWith({
       where: { slug: 'desert-bloom' },
-      include: { costRecipe: { include: { materialSource: true } }, givingProgram: true },
+      include: { costRecipe: { include: { materialSource: true, givingProgram: true } } },
     });
   });
 

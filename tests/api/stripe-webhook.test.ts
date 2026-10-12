@@ -240,9 +240,10 @@ describe('Stripe webhook handler (/api/stripe-webhook)', () => {
           name: 'Slow Bloom Kit',
           givingTilesPerKit: 3,
           givingInternalValueCentsPerTile: 50,
-          givingProgramId: 'program-1',
           givingDescription: 'Every kit contributes 3 pieces to Community Workshop Melbourne.',
-          givingProgram: { id: 'program-1', name: 'Community Workshop Melbourne' },
+          // The giving-program link lives on ProductCostRecipe, not Product
+          // itself — see the matching comment in api/stripe-webhook.js.
+          costRecipe: { givingProgramId: 'program-1', givingProgram: { id: 'program-1', name: 'Community Workshop Melbourne' } },
         }),
       },
       $executeRaw: vi.fn().mockResolvedValue(1),

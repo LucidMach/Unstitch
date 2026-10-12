@@ -297,7 +297,7 @@ async function handleCheckoutCompleted(session: any) {
     });
 
     if (productId && unitIds.length > 0) {
-      const product = await tx.product.findUnique({ where: { id: productId }, include: { givingProgram: true } });
+      const product = await tx.product.findUnique({ where: { id: productId }, include: { costRecipe: { include: { givingProgram: true } } } });
       if (product) {
         orderItemsForEmail = [{ name: product.name, quantity: unitIds.length }];
         const unitPriceCents = Math.round(totalCents / unitIds.length);
@@ -323,7 +323,10 @@ async function handleCheckoutCompleted(session: any) {
         // copy — see prisma/schema.prisma's GivingLedgerEntry.
         if (product.givingTilesPerKit > 0) {
           givingTilesContributed = product.givingTilesPerKit * unitIds.length;
-          givingProgramName = product.givingProgram?.name;
+          // The giving-program link lives on ProductCostRecipe, not on
+          // Product itself (see prisma/schema.prisma / prisma/seed.ts —
+          // only the cost recipe's create() sets givingProgramId).
+          givingProgramName = product.costRecipe?.givingProgram?.name;
           await tx.givingLedgerEntry.create({
             data: {
               orderId: order.id,
@@ -331,7 +334,7 @@ async function handleCheckoutCompleted(session: any) {
               internalValueCents: product.givingInternalValueCentsPerTile
                 ? product.givingInternalValueCentsPerTile * givingTilesContributed
                 : null,
-              givingProgramId: product.givingProgramId || null,
+              givingProgramId: product.costRecipe?.givingProgramId || null,
               description: product.givingDescription || null,
             },
           });

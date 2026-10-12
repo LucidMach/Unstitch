@@ -111,9 +111,10 @@ describe('admin/manual-order API handler — creation happy path', () => {
       ...PRODUCT,
       givingTilesPerKit: 3,
       givingInternalValueCentsPerTile: 50,
-      givingProgramId: 'program-1',
       givingDescription: 'Every kit contributes 3 pieces to Community Workshop Melbourne.',
-      givingProgram: { id: 'program-1', name: 'Community Workshop Melbourne' },
+      // The giving-program link lives on ProductCostRecipe, not Product
+      // itself — see the matching comment in src/server/admin/manual-order.ts.
+      costRecipe: { givingProgramId: 'program-1', givingProgram: { id: 'program-1', name: 'Community Workshop Melbourne' } },
     } as any);
 
     const mockTx = {

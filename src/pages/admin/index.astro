@@ -4999,7 +4999,7 @@ import Layout from "../../layouts/Layout.astro";
       const givingOrdersEl = document.getElementById("giving-orders-count") as HTMLElement | null;
       const givingValueEl = document.getElementById("giving-value-to-date") as HTMLElement | null;
       if (givingProgramEl) {
-        givingProgramEl.textContent = product.givingProgram?.name || "No program linked yet";
+        givingProgramEl.textContent = product.costRecipe?.givingProgram?.name || "No program linked yet";
       }
       if (givingTilesToDateEl) {
         givingTilesToDateEl.textContent = String(givingSummary?.tilesContributedToDate ?? 0);

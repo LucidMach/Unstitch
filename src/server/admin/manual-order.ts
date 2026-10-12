@@ -301,7 +301,7 @@ export default async function handler(req: any, res: any): Promise<any> {
     resolvedShipDate = candidate;
   }
 
-  const product = await prisma.product.findUnique({ where: { slug: SLUG }, include: { givingProgram: true } });
+  const product = await prisma.product.findUnique({ where: { slug: SLUG }, include: { costRecipe: { include: { givingProgram: true } } } });
   if (!product || !product.isActive) {
     return sendJson(res, 404, { error: 'Product not available.' });
   }
@@ -471,7 +471,10 @@ export default async function handler(req: any, res: any): Promise<any> {
       // order instead of silently going unrecorded.
       if (product.givingTilesPerKit > 0) {
         givingTilesContributed = product.givingTilesPerKit * quantity;
-        givingProgramName = product.givingProgram?.name;
+        // The giving-program link lives on ProductCostRecipe, not on
+        // Product itself (see prisma/schema.prisma / prisma/seed.ts —
+        // only the cost recipe's create() sets givingProgramId).
+        givingProgramName = product.costRecipe?.givingProgram?.name;
         await tx.givingLedgerEntry.create({
           data: {
             orderId: order.id,
@@ -479,7 +482,7 @@ export default async function handler(req: any, res: any): Promise<any> {
             internalValueCents: product.givingInternalValueCentsPerTile
               ? product.givingInternalValueCentsPerTile * givingTilesContributed
               : null,
-            givingProgramId: product.givingProgramId || null,
+            givingProgramId: product.costRecipe?.givingProgramId || null,
             description: product.givingDescription || null,
           },
         });
