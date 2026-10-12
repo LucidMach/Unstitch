@@ -217,18 +217,20 @@ const galleryImages = [
 
     <!-- ============ REVIEWS ============
          Reviews are tied to a real completed order (see Review.orderId /
-         Review.unitId in the schema) — none exist yet since no kit has
-         been delivered. This is the real empty state, not a placeholder
-         review, and it'll fill in once orders start shipping. -->
+         Review.unitId in the schema) and only ever shown once an admin
+         has published them (see src/server/admin/reviews.js) — fetched
+         live below from GET /api/reviews?product=slow-bloom. The empty
+         state stays as a fallback for whenever none are published yet. -->
     <section class="wrap section reviews">
       <div class="reviews__head">
         <h2 class="section__title">Reviews</h2>
         <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
       </div>
-      <div class="reviews__empty">
+      <div class="reviews__empty" data-reviews-empty>
         <p>No reviews yet — Slow Bloom just dropped.</p>
         <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of {product.totalUnits}").</p>
       </div>
+      <ul class="reviews__list" data-reviews-list hidden></ul>
     </section>
 
     <div class="stitch" aria-hidden="true"></div>
@@ -256,11 +258,11 @@ const galleryImages = [
     </section>
 
     <!-- ============ WRITE-A-REVIEW MODAL ============
-         UI only for now. A review can only exist against a delivered
-         order (Review.orderId), so submitting needs a real API endpoint
-         that verifies the passport/order code below before saving —
-         built alongside checkout. Until then the form validates and
-         explains what happens next rather than pretending to post. -->
+         Posts to /api/reviews (src/server/reviews.js), which verifies the
+         order number + email pair against a real DELIVERED order for this
+         product before saving anything — same proof-of-ownership pattern
+         as src/server/order-lookup-by-number.js. New reviews land PENDING
+         until an admin publishes them. -->
     <div class="review-modal" data-review-modal hidden>
       <div class="review-modal__overlay" data-review-close></div>
       <div class="review-modal__panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
@@ -275,9 +277,14 @@ const galleryImages = [
 
         <form class="review-form" data-review-form>
           <label class="review-field">
-            <span class="review-field__label">Kit passport / order code</span>
-            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-X000-000" required />
-            <span class="review-field__hint">This is what verifies you actually own a kit. Found on your postcard and in your order email.</span>
+            <span class="review-field__label">Order number</span>
+            <input type="text" class="review-field__input" name="orderNumber" placeholder="e.g. UX-2026-123456" required />
+            <span class="review-field__hint">Found on your order confirmation email, together with the email below — that pair is what verifies you actually own a kit.</span>
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Email</span>
+            <input type="email" class="review-field__input" name="email" placeholder="The email you ordered with" required />
           </label>
 
           <label class="review-field">
@@ -551,6 +558,52 @@ const galleryImages = [
     color: #6b6b6b;
     max-width: 560px;
   }
+  .reviews__list {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .reviews__item {
+    border: 1px solid #e6e6e6;
+    border-radius: var(--radius, 6px);
+    padding: 18px 20px;
+  }
+  .reviews__item-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .reviews__stars {
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .reviews__badge {
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-pale, #eedfe9);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .reviews__item-title {
+    margin: 10px 0 4px;
+    font-size: 1rem;
+  }
+  .reviews__item-body {
+    margin: 0;
+    color: #333;
+    line-height: 1.5;
+  }
+  .reviews__item-meta {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: #888;
+  }
 
   /* ===== Write-a-review modal ===== */
   .review-modal {
@@ -663,6 +716,7 @@ const galleryImages = [
   }
   .review-form__feedback.is-error { color: #b3261e; }
   .review-form__feedback.is-info { color: var(--accent); }
+  .review-form__feedback.is-success { color: #2e7d32; }
 
   @media (max-width: 860px) {
     .product-hero__grid { grid-template-columns: 1fr; gap: 28px; }
@@ -957,7 +1011,7 @@ const galleryImages = [
       const openReview = () => {
         reviewModal.hidden = false;
         document.body.style.overflow = "hidden";
-        reviewModal.querySelector<HTMLInputElement>("input[name='passport']")?.focus();
+        reviewModal.querySelector<HTMLInputElement>("input[name='orderNumber']")?.focus();
       };
       const closeReview = () => {
         reviewModal.hidden = true;
@@ -994,7 +1048,8 @@ const galleryImages = [
 
       const reviewForm = reviewModal.querySelector<HTMLFormElement>("[data-review-form]");
       const reviewFeedback = reviewModal.querySelector<HTMLElement>("[data-review-feedback]");
-      reviewForm?.addEventListener("submit", (e) => {
+      const reviewSubmitBtn = reviewForm?.querySelector<HTMLButtonElement>("button[type='submit']");
+      reviewForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!reviewFeedback) return;
 
@@ -1008,14 +1063,106 @@ const galleryImages = [
           return;
         }
 
-        // No endpoint yet: a review has to be checked against a real
-        // delivered order before it can be saved, and that API is built
-        // with checkout. Say so plainly rather than faking a success.
-        reviewFeedback.textContent =
-          "Thanks — review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
+        const data = new FormData(reviewForm);
+        const payload = {
+          productSlug: "slow-bloom",
+          orderNumber: String(data.get("orderNumber") || "").trim(),
+          email: String(data.get("email") || "").trim(),
+          ratingPlay: Number(data.get("ratingPlay") || 0),
+          ratingBuild: Number(data.get("ratingBuild") || 0),
+          ratingValue: Number(data.get("ratingValue") || 0),
+          title: String(data.get("title") || "").trim(),
+          body: String(data.get("body") || "").trim(),
+          wouldRecommend: data.get("wouldRecommend") === "on",
+          showUnit: data.get("showPassport") === "on",
+        };
+
+        if (reviewSubmitBtn) reviewSubmitBtn.disabled = true;
+        reviewFeedback.textContent = "Checking your order…";
         reviewFeedback.className = "review-form__feedback is-info";
+
+        try {
+          const res = await fetch("/api/reviews", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const result = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            reviewFeedback.textContent = result.message || "Thanks! Your review is in — we check each one before it goes live.";
+            reviewFeedback.className = "review-form__feedback is-success";
+            reviewForm.reset();
+            reviewModal.querySelectorAll<HTMLElement>("[data-rating-group] .review-rating__star").forEach((star) =>
+              star.classList.remove("is-active"),
+            );
+          } else {
+            reviewFeedback.textContent = result.error || "Something went wrong. Please try again shortly.";
+            reviewFeedback.className = "review-form__feedback is-error";
+          }
+        } catch (err) {
+          reviewFeedback.textContent = "Couldn't reach the server. Please try again shortly.";
+          reviewFeedback.className = "review-form__feedback is-error";
+        } finally {
+          if (reviewSubmitBtn) reviewSubmitBtn.disabled = false;
+        }
       });
     }
+
+    // Published reviews — fetched live so new ones show up without a
+    // redeploy. Falls back to the static empty state (left in the markup
+    // above) when there are none yet.
+    (async () => {
+      const list = document.querySelector<HTMLElement>("[data-reviews-list]");
+      const empty = document.querySelector<HTMLElement>("[data-reviews-empty]");
+      if (!list || !empty) return;
+
+      try {
+        const res = await fetch("/api/reviews?product=slow-bloom");
+        if (!res.ok) return;
+        const data = await res.json();
+        const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+        if (reviews.length === 0) return;
+
+        const stars = (n: number) => "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(n);
+        list.innerHTML = reviews
+          .map((review: any) => {
+            const badge = review.unitBadge
+              ? `<span class="reviews__badge">Verified Owner — Slow Bloom #${review.unitBadge.editionNumber} of ${review.unitBadge.totalUnits}</span>`
+              : `<span class="reviews__badge">Verified Owner</span>`;
+            const date = review.createdAt
+              ? new Date(review.createdAt).toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })
+              : "";
+            const title = review.title ? `<h3 class="reviews__item-title">${escapeHtml(review.title)}</h3>` : "";
+            const body = review.body ? `<p class="reviews__item-body">${escapeHtml(review.body)}</p>` : "";
+            return `
+              <li class="reviews__item">
+                <div class="reviews__item-head">
+                  <span class="reviews__stars" aria-label="${review.rating} out of 5">${stars(review.rating)}</span>
+                  ${badge}
+                </div>
+                ${title}
+                ${body}
+                <p class="reviews__item-meta">${escapeHtml(review.reviewerFirstName)} · ${date}</p>
+              </li>`;
+          })
+          .join("");
+
+        empty.hidden = true;
+        list.hidden = false;
+      } catch {
+        // Leave the static empty state showing — no need to surface a
+        // fetch failure for a page section nobody asked to refresh.
+      }
+
+      function escapeHtml(value: string): string {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    })();
 
     // Newsletter signup form (same pattern used across the site).
     document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {
