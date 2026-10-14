@@ -1,0 +1,531 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Learn Program for Schools | Unstitch Workshops & Curriculum"
+  description="Hands-on, curriculum-linked textile workshops for schools: the Unstitch Experience Lab, Curriculum Skill sessions across six subject tracks, and Fireside Talks for students."
+  keywords="unstitch school workshops, curriculum textile workshop melbourne, STEM textile incursion, circular economy school program"
+  image="/assets/learn/public/zwf-festival-1.jpg"
+  imageAlt="Students building with the Unstitch tile system at a public workshop"
+>
+  <main>
+    <!-- ============ WORKSHOP PHOTOS CAROUSEL ============
+         First thing on the page, matching the archive page's media-hero
+         pattern — no stitch divider directly after it. -->
+    <section class="media-hero schools-banner" data-carousel aria-label="Photos from our workshops">
+      <div class="carousel__track" data-carousel-track>
+        <div class="carousel__slide is-active" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/zwf-festival-1.jpg" alt="Families and children making tile pieces at the 2026 Zero Waste Festival" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/zwf-festival-2.jpg" alt="Unstitch's activity table set up at the 2026 Zero Waste Festival" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/zwf-festival-3.jpg" alt="Tile pieces and visitor messages from the Zero Waste Festival activity table" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/monash-workshop-1.jpg" alt="Students building with the tile system at a Monash University workshop" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/monash-workshop-2.jpg" alt="Close-up of a tile headpiece made at a Monash University workshop" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/monash-workshop-3.jpg" alt="A small woven tile bag holding a phone, made during a workshop" /></div>
+        </div>
+        <div class="carousel__slide" data-carousel-slide>
+          <div class="ph schools-banner__media"><img src="/assets/learn/public/monash-workshop-4.jpg" alt="A group gathered around a table making with tiles at Monash University" /></div>
+        </div>
+      </div>
+      <div class="schools-banner__caption">
+        <p class="schools-banner__caption-eyebrow">From our workshops</p>
+        <p class="schools-banner__caption-sub">2026 Zero Waste Festival &amp; Monash University</p>
+      </div>
+      <div class="carousel__controls">
+        <div class="carousel__dots" data-carousel-dots></div>
+      </div>
+    </section>
+
+    <!-- ============ HERO ============ -->
+    <section class="wrap section schools-hero">
+      <div class="schools-hero__grid">
+        <div class="schools-hero__content">
+          <div class="schools-hero__badges">
+            <p class="section__eyebrow" style="margin:0;">For Schools &amp; Educators</p>
+            <span class="schools-hero__age-badge">Years 1 – VCE</span>
+          </div>
+          <h1 class="schools-hero__title">The Unstitch Learn Program</h1>
+          <p class="schools-hero__intro">Imagine tactile, hands-on building with interlocking textile that students can join, build, take apart and rapid prototype without sewing or stitching. Most importantly, transforming what was considered waste into building blocks with endless possibilities.</p>
+          <p class="schools-hero__body">We'll present accessible and innovative creative solutions to reducing waste towards a circular economy. Below are three ways schools collaborate with Unstitch.</p>
+          <div class="schools-hero__ctas">
+            <a href="/contact?category=school-workshop-enquiry" class="btn btn-filled">Enquire about a session</a>
+            <a href="#programs" class="btn btn-outline">See all programs ↓</a>
+          </div>
+        </div>
+        <div class="ph schools-hero__media">
+          <img src="/assets/learn/public/zwf-festival-1.jpg" alt="Students building with the Unstitch tile system at a public workshop" />
+        </div>
+      </div>
+    </section>
+
+    <!-- No stitch here by request — the accent-pale program strip below
+         sits flush against the hero, no zigzag seam on either edge. -->
+
+    <!-- ============ PROGRAM OVERVIEW STRIP ============ -->
+    <section id="programs" class="wrap section programs-strip">
+      <p class="section__eyebrow">Three ways to collaborate with Unstitch</p>
+      <p class="programs-strip__note">Every program runs from Years 1 through VCE; the brief and difficulty can be tailored to your requested year level, group size and session length. Depending on your needs, the physical workshop component can scale to construct small, handheld objects for younger students or shorter sessions, to larger spatial pieces that encourage teams to communicate and build together.</p>
+
+      <div class="programs-grid">
+        <div class="program-card">
+          <span class="program-card__badge">01 — Workshop</span>
+          <h3 class="program-card__title">Experience Lab</h3>
+          <p class="program-card__body">Open-ended, guided making with the tile system.<br />An introductory taste of Unstitch for all ages.</p>
+          <div class="program-card__meta">
+            <span class="program-card__spec">90 min · up to 25 students</span>
+            <span class="program-card__fee">$500</span>
+          </div>
+          <a href="#lab" class="btn btn-outline btn-small">Details</a>
+        </div>
+
+        <div class="program-card">
+          <span class="program-card__badge">02 — Workshop + talk</span>
+          <h3 class="program-card__title">Curriculum Skill</h3>
+          <p class="program-card__body">A short presentation plus facilitated making with briefs tailored to a subject.<br />Also available as a half-day or full-day session.</p>
+          <div class="program-card__meta">
+            <span class="program-card__spec">90 min · up to 25 students</span>
+            <span class="program-card__fee">From $650</span>
+          </div>
+          <a href="#curriculum" class="btn btn-outline btn-small">Details</a>
+        </div>
+
+        <div class="program-card">
+          <span class="program-card__badge">03 — Talk</span>
+          <h3 class="program-card__title">Fireside Talk</h3>
+          <p class="program-card__body">A talk on career pathway in circular economy, systems thinking in engineering and design, entrepreneurial building tangible business from idea.</p>
+          <div class="program-card__meta">
+            <span class="program-card__spec">Format &amp; length by arrangement</span>
+            <span class="program-card__fee program-card__fee--enquire">Enquire for fee</span>
+          </div>
+          <a href="#talk" class="btn btn-outline btn-small">Details</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- No stitch here either — see note above the program strip. -->
+
+    <!-- ============ 01 EXPERIENCE LAB ============ -->
+    <section id="lab" class="wrap section schools-section">
+      <div class="schools-section__heading">
+        <span class="schools-section__index">01</span>
+        <h2 class="section__title" style="margin:0;">Unstitch Experience Lab</h2>
+      </div>
+      <p class="schools-section__lead">An open-ended, guided making workshop where students explore how interlocking textile modules can be used to construct physical forms.</p>
+
+      <div class="spec-row">
+        <div class="spec-card">
+          <div class="spec-card__label">Duration</div>
+          <div class="spec-card__value">90 minutes</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Capacity</div>
+          <div class="spec-card__value">Up to 25 students</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Standard fee</div>
+          <div class="spec-card__value spec-card__value--accent">$500</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Delivery</div>
+          <div class="spec-card__value">Facilitated making</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h4 class="two-col__heading">Learning outcomes</h4>
+          <ul class="dash-list">
+            <li>Explore how interlocking mechanisms can create structures without glue.</li>
+            <li>Develop spatial reasoning through constructing and transforming 2D shapes into 3D structures.</li>
+            <li>Experiment with physical and virtual prototyping.</li>
+            <li>Reflect on alternative ways of designing and making with textiles.</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="two-col__heading">Delivery requirements</h4>
+          <ul class="dash-list">
+            <li>Indoor classroom with tables.</li>
+            <li>Projector or suitable screen for virtual making.</li>
+            <li>Reusable tile sets and agreed workshop resources supplied by Unstitch.</li>
+            <li>School staff support for student supervision where required.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout-card">
+        <div class="callout-card__title">Booking &amp; customisation</div>
+        <p class="callout-card__body">Schools can enquire about availability, group sizes and adapting the activity to themes such as fast fashion, circular economy, architecture or STEAM.</p>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ 02 CURRICULUM SKILL ============ -->
+    <section id="curriculum" class="wrap section schools-section">
+      <div class="schools-section__heading">
+        <span class="schools-section__index">02</span>
+        <h2 class="section__title" style="margin:0;">Unstitch Curriculum Skill</h2>
+      </div>
+      <p class="schools-section__lead">A curriculum-tailored workshop through the lens of Systems, STEAM or Identity. Delivered through a short presentation and a guided making session where students use interlocking mechanisms and circular design thinking to respond to real-world scenarios.</p>
+
+      <div class="spec-row">
+        <div class="spec-card">
+          <div class="spec-card__label">Duration</div>
+          <div class="spec-card__value">90 minutes</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Capacity</div>
+          <div class="spec-card__value">Up to 25 students</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Standard fee</div>
+          <div class="spec-card__value spec-card__value--accent">$650</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card__label">Delivery</div>
+          <div class="spec-card__value">Short presentation + facilitated making to a brief</div>
+        </div>
+      </div>
+
+      <div class="session-length">
+        <h4 class="two-col__heading" style="margin-bottom:4px;">Session length</h4>
+        <p class="session-length__note">The 90-minute session above is the standard format. For a deep dive, this program can also run as a half-day or full-day session:</p>
+        <div class="session-length__row">
+          <div class="session-card">
+            <div class="session-card__label">Standard</div>
+            <div class="session-card__duration">90 minutes</div>
+            <div class="session-card__fee">$650</div>
+          </div>
+          <div class="session-card">
+            <div class="session-card__label">Half-day</div>
+            <div class="session-card__duration">Approx. 3 hours</div>
+            <div class="session-card__fee">[Half-day fee — enquire]</div>
+          </div>
+          <div class="session-card">
+            <div class="session-card__label">Full-day</div>
+            <div class="session-card__duration">Approx. 6 hours</div>
+            <div class="session-card__fee">[Full-day fee — enquire]</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subject-tracks">
+        <h4 class="two-col__heading" style="margin-bottom:4px;">Choose a subject track</h4>
+        <p class="session-length__note">Content and framing shift with the subject. Six tracks are currently offered:</p>
+
+        <div class="subject-tracks__grid">
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">Systems</span>
+              <h4 class="track-card__title">Sustainable Lifecycles &amp; Circular Economy</h4>
+              <p class="track-card__desc">Students learn circular economy principles by visiting global traditional packaging techniques, then prototype reimagined 3D packaging without glue.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Geography, Design and Technology</div>
+          </div>
+
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">STEAM</span>
+              <h4 class="track-card__title">Tactile STEAM &amp; Geometry</h4>
+              <p class="track-card__desc">Students explore structural thinking and spatial reasoning using tactile geometry, symmetry, pattern and tessellation to transform 2D flat tiles into 3D structures.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Mathematics, Design and Technology</div>
+          </div>
+
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">Value &amp; Identity</span>
+              <h4 class="track-card__title">Community Eco-Emblem</h4>
+              <p class="track-card__desc">Students collaborate, design, prototype and pitch simplified, abstract emblems that physically represent the school's values that becomes a permanent school asset.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Wellness, Design and Technology (Graphic and Branding)</div>
+          </div>
+
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">Systems</span>
+              <h4 class="track-card__title">Architectural Systems in Spaces</h4>
+              <p class="track-card__desc">Students construct interior spatial elements, acoustic wall paneling, or architectural models using the tile system.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Engineering, Design and Technology (Spatial Design)</div>
+          </div>
+
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">STEAM</span>
+              <h4 class="track-card__title">Interactive E-Textiles &amp; Wearable Tech</h4>
+              <p class="track-card__desc">Students rapid prototype a smart garment or an interactive soft sculpture that reacts to light, touch or sound with simple open-source hardware such as micro:bits or conductive thread.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Digital Technologies, Design and Technology<br /><br />*<i>Currently only available to schools with electronic kits.</i></div>
+          </div>
+
+          <div class="track-card">
+            <div class="track-card__body">
+              <span class="track-card__tag">Value &amp; Identity</span>
+              <h4 class="track-card__title">Textile Animation</h4>
+              <p class="track-card__desc">Students direct and build creative storytelling through tactile frame-by-frame animation.</p>
+            </div>
+            <div class="track-card__fit"><strong>Curriculum fit:</strong> Media &amp; Visual Arts</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ 03 FIRESIDE TALK ============ -->
+    <section id="talk" class="wrap section schools-section">
+      <div class="schools-section__heading">
+        <span class="schools-section__index">03</span>
+        <h2 class="section__title" style="margin:0;">Fireside Talk</h2>
+      </div>
+      <p class="schools-section__lead">A talk covering Unstitch team's entrepreneurial experience in building accessible solutions and problem solving towards a more sustainable world. Format and length are arranged directly with the school.</p>
+
+      <h4 class="two-col__heading">Topics can include</h4>
+      <ul class="dash-list">
+        <li>Career pathway: finding direction and identifying a professional profile</li>
+        <li>The problem of material waste and its opportunity</li>
+        <li>Turning an idea into something tangible.</li>
+        <li>The reality of entrepreneurship for students considering the same paths.</li>
+        <li>Useful lessons from engineering, industrial design, finance, people and curiosity</li>
+      </ul>
+    </section>
+
+    <!-- No stitch divider here by request — Fireside Talk runs straight
+         into the Founding Schools / CTA section below. -->
+
+    <!-- FOUNDING SCHOOLS — kept in the page but hidden (display:none) while
+         this is still being decided. Un-comment the stitch divider above
+         and remove style="display:none" below once ready to launch it. -->
+
+    <section id="founding" class="wrap section founding-section" style="display:none;">
+      <span class="section__eyebrow">Limited to 6 schools</span>
+      <h2 class="section__title" style="margin:8px 0 16px;">Founding Schools Program</h2>
+      <p class="founding-section__intro">We're inviting the first 6 schools who help us refine this program, at a reduced rate in exchange for your feedback.</p>
+
+      <div class="founding-grid">
+        <div class="founding-card">
+          <div class="founding-card__title">What you get</div>
+          <ul class="dash-list">
+            <li>Founding-school rate with 20% off your first session</li>
+            <li>Priority scheduling for your preferred term and dates</li>
+            <li>First access to new subject tracks as they're developed</li>
+            <li>Direct input into how the program evolves</li>
+          </ul>
+        </div>
+        <div class="founding-card">
+          <div class="founding-card__title">What we ask in exchange</div>
+          <ul class="dash-list">
+            <li>15–20 minutes of structured feedback after the session</li>
+            <li>Permission to photograph or film the workshop for public publishing and socials</li>
+            <li>A short testimonial or quote we can share</li>
+            <li>Flexibility if we're trialling a new brief or format with your class</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout-card">
+        <div class="callout-card__title">How to take part</div>
+        <p class="callout-card__body">Mention "Founding Schools Program" when you enquire below — spots are limited to 6 schools and confirmed on a first-come basis.</p>
+      </div>
+    </section>
+
+    <!-- ============ BOOKING / CONTACT ============
+         Full-bleed black banner (edge-to-edge), not constrained to .wrap —
+         inner content centered via .schools-cta__inner instead. -->
+    <section class="schools-cta">
+      <div class="wrap schools-cta__inner">
+        <p class="schools-cta__eyebrow">Ready to book</p>
+        <h2 class="schools-cta__title">Bring Unstitch into your classroom</h2>
+        <p class="schools-cta__body">Tell us your needs, year level, group size and preferred program, and we'll reach out to confirm availability and any curriculum customisation within 2–3 business days.</p>
+        <a href="/contact?category=school-workshop-enquiry" class="btn btn-filled">Enquire via our contact form →</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  /* ---------- Hero ---------- */
+  .schools-hero { padding-top: 48px; }
+  .schools-hero__grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .schools-hero__badges { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .schools-hero__age-badge {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: var(--ink);
+    background: var(--accent-pale);
+    border: 1px solid #e1e1e1;
+    border-radius: 999px;
+    padding: 3px 12px;
+  }
+  .schools-hero__title { font-size: clamp(1.9rem, 4vw, 2.75rem); margin: 0 0 16px; line-height: 1.15; }
+  .schools-hero__intro { font-size: 1.15rem; line-height: 1.6; font-style: italic; font-weight: 300; margin: 0 0 14px; }
+  .schools-hero__body { font-size: 0.95rem; line-height: 1.7; color: #555; margin: 0 0 20px; }
+  .schools-hero__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .schools-hero__media { aspect-ratio: 4/3; border-radius: var(--radius); overflow: hidden; }
+  .schools-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ---------- Workshop photo carousel banner ---------- */
+  .schools-banner { position: relative; min-height: 360px; background: var(--accent-pale); }
+  .schools-banner__media { aspect-ratio: unset; height: 100%; border: none; border-radius: 0; }
+  .schools-banner .carousel__track { min-height: 360px; }
+  .schools-banner .carousel__slide { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.8s ease; }
+  .schools-banner .carousel__slide.is-active { opacity: 1; pointer-events: auto; }
+  .schools-banner__caption {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 28px var(--gutter) 18px;
+    background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+    color: #fff;
+  }
+  .schools-banner__caption-eyebrow { margin: 0; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+  .schools-banner__caption-sub { margin: 2px 0 0; font-size: 0.85rem; opacity: 0.85; }
+  .schools-banner .carousel__controls { position: absolute; right: var(--gutter); bottom: 18px; z-index: 2; padding: 0; }
+  .schools-banner :global(.carousel__dot) { border-color: #fff; }
+  .schools-banner :global(.carousel__dot.is-active) { background: #fff; border-color: #fff; }
+
+  /* ---------- Program overview strip ---------- */
+  .programs-strip { background: var(--accent-pale); max-width: none; padding-left: 0; padding-right: 0; }
+  .programs-strip > * { max-width: 1180px; margin-left: auto; margin-right: auto; padding-left: var(--gutter); padding-right: var(--gutter); }
+  .programs-strip__note { font-size: 0.92rem; line-height: 1.6; max-width: 760px; margin: 0 0 24px; }
+  .programs-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+  .program-card {
+    flex: 1 1 280px;
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    border-radius: var(--radius);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .program-card__badge { font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; }
+  .program-card__title { font-family: var(--font-display); margin: 0; font-size: 1.35rem; }
+  .program-card__body { margin: 0; font-size: 0.9rem; color: #555; line-height: 1.6; }
+  .program-card__meta { display: flex; flex-direction: column; gap: 4px; margin-top: auto; font-size: 0.85rem; }
+  .program-card__fee { font-weight: 700; font-size: 1rem; color: var(--accent); }
+  .program-card__fee--enquire { font-size: 0.85rem; }
+
+  /* ---------- Generic schools-section pieces ---------- */
+  .schools-section { display: flex; flex-direction: column; gap: 28px; padding-top: 48px; }
+  .schools-section__heading { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .schools-section__index { font-size: 0.85rem; color: #6b6b6b; font-weight: 600; }
+  .schools-section__lead { margin: 0; font-size: 1.02rem; line-height: 1.7; }
+
+  .spec-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .spec-card { flex: 1 1 150px; background: #fff; border: 1px solid #e1e1e1; border-radius: var(--radius); padding: 16px 18px; }
+  .spec-card__label { font-size: 0.7rem; color: #6b6b6b; text-transform: uppercase; font-weight: 600; }
+  .spec-card__value { font-size: 1rem; margin-top: 4px; }
+  .spec-card__value--accent { color: var(--accent); font-weight: 600; }
+
+  .two-col { display: flex; gap: 40px; flex-wrap: wrap; }
+  .two-col > div { flex: 1 1 300px; }
+  .two-col__heading { margin: 0 0 12px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b6b6b; }
+  .dash-list { margin: 0; padding: 0; list-style: none; font-size: 0.95rem; }
+  .dash-list li { padding-left: 18px; position: relative; margin-bottom: 10px; line-height: 1.5; }
+  .dash-list li::before { content: "—"; position: absolute; left: 0; color: var(--accent); }
+
+  .callout-card {
+    background: var(--accent-pale);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+  }
+  .callout-card__title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 6px; font-weight: 600; }
+  .callout-card__body { margin: 0; font-size: 0.92rem; line-height: 1.6; }
+
+  .session-length__note { margin: 0 0 16px; font-size: 0.88rem; color: #6b6b6b; }
+  .session-length__row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .session-card { flex: 1 1 220px; background: #fff; border: 1px solid #e1e1e1; border-radius: var(--radius); padding: 18px 20px; }
+  .session-card__label { font-size: 0.7rem; color: #6b6b6b; text-transform: uppercase; font-weight: 600; }
+  .session-card__duration { font-size: 1rem; margin-top: 4px; font-weight: 600; }
+  .session-card__fee { font-size: 0.82rem; margin-top: 4px; color: #6b6b6b; }
+
+  .subject-tracks__grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .track-card { flex: 1 1 300px; background: #fff; border: 1px solid #e1e1e1; border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; }
+  .track-card__body { display: flex; flex-direction: column; gap: 8px; min-height: 190px; }
+  .track-card__tag { font-size: 0.68rem; color: var(--accent); text-transform: uppercase; font-weight: 600; }
+  .track-card__title { margin: 0; font-size: 1.05rem; font-family: var(--font-display); }
+  .track-card__desc { margin: 0; font-size: 0.9rem; line-height: 1.6; }
+  .track-card__fit { margin-top: 6px; padding-top: 10px; border-top: 1px dashed #e1e1e1; font-size: 0.8rem; color: #6b6b6b; }
+  .track-card__fit strong { color: var(--ink); }
+
+  .founding-section { background: var(--accent-pale); padding-top: 56px; padding-bottom: 56px; }
+  .founding-section__intro { font-size: 1rem; line-height: 1.7; max-width: 760px; }
+  .founding-grid { display: flex; gap: 24px; flex-wrap: wrap; margin: 24px 0; }
+  .founding-card { flex: 1 1 320px; background: #fff; border: 1px solid #e1e1e1; border-radius: var(--radius); padding: 24px; }
+  .founding-card__title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 12px; font-weight: 600; }
+
+  .schools-cta { background: var(--ink); color: #fff; width: 100%; }
+  .schools-cta__inner { display: flex; flex-direction: column; gap: 18px; align-items: flex-start; padding-top: 64px; padding-bottom: 72px; }
+  .schools-cta__eyebrow { margin: 0; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: #d9b9cc; }
+  .schools-cta__title { margin: 0; font-size: 1.7rem; color: #fff; }
+  .schools-cta__body { margin: 0; font-size: 0.92rem; line-height: 1.7; color: #cfcfcf; max-width: 600px; }
+  .schools-cta .btn-filled { background: #fff; border-color: #fff; color: var(--ink); }
+  .schools-cta .btn-filled:hover { background: #eee; border-color: #eee; }
+
+  @media (max-width: 768px) {
+    .schools-hero__grid { grid-template-columns: 1fr; gap: 24px; }
+    .two-col { gap: 24px; }
+  }
+</style>
+
+<script>
+  function initSchoolsCarousel() {
+    document.querySelectorAll<HTMLElement>('.schools-banner[data-carousel]').forEach((carousel) => {
+      const slides = Array.from(carousel.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
+      if (slides.length < 2) return;
+      const dotsWrap = carousel.querySelector<HTMLElement>('[data-carousel-dots]');
+      if (!dotsWrap) return;
+      dotsWrap.innerHTML = '';
+      let index = Math.max(0, slides.findIndex((s) => s.classList.contains('is-active')));
+      let timer: ReturnType<typeof setInterval> | null = null;
+
+      const dots = slides.map((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'carousel__dot';
+        dot.setAttribute('aria-label', `Go to photo ${i + 1}`);
+        dot.addEventListener('click', () => goTo(i));
+        dotsWrap.appendChild(dot);
+        return dot;
+      });
+
+      const render = () => {
+        slides.forEach((s, i) => s.classList.toggle('is-active', i === index));
+        dots.forEach((d, i) => d.classList.toggle('is-active', i === index));
+      };
+
+      const goTo = (i: number) => {
+        index = (i + slides.length) % slides.length;
+        render();
+        resetTimer();
+      };
+
+      const resetTimer = () => {
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => goTo(index + 1), 4000);
+      };
+
+      render();
+      resetTimer();
+    });
+  }
+
+  initSchoolsCarousel();
+  document.addEventListener('astro:page-load', initSchoolsCarousel);
+</script>
