@@ -187,7 +187,34 @@ export default async function handler(req: any, res: any): Promise<any> {
       };
     });
 
-    return sendJson(res, 200, { drops: result });
+    // Tile for Change — real figures, not a per-kit constant. Lives here
+    // rather than the Pricing tab: it's a production/fulfilment fact (how
+    // much has actually gone out the door), same spirit as the stock
+    // counts above. See GivingLedgerEntry (prisma/schema.prisma), written
+    // by api/stripe-webhook.js and api/admin/manual-order.js. Global
+    // total, not per-product — this site sells one SKU at a time (see
+    // src/server/admin/manual-order.js's header comment), so a per-product
+    // split isn't meaningful yet.
+    const [givingAgg, givingProduct] = await Promise.all([
+      prisma.givingLedgerEntry.aggregate({
+        _sum: { tilesContributed: true, internalValueCents: true },
+        _count: true,
+      }),
+      prisma.product.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+        select: { givingTilesPerKit: true, costRecipe: { select: { givingProgram: { select: { name: true } } } } },
+      }),
+    ]);
+    const givingSummary = {
+      tilesPerKit: givingProduct?.givingTilesPerKit ?? 0,
+      programName: givingProduct?.costRecipe?.givingProgram?.name ?? null,
+      tilesContributedToDate: givingAgg._sum.tilesContributed || 0,
+      internalValueCentsToDate: givingAgg._sum.internalValueCents || 0,
+      orderCount: givingAgg._count || 0,
+    };
+
+    return sendJson(res, 200, { drops: result, givingSummary });
   }
 
   if (req.method !== 'POST') {

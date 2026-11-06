@@ -65,7 +65,7 @@ function generateRaffleConfirmationHtml({ name, email }: { name?: string | null;
                       </tr>
                       <tr>
                         <td style="padding: 4px 0; font-weight: 600; color: #555;">Where:</td>
-                        <td style="padding: 4px 0;">Live on our socials — we'll also email you directly if you win!</td>
+                        <td style="padding: 4px 0;">Live on our socials and we'll also email you directly if you win!</td>
                       </tr>
                     </table>
                   </div>
@@ -92,7 +92,7 @@ function generateRaffleConfirmationHtml({ name, email }: { name?: string | null;
               <!-- Footer -->
               <tr>
                 <td style="padding: 20px 32px 28px; background-color: #fafafa; border-top: 1px solid #f0f0f0; text-align: center;">
-                  <p style="margin: 0 0 6px; font-size: 11px; color: #888888;">Unstitch — Modular Parametric Textile System</p>
+                  <p style="margin: 0 0 6px; font-size: 11px; color: #888888;">Unstitch | Modular Parametric Textile System</p>
                   <p style="margin: 0; font-size: 11px; color: #aaaaaa;">Naarm, Melbourne Australia · zero-waste modular textiles</p>
                 </td>
               </tr>
@@ -218,7 +218,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         '',
         'Keep exploring in the 3D Playground: https://unstitchx.com/playground',
         '',
-        'Unstitch — Naarm, Melbourne Australia',
+        'Unstitch | Naarm, Melbourne Australia',
       ].join('\n');
 
       let sendResult = await resend.emails.send({

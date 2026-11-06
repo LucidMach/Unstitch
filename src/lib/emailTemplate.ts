@@ -135,7 +135,7 @@ export function brandedEmailHtml({
       <hr style="border:none;border-top:1px solid #eee;margin:28px 0 22px;" />
       ${signatureHtml}
     </div>
-    <p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:20px 0 0;">Unstitch — Naarm, Melbourne Australia</p>
+    <p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:20px 0 0;">Unstitch | Naarm, Melbourne Australia</p>
     ${
       unsubscribeUrl
         ? `<p style="text-align:center;font-family:${FONT_BODY};font-size:11px;color:#999;margin:6px 0 0;"><a href="${esc(unsubscribeUrl)}" style="color:#999;text-decoration:underline;">Unsubscribe</a> from these emails</p>`
@@ -174,7 +174,8 @@ export function fillMessageVars(template?: string, vars?: Record<string, any>): 
  *
  * Block shapes (all fields besides `type` optional unless noted):
  *   { type: 'text', heading?, body?, imageUrl?, imageAlt? }
- *   { type: 'image', url (required), alt?, caption? }
+ *   { type: 'image', images (1-2 of {url (required), alt?, caption?}) --
+ *     two render side by side 
  *   { type: 'kit', productId (required), headline?, body?, showImage?, showPrice?, showKitContents? }
  *   { type: 'cta', heading?, body?, buttonLabel?, buttonUrl? }
  *
@@ -197,11 +198,17 @@ export interface TextBlock extends HighlightableBlock {
   imageAlt?: string;
 }
 
-export interface ImageBlock extends HighlightableBlock {
-  type: 'image';
+export interface ImageItem {
   url: string;
   alt?: string;
   caption?: string;
+}
+
+export interface ImageBlock extends HighlightableBlock {
+  type: 'image';
+  // One image, or two to render side by side (an HTML <table> layout --
+  // flexbox/grid aren't reliable across email clients, Outlook above all).
+  images: ImageItem[];
 }
 
 export interface KitBlock extends HighlightableBlock {
@@ -321,11 +328,28 @@ function blockHtml(block: BroadcastBlock, productsById: ProductsById): string {
       return withHighlight(`${headingHtml}${imageHtml}${textParagraphsHtml(block.body)}`, block.highlightColor);
     }
     case 'image': {
-      const captionHtml = block.caption
-        ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(block.caption)}</p>`
-        : '';
+      const images = (block.images || []).filter((img) => img && img.url);
+      if (images.length === 0) return '';
+      if (images.length === 1) {
+        const [img] = images;
+        const captionHtml = img.caption
+          ? `<p style="margin:8px 0 18px;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(img.caption)}</p>`
+          : '';
+        return withHighlight(
+          `<img src="${esc(img.url)}" alt="${esc(img.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
+          block.highlightColor,
+        );
+      }
+      // Two images -- laid out side by side with a <table>, not
+      // flexbox/grid, because Outlook's Word-based rendering engine
+      // ignores both; a table is the one layout trick every email
+      // client still honours.
+      const cell = (img: ImageItem, side: 'left' | 'right') => `<td width="50%" valign="top" style="padding:0 ${side === 'left' ? '6px 0 0' : '0 0 6px'};">
+            <img src="${esc(img.url)}" alt="${esc(img.alt || '')}" width="256" style="display:block;width:100%;max-width:100%;border-radius:10px;" />
+            ${img.caption ? `<p style="margin:8px 0 0;font-family:${FONT_BODY};font-size:12px;color:${MUTED};text-align:center;">${esc(img.caption)}</p>` : ''}
+          </td>`;
       return withHighlight(
-        `<img src="${esc(block.url)}" alt="${esc(block.alt || '')}" width="536" style="display:block;width:100%;max-width:100%;border-radius:10px;margin:${boxed ? 0 : 14}px 0 0;" />${captionHtml}`,
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:${boxed ? 0 : 14}px 0 18px;"><tr>${cell(images[0], 'left')}${cell(images[1], 'right')}</tr></table>`,
         block.highlightColor,
       );
     }
@@ -380,8 +404,11 @@ function blockText(block: BroadcastBlock, productsById: ProductsById): string {
   switch (block.type) {
     case 'text':
       return [block.heading, block.body].filter(Boolean).join('\n');
-    case 'image':
-      return block.caption ? `[image: ${block.caption}]` : '[image]';
+    case 'image': {
+      const images = (block.images || []).filter((img) => img && img.url);
+      if (images.length === 0) return '';
+      return images.map((img) => (img.caption ? `[image: ${img.caption}]` : '[image]')).join('\n');
+    }
     case 'kit': {
       const product = productsById.get(block.productId);
       if (!product) return '';
@@ -426,6 +453,11 @@ export function fillBlockVars(blocks: BroadcastBlock[], vars: Record<string, any
     const filled: Record<string, any> = { ...block };
     for (const key of ['heading', 'body', 'headline', 'caption', 'buttonLabel']) {
       if (typeof filled[key] === 'string') filled[key] = fillMessageVars(filled[key], vars);
+    }
+    if (Array.isArray(filled.images)) {
+      filled.images = filled.images.map((img: ImageItem) =>
+        img && typeof img.caption === 'string' ? { ...img, caption: fillMessageVars(img.caption, vars) } : img,
+      );
     }
     return filled as BroadcastBlock;
   });
@@ -558,7 +590,7 @@ function formatAddressLine(addr?: DeliveryAddress | null): string | null {
  * (api/admin/manual-order.js) or a future one-off resend.
  */
 export const DEFAULT_ORDER_MESSAGE =
-  "Every Slow Bloom kit is made to order — please allow 5–7 business days to prepare before it ships. We'll follow up with tracking once it's on its way.";
+  "Every Slow Bloom kit is made to order, please allow 5–7 business days to prepare before it ships. We'll follow up with tracking once it's on its way.";
 
 /**
  * The one order-confirmation email, built once here so api/stripe-webhook.js
@@ -584,6 +616,12 @@ export interface OrderConfirmationEmailOptions {
   signatureName?: string;
   signatureRole?: string;
   gifUrl?: string;
+  // Tile for Change: the real number of tiles this order contributed (see
+  // GivingLedgerEntry, written alongside the order) and the program name,
+  // if one's attached — not just the per-kit constant, so a multi-kit order
+  // shows its actual total. Omitted entirely when the product gives 0.
+  givingTilesContributed?: number;
+  givingProgramName?: string;
 }
 
 export function orderConfirmationEmail({
@@ -599,6 +637,8 @@ export function orderConfirmationEmail({
   signatureName,
   signatureRole,
   gifUrl,
+  givingTilesContributed,
+  givingProgramName,
 }: OrderConfirmationEmailOptions): { html: string; text: string } {
   const amount = (totalCents / 100).toFixed(2);
   const itemsLine =
@@ -619,6 +659,15 @@ export function orderConfirmationEmail({
   if (deliveryLine) rows.push({ label: 'Delivery', value: deliveryLine });
   if (addressLine) rows.push({ label: 'Shipping to', value: addressLine });
   rows.push({ label: 'Total', value: `${currency.toUpperCase()} $${amount}` });
+  if (typeof givingTilesContributed === 'number' && givingTilesContributed > 0) {
+    const tileWord = givingTilesContributed === 1 ? 'tile' : 'tiles';
+    rows.push({
+      label: 'Tile for Change',
+      value: givingProgramName
+        ? `${givingTilesContributed} ${tileWord} to ${givingProgramName}`
+        : `${givingTilesContributed} ${tileWord} contributed`,
+    });
+  }
 
   // A custom message (e.g. for a commission or workshop order entered via
   // api/admin/manual-order.js) replaces the default paragraph entirely
@@ -647,6 +696,14 @@ export function orderConfirmationEmail({
   if (itemsLine) textLines.push(`Items: ${itemsLine}`);
   if (deliveryLine) textLines.push(`Delivery: ${deliveryLine}`);
   if (addressLine) textLines.push(`Shipping to: ${addressLine}`);
+  if (typeof givingTilesContributed === 'number' && givingTilesContributed > 0) {
+    const tileWord = givingTilesContributed === 1 ? 'tile' : 'tiles';
+    textLines.push(
+      givingProgramName
+        ? `Tile for Change: ${givingTilesContributed} ${tileWord} to ${givingProgramName}`
+        : `Tile for Change: ${givingTilesContributed} ${tileWord} contributed`
+    );
+  }
   textLines.push(
     `Total: ${currency.toUpperCase()} $${amount}`,
     '',
@@ -655,7 +712,7 @@ export function orderConfirmationEmail({
     'Track your order any time:',
     lookupLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   );
   return { html, text: textLines.join('\n') };
 }
@@ -675,8 +732,8 @@ export function passportTransferConfirmationEmail({
 }: PassportTransferEmailOptions): { html: string; text: string } {
   const bodyHtml = `
     <p style="margin:0 0 14px;">Someone just tried to register your Unstitch kit's digital passport (<strong>${esc(unitSerial)}</strong>, ${esc(productName)}) using a different email address (<strong>${esc(newOwnerEmail)}</strong>).</p>
-    <p style="margin:0 0 14px;">If you sold or gifted this kit and this is expected, confirm the transfer below — it'll move the passport (and registration) over to its new owner.</p>
-    <p style="margin:0;">If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.</p>`;
+    <p style="margin:0 0 14px;">If you sold or gifted this kit and this is expected, confirm the transfer below, it'll transfer the passport (and registration) over to its new owner.</p>
+    <p style="margin:0;">If this wasn't you, you can safely ignore this email as nothing has changed yet, and no confirmation link works without you clicking it.</p>`;
   const html = brandedEmailHtml({
     eyebrow: 'Confirm passport transfer',
     heading: 'Someone wants to claim your Unstitch kit',
@@ -688,13 +745,13 @@ export function passportTransferConfirmationEmail({
     '',
     `Someone just tried to register your Unstitch kit's digital passport (${unitSerial}, ${productName}) using a different email address (${newOwnerEmail}).`,
     '',
-    'If you sold or gifted this kit and this is expected, confirm the transfer using the link below — it\'ll move the passport (and registration) over to its new owner.',
+    'If you sold or gifted this kit and this is expected, confirm the transfer using the link below, it\'ll transfer the passport (and registration) over to its new owner.',
     '',
-    "If this wasn't you, you can safely ignore this email — nothing has changed yet, and no confirmation link works without you clicking it.",
+    "If this wasn't you, you can safely ignore this email as nothing has changed yet, and no confirmation link works without you clicking it.",
     '',
     confirmLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   ].join('\n');
   return { html, text };
 }
@@ -715,7 +772,7 @@ export function giftAcknowledgementEmail({
   const recipientBit = recipientName ? esc(recipientName) : 'the person you gave it to';
   const bodyHtml = `
     <p style="margin:0 0 14px;">Hi ${esc(giverName)},</p>
-    <p style="margin:0 0 14px;">Just a note to say thank you — the Unstitch kit you gave (<strong>${esc(productName)}</strong>, passport code <strong>${esc(unitSerial)}</strong>) has been registered by ${recipientBit}. That was a lovely gift.</p>
+    <p style="margin:0 0 14px;">Just a note to say thank you: the Unstitch kit you gave (<strong>${esc(productName)}</strong>, passport code <strong>${esc(unitSerial)}</strong>) has been registered by ${recipientBit}. That was a lovely gift.</p>
     <p style="margin:0;">We just wanted you to know it arrived safely and is officially theirs now.</p>`;
   const html = brandedEmailHtml({
     eyebrow: 'Thank you',
@@ -776,7 +833,7 @@ export function orderShippedEmail({
     'Track your order any time:',
     lookupLink,
     '',
-    'Unstitch — Naarm, Melbourne Australia',
+    'Unstitch | Naarm, Melbourne Australia',
   ].join('\n');
   return { html, text };
 }

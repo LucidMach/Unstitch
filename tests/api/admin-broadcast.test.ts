@@ -206,6 +206,45 @@ describe('admin/broadcast API handler', () => {
       expect(mockSend).not.toHaveBeenCalled();
     });
 
+    it('sends a test email to the given address through the real send path, never touching the subscriber list', async () => {
+      const findManySpy = vi.spyOn(prisma.subscriber, 'findMany');
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: {
+          mode: 'general',
+          subject: 'Update',
+          blocks: [{ type: 'text', body: 'New drop soon.' }],
+          testEmail: 'jing@example.com',
+        },
+      };
+      const res = createMockRes();
+      await broadcastHandler(req as any, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.test).toBe(true);
+      expect(res.body.email).toBe('jing@example.com');
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend.mock.calls[0][0].to).toBe('jing@example.com');
+      expect(mockSend.mock.calls[0][0].subject).toContain('[Test]');
+      expect(findManySpy).not.toHaveBeenCalled();
+    });
+
+    it('caps a real send to the first N subscribers by signup order when a limit is given', async () => {
+      const findManySpy = vi.spyOn(prisma.subscriber, 'findMany').mockResolvedValue([subscriber()] as any);
+      const req = {
+        method: 'POST',
+        headers: { cookie: adminCookieHeader() },
+        body: { mode: 'general', subject: 'Update', blocks: [{ type: 'text', body: 'New drop soon.' }], limit: 1 },
+      };
+      const res = createMockRes();
+      await broadcastHandler(req as any, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.sent).toBe(1);
+      expect(findManySpy).toHaveBeenCalledWith(expect.objectContaining({ orderBy: { createdAt: 'asc' }, take: 1 }));
+    });
+
     it('rejects an empty subject/empty block list before touching the database', async () => {
       const findManySpy = vi.spyOn(prisma.subscriber, 'findMany');
       const req = {
@@ -343,6 +382,7 @@ describe('admin/broadcast API handler', () => {
       expect(findManySpy).toHaveBeenCalledWith({
         where: { productId: PRODUCT_ID, notifiedAt: null, unsubscribedAt: null },
         select: { id: true, name: true, email: true },
+        orderBy: { createdAt: 'asc' },
       });
     });
   });

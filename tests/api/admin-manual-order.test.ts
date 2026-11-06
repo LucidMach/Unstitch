@@ -106,6 +106,56 @@ describe('admin/manual-order API handler — creation happy path', () => {
     expect(mockTx.payment.create).toHaveBeenCalledTimes(1);
   });
 
+  it('writes a GivingLedgerEntry sized to the quantity sold when the product gives tiles', async () => {
+    vi.spyOn(prisma.product, 'findUnique').mockResolvedValue({
+      ...PRODUCT,
+      givingTilesPerKit: 3,
+      givingInternalValueCentsPerTile: 50,
+      givingDescription: 'Every kit contributes 3 pieces to Community Workshop Melbourne.',
+      // The giving-program link lives on ProductCostRecipe, not Product
+      // itself — see the matching comment in src/server/admin/manual-order.ts.
+      costRecipe: { givingProgramId: 'program-1', givingProgram: { id: 'program-1', name: 'Community Workshop Melbourne' } },
+    } as any);
+
+    const mockTx = {
+      customer: { upsert: vi.fn().mockResolvedValue({ id: 'cust-1', email: 'buyer@example.com' }) },
+      address: { create: vi.fn() },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-giving', orderNumber: 'UX-2026-000099' }) },
+      orderItem: { create: vi.fn().mockResolvedValue({}) },
+      payment: { create: vi.fn().mockResolvedValue({}) },
+      givingLedgerEntry: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (fn: any) => fn(mockTx));
+
+    const req = {
+      method: 'POST',
+      headers: { cookie: adminCookieHeader() },
+      body: {
+        email: 'buyer@example.com',
+        type: 'COMMISSION',
+        quantity: 2,
+        unitPriceCents: 20000,
+        deliveryMethod: 'NONE',
+        paymentStatus: 'PAID',
+      },
+    };
+    const res = createMockRes();
+
+    await manualOrderHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    // 2 units * 3 tiles/kit = 6 tiles contributed, valued at 50c each.
+    expect(mockTx.givingLedgerEntry.create).toHaveBeenCalledWith({
+      data: {
+        orderId: 'order-giving',
+        tilesContributed: 6,
+        internalValueCents: 300,
+        givingProgramId: 'program-1',
+        description: 'Every kit contributes 3 pieces to Community Workshop Melbourne.',
+      },
+    });
+  });
+
   it('records an UNPAID commission with no Payment row', async () => {
     const mockTx = {
       customer: { upsert: vi.fn().mockResolvedValue({ id: 'cust-1', email: 'buyer@example.com' }) },

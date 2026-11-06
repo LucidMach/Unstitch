@@ -42,7 +42,7 @@ import Layout from "../../layouts/Layout.astro";
 
         <div id="lookup-panel-number" hidden>
           <p class="order-lookup__body">
-            Enter your order number (e.g. UX-2026-000123) and the email you used at checkout to see its status right away — no email link needed.
+            Enter your order number (e.g. UX-2026-000123) and the email you used at checkout to see its status right away. No email link needed.
           </p>
           <form id="lookup-form-number" class="order-lookup__form order-lookup__form--stacked">
             <input id="lookup-order-number" type="text" placeholder="UX-2026-000123" required />
@@ -212,7 +212,7 @@ import Layout from "../../layouts/Layout.astro";
         <p class="order-card__meta">${
           o.trackingNumber
             ? `Tracking: <a href="https://auspost.com.au/mypost/track/#/details/${encodeURIComponent(o.trackingNumber)}" target="_blank" rel="noopener">${o.trackingNumber} ↗</a>`
-            : "Tracking number not yet available — we'll update this once your order ships."
+            : "Tracking number not yet available. We'll update this once your order ships."
         }</p>
       </div>`,
       )

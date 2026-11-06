@@ -153,6 +153,31 @@ describe('orderConfirmationEmail', () => {
     expect(html).toContain('Melbourne VIC 3000');
     expect(text).toContain('1 Example St <Unit 2>, Melbourne VIC 3000');
   });
+
+  it('shows a Tile for Change row with the program name when tiles were contributed', () => {
+    const { html, text } = orderConfirmationEmail({
+      ...baseOpts,
+      givingTilesContributed: 6,
+      givingProgramName: 'Community Workshop Melbourne',
+    });
+    expect(html).toContain('6 tiles to Community Workshop Melbourne');
+    expect(text).toContain('Tile for Change: 6 tiles to Community Workshop Melbourne');
+  });
+
+  it('singularizes "tile" and falls back to a generic phrase with no program name', () => {
+    const { html, text } = orderConfirmationEmail({
+      ...baseOpts,
+      givingTilesContributed: 1,
+    });
+    expect(html).toContain('1 tile contributed');
+    expect(text).toContain('Tile for Change: 1 tile contributed');
+  });
+
+  it('omits the Tile for Change row entirely when nothing was contributed', () => {
+    const { html, text } = orderConfirmationEmail(baseOpts);
+    expect(html).not.toContain('Tile for Change');
+    expect(text).not.toContain('Tile for Change');
+  });
 });
 
 describe('orderShippedEmail', () => {
@@ -206,8 +231,39 @@ describe('renderBlocksHtml (broadcast block composer)', () => {
     const plain = renderBlocksHtml([{ type: 'text', heading: 'Plain', body: 'x' }], new Map());
     expect(plain).not.toContain('border-radius:12px;padding:18px 20px 4px');
 
-    const highlighted = renderBlocksHtml([{ type: 'image', url: 'https://x/img.png', highlightColor: '#ff00aa' }], new Map());
+    const highlighted = renderBlocksHtml(
+      [{ type: 'image', images: [{ url: 'https://x/img.png' }], highlightColor: '#ff00aa' }],
+      new Map(),
+    );
     expect(highlighted).toContain('background:#ff00aa;border-radius:12px');
+  });
+
+  it('renders a single image full-width, and two images side by side in a table', () => {
+    const single = renderBlocksHtml([{ type: 'image', images: [{ url: 'https://x/one.png', caption: 'One' }] }], new Map());
+    expect(single).toContain('<img src="https://x/one.png"');
+    expect(single).not.toContain('<table');
+
+    const sideBySide = renderBlocksHtml(
+      [
+        {
+          type: 'image',
+          images: [
+            { url: 'https://x/one.png', caption: 'One' },
+            { url: 'https://x/two.png', caption: 'Two' },
+          ],
+        },
+      ],
+      new Map(),
+    );
+    expect(sideBySide).toContain('<table');
+    expect(sideBySide).toContain('https://x/one.png');
+    expect(sideBySide).toContain('https://x/two.png');
+    expect(sideBySide).toContain('One');
+    expect(sideBySide).toContain('Two');
+  });
+
+  it('skips an image block with no images rather than rendering an empty tag', () => {
+    expect(renderBlocksHtml([{ type: 'image', images: [] }], new Map())).toBe('');
   });
 
   it('removes a boxed block\'s normal top margin above its heading so the highlight padding does not double up with it', () => {

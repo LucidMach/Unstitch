@@ -738,9 +738,14 @@ import Layout from "../../layouts/Layout.astro";
           <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input id="broadcast-general-sig-name" type="text" placeholder="Astra" /></label>
           <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input id="broadcast-general-sig-role" type="text" placeholder="Designer at Unstitch" /></label>
         </div>
+        <div class="admin-grid">
+          <label>Test email <span class="admin-muted">(sends one real email here instead of subscribers)</span><input id="broadcast-general-test-email" type="email" placeholder="you@example.com" /></label>
+          <label>Limit to first N subscribers <span class="admin-muted">(optional, by signup order — leave blank to send to everyone)</span><input id="broadcast-general-limit" type="number" min="1" step="1" placeholder="e.g. 5" /></label>
+        </div>
         <div class="admin-field-row">
           <button id="broadcast-general-save-draft" class="btn-ghost btn-ghost--small" type="button">Save draft</button>
           <button id="broadcast-general-preview" class="btn-ghost btn-ghost--small" type="button">Preview</button>
+          <button id="broadcast-general-send-test" class="btn-ghost btn-ghost--small" type="button">Send test email</button>
           <button id="broadcast-general-send" class="btn-primary">Send to all subscribers</button>
         </div>
         <p id="broadcast-general-status" class="admin__hint" hidden></p>
@@ -1242,6 +1247,18 @@ import Layout from "../../layouts/Layout.astro";
     flex-wrap: wrap;
     gap: 14px;
     margin-top: 10px;
+  }
+
+  .block-card__image-slot {
+    padding: 10px 0;
+    border-top: 1px solid var(--admin-border, #e5e2dc);
+  }
+  .block-card__image-slot:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+  .block-card__image-slot .f-image-remove {
+    margin-top: 4px;
   }
 
   .block-card__toggles label {
@@ -4192,7 +4209,7 @@ import Layout from "../../layouts/Layout.astro";
     try {
       const res = await api("/api/admin/inventory");
       if (!res.ok) throw new Error("Failed to load inventory");
-      const { drops } = (await res.json()) as { drops: DropSummary[] };
+      const { drops, givingSummary } = (await res.json()) as { drops: DropSummary[]; givingSummary?: any };
       inventoryLoaded = true;
       loadingEl.hidden = true;
       contentEl.hidden = false;
@@ -4537,7 +4554,44 @@ import Layout from "../../layouts/Layout.astro";
         })
         .join("");
 
-      contentEl.innerHTML = globalHeroHtml + dropsHtml;
+      // Tile for Change — real figures, not a per-kit constant. See
+      // GivingLedgerEntry (prisma/schema.prisma), written by
+      // api/stripe-webhook.js / api/admin/manual-order.js. Lives here
+      // (production/fulfilment) rather than the Pricing tab.
+      const gs = givingSummary || {};
+      const givingOrderCount = gs.orderCount ?? 0;
+      const givingHtml = `
+        <div class="admin-card" style="margin-top: 20px;">
+          <h2>Tile for Change</h2>
+          <p class="admin-muted">
+            Per-kit count is set in Pricing &rarr; Cost recipe. A full public-facing impact page is planned for
+            later — this is just the tracking.
+          </p>
+          <div class="admin-grid">
+            <div>
+              <span class="admin-muted">Giving program</span>
+              <p style="margin:4px 0 0;font-weight:600;">${esc(gs.programName || "No program linked yet")}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Tiles per kit</span>
+              <p style="margin:4px 0 0;font-weight:600;">${gs.tilesPerKit ?? 0}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Tiles contributed to date</span>
+              <p style="margin:4px 0 0;font-weight:600;">${gs.tilesContributedToDate ?? 0}</p>
+            </div>
+            <div>
+              <span class="admin-muted">From</span>
+              <p style="margin:4px 0 0;font-weight:600;">${givingOrderCount} order${givingOrderCount === 1 ? "" : "s"}</p>
+            </div>
+            <div>
+              <span class="admin-muted">Internal value to date</span>
+              <p style="margin:4px 0 0;font-weight:600;">${centsToDollarsStr(gs.internalValueCentsToDate ?? 0)}</p>
+            </div>
+          </div>
+        </div>`;
+
+      contentEl.innerHTML = globalHeroHtml + givingHtml + dropsHtml;
 
       // Populate units table for every drop initially
       drops.forEach((d) => renderDropUnitsTable(d.id));
@@ -5763,7 +5817,7 @@ import Layout from "../../layouts/Layout.astro";
       const data = await res.json();
       if (res.ok) {
         const parts = [`Sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}.`];
-        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
         if (data.skippedInvalid?.length) parts.push(`Skipped invalid: ${data.skippedInvalid.join(", ")}`);
         showHint(status, parts.join(" "), !data.failed?.length && !data.skippedInvalid?.length);
       } else {
@@ -5825,7 +5879,7 @@ import Layout from "../../layouts/Layout.astro";
 
   type BroadcastBlock =
     | { type: "text"; heading?: string; body?: string; imageUrl?: string; imageAlt?: string; highlightColor?: string }
-    | { type: "image"; url: string; alt?: string; caption?: string; highlightColor?: string }
+    | { type: "image"; images: { url: string; alt?: string; caption?: string }[]; highlightColor?: string }
     | {
         type: "kit";
         productId: string;
@@ -5867,9 +5921,23 @@ import Layout from "../../layouts/Layout.astro";
     cta: "Call-to-action",
   };
 
+  /** A draft saved before the image block switched from a single
+   * url/alt/caption to a one-or-two-image `images` array still has the
+   * old shape sitting in Settings (see broadcast.ts's DraftBlockSchema,
+   * which keeps parsing it for exactly this reason). Lift it into the
+   * current shape on load so an old draft doesn't just render empty. */
+  function migrateDraftBlocks(blocks: any[]): BroadcastBlock[] {
+    return (blocks || []).map((block) => {
+      if (block && block.type === "image" && !block.images) {
+        return { type: "image", images: [{ url: block.url || "", alt: block.alt || "", caption: block.caption || "" }], highlightColor: block.highlightColor };
+      }
+      return block;
+    });
+  }
+
   function newBlock(type: BroadcastBlock["type"]): BroadcastBlock {
     if (type === "text") return { type, heading: "", body: "" };
-    if (type === "image") return { type, url: "", alt: "", caption: "" };
+    if (type === "image") return { type, images: [{ url: "", alt: "", caption: "" }] };
     if (type === "cta") return { type, heading: "", body: "", buttonLabel: "", buttonUrl: "" };
     // Pre-filled so a kit announcement keeps its existing boxed look, and
     // a "Shop now" button straight to the one real product page, unless
@@ -6008,16 +6076,42 @@ import Layout from "../../layouts/Layout.astro";
       }
 
       if (block.type === "image") {
+        // One or two images (see src/lib/emailTemplate.ts's blockHtml "image"
+        // case) -- two render side by side, so this block renders one slot
+        // per image plus an "Add a second image" row while there's room
+        // for another.
+        const images = block.images && block.images.length ? block.images : [{ url: "", alt: "", caption: "" }];
+        const setImage = (i: number, key: "url" | "alt" | "caption", value: string) => {
+          const next = images.map((img, idx) => (idx === i ? { ...img, [key]: value } : img));
+          set("images", next);
+        };
+        const slotHtml = (img: { url?: string; alt?: string; caption?: string }, i: number) => `
+          <div class="block-card__image-slot" data-image-index="${i}">
+            <label>Image ${images.length > 1 ? i + 1 : ""} URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
+            <input type="text" class="f-image-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(img.url || "")}" />
+            <label>Alt text <span class="admin-muted">(optional)</span></label>
+            <input type="text" class="f-image-alt" value="${bcEscHtml(img.alt || "")}" />
+            <label>Caption <span class="admin-muted">(optional)</span></label>
+            <input type="text" class="f-image-caption" maxlength="300" value="${bcEscHtml(img.caption || "")}" />
+            ${images.length > 1 ? `<button type="button" class="admin-link-btn f-image-remove">Remove this image</button>` : ""}
+          </div>`;
         wrap.innerHTML = `
-          <label>Image URL <span class="admin-muted">(full URL, or a site path like /slow-bloom-hero.jpg)</span></label>
-          <input type="text" class="f-url" placeholder="https://… or /slow-bloom-hero.jpg" value="${bcEscHtml(block.url || "")}" />
-          <label>Alt text <span class="admin-muted">(optional)</span></label>
-          <input type="text" class="f-alt" value="${bcEscHtml(block.alt || "")}" />
-          <label>Caption <span class="admin-muted">(optional)</span></label>
-          <input type="text" class="f-caption" maxlength="300" value="${bcEscHtml(block.caption || "")}" />`;
-        wrap.querySelector(".f-url")?.addEventListener("input", (e) => set("url", (e.target as HTMLInputElement).value));
-        wrap.querySelector(".f-alt")?.addEventListener("input", (e) => set("alt", (e.target as HTMLInputElement).value));
-        wrap.querySelector(".f-caption")?.addEventListener("input", (e) => set("caption", (e.target as HTMLInputElement).value));
+          ${images.map((img, i) => slotHtml(img, i)).join("")}
+          ${images.length < 2 ? `<button type="button" class="admin-link-btn f-image-add">+ Add a second image (side by side)</button>` : ""}`;
+        wrap.querySelectorAll(".block-card__image-slot").forEach((slot) => {
+          const i = Number((slot as HTMLElement).dataset.imageIndex);
+          slot.querySelector(".f-image-url")?.addEventListener("input", (e) => setImage(i, "url", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-alt")?.addEventListener("input", (e) => setImage(i, "alt", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-caption")?.addEventListener("input", (e) => setImage(i, "caption", (e.target as HTMLInputElement).value));
+          slot.querySelector(".f-image-remove")?.addEventListener("click", () => {
+            set("images", images.filter((_, idx) => idx !== i));
+            render();
+          });
+        });
+        wrap.querySelector(".f-image-add")?.addEventListener("click", () => {
+          set("images", [...images, { url: "", alt: "", caption: "" }]);
+          render();
+        });
         appendHighlightControl(wrap, block, set);
         return wrap;
       }
@@ -6110,13 +6204,19 @@ import Layout from "../../layouts/Layout.astro";
    * over one stray block. Returns null (and shows the hint) if nothing
    * sendable remains. */
   function validateBroadcastBlocks(blocks: BroadcastBlock[], status: HTMLElement): BroadcastBlock[] | null {
-    const cleaned = blocks.filter((b) => {
-      if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
-      if (b.type === "image") return !!b.url?.trim();
-      if (b.type === "kit") return !!b.productId;
-      if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
-      return false;
-    });
+    const cleaned = blocks
+      // An image block's second slot can be added and left blank -- drop
+      // any image with no URL before the emptiness check below, so a
+      // half-filled slot doesn't reach the server (ImageBlockSchema
+      // requires every image in the array to have a URL).
+      .map((b) => (b.type === "image" ? { ...b, images: (b.images || []).filter((img) => img.url?.trim()) } : b))
+      .filter((b) => {
+        if (b.type === "text") return !!(b.heading?.trim() || b.body?.trim() || b.imageUrl?.trim());
+        if (b.type === "image") return b.images.length > 0;
+        if (b.type === "kit") return !!b.productId;
+        if (b.type === "cta") return !!(b.heading?.trim() || b.body?.trim() || (b.buttonLabel?.trim() && b.buttonUrl?.trim()));
+        return false;
+      });
     if (cleaned.length === 0) {
       showHint(status, "Add at least one block with some content.", false);
       return null;
@@ -6164,7 +6264,7 @@ import Layout from "../../layouts/Layout.astro";
     (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = draft.gifUrl || "";
     (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = draft.signatureName || "";
     (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = draft.signatureRole || "";
-    generalComposer.setBlocks(draft.blocks?.length ? draft.blocks : [newBlock("text")]);
+    generalComposer.setBlocks(draft.blocks?.length ? migrateDraftBlocks(draft.blocks) : [newBlock("text")]);
     draftStatus.textContent = `Draft from ${formatDraftSavedAt(draft.savedAt)} loaded.`;
   }
 
@@ -6209,9 +6309,14 @@ import Layout from "../../layouts/Layout.astro";
             <label>Sign as <span class="admin-muted">(optional: defaults to Astra)</span><input type="text" class="wl-sig-name" placeholder="Astra" /></label>
             <label>Their role <span class="admin-muted">(optional: defaults to Designer at Unstitch)</span><input type="text" class="wl-sig-role" placeholder="Designer at Unstitch" /></label>
           </div>
+          <div class="admin-grid">
+            <label>Test email <span class="admin-muted">(sends one real email here instead of the waitlist)</span><input type="email" class="wl-test-email" placeholder="you@example.com" /></label>
+            <label>Limit to first N <span class="admin-muted">(optional, by signup order — leave blank for everyone waiting)</span><input type="number" min="1" step="1" class="wl-limit" placeholder="e.g. 5" /></label>
+          </div>
           <div class="admin-field-row">
             <button type="button" class="btn-ghost btn-ghost--small wl-save-draft">Save draft</button>
             <button type="button" class="btn-ghost btn-ghost--small wl-preview">Preview</button>
+            <button type="button" class="btn-ghost btn-ghost--small wl-send-test">Send test email</button>
             <button type="button" class="btn-primary wl-send">Notify waitlist</button>
           </div>
           <p class="wl-status admin__hint" hidden></p>
@@ -6229,7 +6334,7 @@ import Layout from "../../layouts/Layout.astro";
       defaultKitBlock.productId = productId;
       const composer = createBlockComposer(
         card.querySelector(".wl-blocks") as HTMLElement,
-        savedDraft?.blocks?.length ? savedDraft.blocks : [defaultKitBlock],
+        savedDraft?.blocks?.length ? migrateDraftBlocks(savedDraft.blocks) : [defaultKitBlock],
       );
       if (savedDraft) {
         (card.querySelector(".wl-subject") as HTMLInputElement).value = savedDraft.subject || "";
@@ -6296,12 +6401,16 @@ import Layout from "../../layouts/Layout.astro";
         }
       });
 
-      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+      card.querySelector(".wl-send-test")?.addEventListener("click", async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        if (btn.disabled) return;
+        const testEmail = (card.querySelector(".wl-test-email") as HTMLInputElement).value.trim();
+        if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
         const { subject, gifUrl, signatureName, signatureRole } = getFields();
         if (!subject) return showHint(status, "Fill in a subject.", false);
         const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
         if (!blocks) return;
-        if (!window.confirm("Send this to everyone waiting on this product's drop? This can't be undone.")) return;
+        btn.disabled = true;
         try {
           const res = await api("/api/admin/broadcast", {
             method: "POST",
@@ -6313,12 +6422,49 @@ import Layout from "../../layouts/Layout.astro";
               gifUrl: gifUrl || undefined,
               signatureName: signatureName || undefined,
               signatureRole: signatureRole || undefined,
+              testEmail,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) showHint(status, `Test email sent to ${data.email}.`, true);
+          else showHint(status, data.error || "Failed to send test.", false);
+        } catch {
+          showHint(status, "Network error.", false);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      card.querySelector(".wl-send")?.addEventListener("click", async () => {
+        const { subject, gifUrl, signatureName, signatureRole } = getFields();
+        const limitRaw = (card.querySelector(".wl-limit") as HTMLInputElement).value.trim();
+        const limit = limitRaw ? Number(limitRaw) : undefined;
+        if (limitRaw && (!Number.isInteger(limit) || (limit as number) < 1)) return showHint(status, "Limit must be a whole number of 1 or more.", false);
+        if (!subject) return showHint(status, "Fill in a subject.", false);
+        const blocks = validateBroadcastBlocks(composer.getBlocks(), status);
+        if (!blocks) return;
+        const confirmMessage = limit
+          ? `Send this to the first ${limit} subscriber${limit === 1 ? "" : "s"} waiting on this product's drop, by signup order? This can't be undone.`
+          : "Send this to everyone waiting on this product's drop? This can't be undone.";
+        if (!window.confirm(confirmMessage)) return;
+        try {
+          const res = await api("/api/admin/broadcast", {
+            method: "POST",
+            body: JSON.stringify({
+              mode: "waitlist",
+              productId,
+              subject,
+              blocks,
+              gifUrl: gifUrl || undefined,
+              signatureName: signatureName || undefined,
+              signatureRole: signatureRole || undefined,
+              limit,
             }),
           });
           const data = await res.json();
           if (res.ok) {
             const parts = [`Notified ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+            if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
             showHint(status, parts.join(" "), !data.failed?.length);
             // Best-effort -- a sent broadcast's draft is stale, but a failed
             // clear shouldn't make the send itself look like it failed.
@@ -6334,16 +6480,31 @@ import Layout from "../../layouts/Layout.astro";
     });
   }
 
-  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+  function getGeneralCommonFields() {
+    return {
+      subject: (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim(),
+      gifUrl: (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim(),
+      signatureName: (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim(),
+      signatureRole: (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim(),
+    };
+  }
+
+  document.getElementById("broadcast-general-send-test")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    // Each click fires one unpaced API call (unlike the real send, which
+    // batches/paces itself) -- a rapid double-click here has nothing
+    // slowing it down, so a burst of clicks could itself trip Resend's
+    // rate limit. Disabling for the duration of the request is simpler
+    // and more honest than trying to pace single ad-hoc test sends.
+    if (btn.disabled) return;
     const status = document.getElementById("broadcast-general-status") as HTMLElement;
-    const subject = (document.getElementById("broadcast-general-subject") as HTMLInputElement).value.trim();
-    const gifUrl = (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value.trim();
-    const signatureName = (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value.trim();
-    const signatureRole = (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value.trim();
+    const testEmail = (document.getElementById("broadcast-general-test-email") as HTMLInputElement).value.trim();
+    if (!testEmail) return showHint(status, "Enter an email address to send the test to.", false);
+    const { subject, gifUrl, signatureName, signatureRole } = getGeneralCommonFields();
     if (!subject) return showHint(status, "Fill in a subject.", false);
     const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
     if (!blocks) return;
-    if (!window.confirm("Send this to every subscriber who hasn't unsubscribed? This can't be undone.")) return;
+    btn.disabled = true;
     try {
       const res = await api("/api/admin/broadcast", {
         method: "POST",
@@ -6354,12 +6515,49 @@ import Layout from "../../layouts/Layout.astro";
           gifUrl: gifUrl || undefined,
           signatureName: signatureName || undefined,
           signatureRole: signatureRole || undefined,
+          testEmail,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) showHint(status, `Test email sent to ${data.email}.`, true);
+      else showHint(status, data.error || "Failed to send test.", false);
+    } catch {
+      showHint(status, "Network error.", false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("broadcast-general-send")?.addEventListener("click", async () => {
+    const status = document.getElementById("broadcast-general-status") as HTMLElement;
+    const { subject, gifUrl, signatureName, signatureRole } = getGeneralCommonFields();
+    const limitRaw = (document.getElementById("broadcast-general-limit") as HTMLInputElement).value.trim();
+    const limit = limitRaw ? Number(limitRaw) : undefined;
+    if (limitRaw && (!Number.isInteger(limit) || (limit as number) < 1)) return showHint(status, "Limit must be a whole number of 1 or more.", false);
+    if (!subject) return showHint(status, "Fill in a subject.", false);
+    const blocks = validateBroadcastBlocks(generalComposer.getBlocks(), status);
+    if (!blocks) return;
+    const confirmMessage = limit
+      ? `Send this to the first ${limit} subscriber${limit === 1 ? "" : "s"} by signup order? This can't be undone.`
+      : "Send this to every subscriber who hasn't unsubscribed? This can't be undone.";
+    if (!window.confirm(confirmMessage)) return;
+    try {
+      const res = await api("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "general",
+          subject,
+          blocks,
+          gifUrl: gifUrl || undefined,
+          signatureName: signatureName || undefined,
+          signatureRole: signatureRole || undefined,
+          limit,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         const parts = [`Sent to ${data.sent} subscriber${data.sent === 1 ? "" : "s"}.`];
-        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.email).join(", ")}`);
+        if (data.failed?.length) parts.push(`${data.failed.length} failed: ${data.failed.map((f: any) => f.error ? `${f.email} (${f.error})` : f.email).join(", ")}`);
         showHint(status, parts.join(" "), !data.failed?.length);
         // Best-effort -- a sent broadcast's draft is stale, but a failed
         // clear shouldn't make the send itself look like it failed.

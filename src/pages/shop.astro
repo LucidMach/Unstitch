@@ -29,6 +29,11 @@ const product = {
   priceCents: 2900, // AUD 29 — the real confirmed retail price.
   totalUnits: 11, // Whole batch size for this drop.
   tilesPerKit: 22,
+  // Real seeded figure (Product.givingTilesPerKit) — kept here only as the
+  // pre-JS fallback; applyLiveProductData() below overwrites it from
+  // /api/drop-status so an admin edit to the Pricing tab's giving-tiles
+  // field reaches this static page without a redeploy.
+  givingTilesPerKit: 3,
   colourPalette: ["#383433", "#90c4c4", "#002644"],
   // "Feel" spec (was labelled "Rigidity") — rendered as two stacked lines.
   feel: ["Soft", "Low-rigidity"],
@@ -47,7 +52,7 @@ const included = [
   { label: "Wrap Build Mat", icon: "/assets/icons/furoshiki-wrap.svg" },
   { label: "Unstitch Mail", icon: "/assets/icons/mail-postcard.svg" },
   { label: "Tiles", icon: "/assets/icons/tile.svg" },
-  { label: "x3 Tile for Change", icon: "/assets/icons/tile-for-change.svg" },
+  { label: `x${product.givingTilesPerKit} Tile for Change`, icon: "/assets/icons/tile-for-change.svg", giving: true },
   { label: "Product Passport", icon: "/assets/icons/digital-passport.svg" },
   { label: "Gift Message (optional)", icon: "/assets/icons/gifting-message.svg" },
 ];
@@ -66,16 +71,16 @@ const slowBloomOptimized = await getImage({ src: SlowBloomHeroImage, width: 700,
 // (see the gallery script further down) — no carousel library needed for 4
 // static photos.
 const galleryImages = [
-  { src: SlowBloomHeroImage, alt: "Slow Bloom — the turtle design, assembled" },
-  { src: SlowBloomMushroomImage, alt: "Slow Bloom — the mushroom design, assembled" },
-  { src: SlowBloomCupWarmerImage, alt: "Slow Bloom — the cup warmer design, assembled" },
+  { src: SlowBloomHeroImage, alt: "Slow Bloom kit with the turtle design assembled" },
+  { src: SlowBloomMushroomImage, alt: "Slow Bloom kit with the mushroom design assembled" },
+  { src: SlowBloomCupWarmerImage, alt: "Slow Bloom kit with the cup warmer design assembled" },
   { src: SlowBloomTurtleLifestyleImage, alt: "Slow Bloom turtle shown in a home setting" },
 ];
 ---
 
 <Layout
-  title="Slow Bloom — Modular Textile Kit | Unstitch"
-  description="Slow Bloom — the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
+  title="Slow Bloom: Modular Textile Kit | Unstitch"
+  description="Slow Bloom: the curated 2026 RESET x Zero Waste Festival modular textile kit. 22 interlocking pieces cut from rescued deadstock materials, Melbourne-made."
   keywords="unstitch shop, slow bloom drop, zero waste festival collection, modular textile kit, upcycled tote, sustainable modular accessories"
   image={slowBloomOptimized.src}
   imageAlt="Slow Bloom modular textile kit"
@@ -168,7 +173,7 @@ const galleryImages = [
                 <div class="product-included__icon" aria-hidden="true">
                   <img src={item.icon} alt="" width="48" height="48" loading="lazy" />
                 </div>
-                <p class="product-included__label">{item.label}</p>
+                <p class="product-included__label" data-giving-label={item.giving ? "true" : undefined}>{item.label}</p>
               </div>
             ))}
           </div>
@@ -205,10 +210,9 @@ const galleryImages = [
           </button>
           <p class="product-hero__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
           <p class="product-hero__sold-out" data-sold-out-note hidden>
-            This drop is sold out — check back for the next one, or
-            <a href="/contact">get in touch</a> to be notified.
+            This drop is sold out. Please check back for the next drop.
           </p>
-          <p class="product-hero__made-to-order">Made to order — please allow 5–7 business days before shipping.</p>
+          <p class="product-hero__made-to-order">Made to order: please allow 5–7 business days before shipping.</p>
         </div>
       </div>
     </section>
@@ -217,18 +221,20 @@ const galleryImages = [
 
     <!-- ============ REVIEWS ============
          Reviews are tied to a real completed order (see Review.orderId /
-         Review.unitId in the schema) — none exist yet since no kit has
-         been delivered. This is the real empty state, not a placeholder
-         review, and it'll fill in once orders start shipping. -->
+         Review.unitId in the schema) and only ever shown once an admin
+         has published them (see src/server/admin/reviews.js) — fetched
+         live below from GET /api/reviews?product=slow-bloom. The empty
+         state stays as a fallback for whenever none are published yet. -->
     <section class="wrap section reviews">
       <div class="reviews__head">
         <h2 class="section__title">Reviews</h2>
         <button type="button" class="btn btn-outline btn-small" data-review-open>Write a review</button>
       </div>
-      <div class="reviews__empty">
-        <p>No reviews yet — Slow Bloom just dropped.</p>
-        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner — Slow Bloom #7 of {product.totalUnits}").</p>
+      <div class="reviews__empty" data-reviews-empty>
+        <p>No reviews yet. Slow Bloom just dropped.</p>
+        <p class="reviews__empty-sub">Once your kit arrives, you'll be able to leave a verified review here, with the option to show off your kit's digital passport (e.g. "Verified Owner: Slow Bloom #7 of {product.totalUnits}").</p>
       </div>
+      <ul class="reviews__list" data-reviews-list hidden></ul>
     </section>
 
     <div class="stitch" aria-hidden="true"></div>
@@ -256,61 +262,88 @@ const galleryImages = [
     </section>
 
     <!-- ============ WRITE-A-REVIEW MODAL ============
-         Informed verified-owner flow: Reviews are tied to delivered kits and
-         authenticated via Digital Product Passport. Explains clearly how to
-         leave a verified review rather than presenting an empty dead-end form. -->
+         Posts to /api/reviews (src/server/reviews.js), which verifies the
+         order number + email pair against a real DELIVERED order for this
+         product before saving anything — same proof-of-ownership pattern
+         as src/server/order-lookup-by-number.js. New reviews land PENDING
+         until an admin publishes them. -->
     <div class="review-modal" data-review-modal hidden>
       <div class="review-modal__overlay" data-review-close></div>
       <div class="review-modal__panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
         <div class="review-modal__top">
-          <h2 class="review-modal__title" id="review-modal-title">Verified Kit Reviews</h2>
-          <button type="button" class="icon-btn" data-review-close aria-label="Close review dialog">
+          <h2 class="review-modal__title" id="review-modal-title">Write a review</h2>
+          <button type="button" class="icon-btn" data-review-close aria-label="Close review form">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </button>
         </div>
 
-        <div class="review-info-body" style="padding: 12px 0 20px;">
-          <div style="background: var(--accent-pale); border-left: 3px solid var(--accent); padding: 14px 16px; border-radius: var(--radius); margin-bottom: 18px;">
-            <p style="font-weight: 600; font-size: 0.92rem; margin: 0 0 6px; color: var(--ink);">
-              How do verified reviews work?
-            </p>
-            <p style="font-size: 0.85rem; line-height: 1.45; color: #333; margin: 0;">
-              Every Unstitch kit comes with a unique <strong>Digital Product Passport</strong> and serial QR postcard. Once your kit arrives, scan the QR code on your card to register ownership and post your verified owner review directly.
-            </p>
+        <form class="review-form" data-review-form>
+          <label class="review-field">
+            <span class="review-field__label">Order number</span>
+            <input type="text" class="review-field__input" name="orderNumber" placeholder="e.g. UX-2026-123456" required />
+            <span class="review-field__hint">Found on your order confirmation email, together with the email below. That pair is what verifies you actually own a kit.</span>
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Email</span>
+            <input type="email" class="review-field__input" name="email" placeholder="The email you ordered with" required />
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Title</span>
+            <input type="text" class="review-field__input" name="title" maxlength="200" placeholder="Sum it up in a few words" required />
+          </label>
+
+          <label class="review-field">
+            <span class="review-field__label">Comment</span>
+            <textarea class="review-field__input" name="body" rows="4" placeholder="How did it build? What did you make?" required></textarea>
+          </label>
+
+          <fieldset class="review-ratings">
+            <legend class="review-field__label">Ratings</legend>
+            {[
+              { name: "ratingPlay", label: "Play experience" },
+              { name: "ratingBuild", label: "Building experience" },
+              { name: "ratingValue", label: "Value for money" },
+            ].map((cat) => (
+              <div class="review-rating" data-rating-group={cat.name}>
+                <span class="review-rating__label">{cat.label}</span>
+                <span class="review-rating__stars">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      type="button"
+                      class="review-rating__star"
+                      data-rating-value={n}
+                      aria-label={`${cat.label}: ${n} out of 5`}
+                    >★</button>
+                  ))}
+                </span>
+                <input type="hidden" name={cat.name} value="0" />
+              </div>
+            ))}
+          </fieldset>
+
+          <label class="review-check">
+            <input type="checkbox" name="wouldRecommend" />
+            <span>I would recommend this to a friend</span>
+          </label>
+
+          <label class="review-check">
+            <input type="checkbox" name="showPassport" checked />
+            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of {product.totalUnits}")</span>
+          </label>
+
+          <p class="review-form__note">Your review will show your first name and the date you posted it. Reviews are checked before they appear.</p>
+
+          <div class="review-form__actions">
+            <button type="button" class="btn btn-outline" data-review-close>Cancel</button>
+            <button type="submit" class="btn btn-filled">Submit review</button>
           </div>
 
-          <p style="font-size: 0.88rem; color: #555; line-height: 1.45; margin-bottom: 20px;">
-            Already received your Slow Bloom kit? Have your postcard or order confirmation email handy:
-          </p>
-
-          <form class="passport-lookup-form" action="/passport" method="GET" style="display: flex; gap: 8px; flex-direction: column;">
-            <label for="review-passport-serial" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; font-weight: 600;">
-              Enter Kit Serial or Order Code
-            </label>
-            <div style="display: flex; gap: 8px;">
-              <input
-                id="review-passport-serial"
-                type="text"
-                name="serial"
-                placeholder="e.g. UX-D001-001"
-                required
-                style="flex: 1; min-height: 44px; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--radius); font-size: 1rem;"
-              />
-              <button type="submit" class="btn btn-filled" style="flex: none; min-height: 44px;">
-                Open Passport ↗
-              </button>
-            </div>
-            <p style="font-size: 0.78rem; color: #777; margin-top: 4px;">
-              Your passport code links your review directly to your kit's serial edition number.
-            </p>
-          </form>
-        </div>
-
-        <div class="review-form__actions" style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 16px;">
-          <button type="button" class="btn btn-outline" data-review-close style="width: 100%;">Close</button>
-        </div>
+          <p class="review-form__feedback" data-review-feedback role="status"></p>
+        </form>
       </div>
     </div>
   </main>
@@ -529,6 +562,52 @@ const galleryImages = [
     color: #6b6b6b;
     max-width: 560px;
   }
+  .reviews__list {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .reviews__item {
+    border: 1px solid #e6e6e6;
+    border-radius: var(--radius, 6px);
+    padding: 18px 20px;
+  }
+  .reviews__item-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .reviews__stars {
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .reviews__badge {
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-pale, #eedfe9);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .reviews__item-title {
+    margin: 10px 0 4px;
+    font-size: 1rem;
+  }
+  .reviews__item-body {
+    margin: 0;
+    color: #333;
+    line-height: 1.5;
+  }
+  .reviews__item-meta {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: #888;
+  }
 
   /* ===== Write-a-review modal ===== */
   .review-modal {
@@ -641,6 +720,7 @@ const galleryImages = [
   }
   .review-form__feedback.is-error { color: #b3261e; }
   .review-form__feedback.is-info { color: var(--accent); }
+  .review-form__feedback.is-success { color: #2e7d32; }
 
   @media (max-width: 860px) {
     .product-hero__grid { grid-template-columns: 1fr; gap: 28px; }
@@ -764,7 +844,7 @@ const galleryImages = [
       if (typeof data.name === "string" && data.name) {
         const titleEl = document.querySelector<HTMLElement>("[data-product-title]");
         if (titleEl) titleEl.textContent = data.name;
-        document.title = `${data.name} — Modular Textile Kit | Unstitch`;
+        document.title = `${data.name}: Modular Textile Kit | Unstitch`;
       }
       if (typeof data.tagline === "string" && data.tagline) {
         const eyebrowEl = document.querySelector<HTMLElement>("[data-product-eyebrow]");
@@ -819,6 +899,26 @@ const galleryImages = [
               return `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="${icon}" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label">${escHtml(label)}</p></div>`;
             })
             .join("");
+        }
+      }
+
+      // Tile for Change figure: kitContents above is a separate, admin-free
+      // JSON blob that doesn't carry this line item, so it's kept in sync
+      // independently from Product.givingTilesPerKit (the same field the
+      // admin Pricing tab's "Giving tiles per kit" input writes to) rather
+      // than relying on kitContents to include it. Runs after the
+      // kitContents rebuild above since that overwrites the whole grid.
+      if (typeof data.givingTilesPerKit === "number" && data.givingTilesPerKit >= 0) {
+        const gridEl = document.querySelector<HTMLElement>("[data-included-grid]");
+        const label = `x${data.givingTilesPerKit} Tile for Change`;
+        const existingGivingEl = gridEl?.querySelector<HTMLElement>("[data-giving-label]");
+        if (existingGivingEl) {
+          existingGivingEl.textContent = label;
+        } else if (gridEl && data.givingTilesPerKit > 0) {
+          gridEl.insertAdjacentHTML(
+            "beforeend",
+            `<div class="product-included__item"><div class="product-included__icon" aria-hidden="true"><img src="/assets/icons/tile-for-change.svg" alt="" width="48" height="48" loading="lazy" /></div><p class="product-included__label" data-giving-label="true">${escHtml(label)}</p></div>`
+          );
         }
       }
 
@@ -935,7 +1035,7 @@ const galleryImages = [
       const openReview = () => {
         reviewModal.hidden = false;
         document.body.style.overflow = "hidden";
-        reviewModal.querySelector<HTMLInputElement>("input[name='serial']")?.focus();
+        reviewModal.querySelector<HTMLInputElement>("input[name='orderNumber']")?.focus();
       };
       const closeReview = () => {
         reviewModal.hidden = true;
@@ -951,7 +1051,142 @@ const galleryImages = [
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !reviewModal.hidden) closeReview();
       });
+
+      // Star ratings — each group writes its score into a hidden input.
+      reviewModal.querySelectorAll<HTMLElement>("[data-rating-group]").forEach((group) => {
+        const hidden = group.querySelector<HTMLInputElement>("input[type='hidden']");
+        const stars = Array.from(group.querySelectorAll<HTMLButtonElement>("[data-rating-value]"));
+        const paint = (score: number) => {
+          stars.forEach((star) => {
+            star.classList.toggle("is-active", Number(star.dataset.ratingValue) <= score);
+          });
+        };
+        stars.forEach((star) => {
+          star.addEventListener("click", () => {
+            const score = Number(star.dataset.ratingValue);
+            if (hidden) hidden.value = String(score);
+            paint(score);
+          });
+        });
+      });
+
+      const reviewForm = reviewModal.querySelector<HTMLFormElement>("[data-review-form]");
+      const reviewFeedback = reviewModal.querySelector<HTMLElement>("[data-review-feedback]");
+      const reviewSubmitBtn = reviewForm?.querySelector<HTMLButtonElement>("button[type='submit']");
+      reviewForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!reviewFeedback) return;
+
+        const missingRating = Array.from(
+          reviewForm.querySelectorAll<HTMLInputElement>("input[type='hidden']"),
+        ).some((input) => Number(input.value) === 0);
+
+        if (missingRating) {
+          reviewFeedback.textContent = "Please give a star rating for all three categories.";
+          reviewFeedback.className = "review-form__feedback is-error";
+          return;
+        }
+
+        const data = new FormData(reviewForm);
+        const payload = {
+          productSlug: "slow-bloom",
+          orderNumber: String(data.get("orderNumber") || "").trim(),
+          email: String(data.get("email") || "").trim(),
+          ratingPlay: Number(data.get("ratingPlay") || 0),
+          ratingBuild: Number(data.get("ratingBuild") || 0),
+          ratingValue: Number(data.get("ratingValue") || 0),
+          title: String(data.get("title") || "").trim(),
+          body: String(data.get("body") || "").trim(),
+          wouldRecommend: data.get("wouldRecommend") === "on",
+          showUnit: data.get("showPassport") === "on",
+        };
+
+        if (reviewSubmitBtn) reviewSubmitBtn.disabled = true;
+        reviewFeedback.textContent = "Checking your order…";
+        reviewFeedback.className = "review-form__feedback is-info";
+
+        try {
+          const res = await fetch("/api/reviews", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const result = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            reviewFeedback.textContent = result.message || "Thanks! Your review is in. We check each one before it goes live.";
+            reviewFeedback.className = "review-form__feedback is-success";
+            reviewForm.reset();
+            reviewModal.querySelectorAll<HTMLElement>("[data-rating-group] .review-rating__star").forEach((star) =>
+              star.classList.remove("is-active"),
+            );
+          } else {
+            reviewFeedback.textContent = result.error || "Something went wrong. Please try again shortly.";
+            reviewFeedback.className = "review-form__feedback is-error";
+          }
+        } catch (err) {
+          reviewFeedback.textContent = "Couldn't reach the server. Please try again shortly.";
+          reviewFeedback.className = "review-form__feedback is-error";
+        } finally {
+          if (reviewSubmitBtn) reviewSubmitBtn.disabled = false;
+        }
+      });
     }
+
+    // Published reviews — fetched live so new ones show up without a
+    // redeploy. Falls back to the static empty state (left in the markup
+    // above) when there are none yet.
+    (async () => {
+      const list = document.querySelector<HTMLElement>("[data-reviews-list]");
+      const empty = document.querySelector<HTMLElement>("[data-reviews-empty]");
+      if (!list || !empty) return;
+
+      try {
+        const res = await fetch("/api/reviews?product=slow-bloom");
+        if (!res.ok) return;
+        const data = await res.json();
+        const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+        if (reviews.length === 0) return;
+
+        const stars = (n: number) => "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(n);
+        list.innerHTML = reviews
+          .map((review: any) => {
+            const badge = review.unitBadge
+              ? `<span class="reviews__badge">Verified Owner: Slow Bloom #${review.unitBadge.editionNumber} of ${review.unitBadge.totalUnits}</span>`
+              : `<span class="reviews__badge">Verified Owner</span>`;
+            const date = review.createdAt
+              ? new Date(review.createdAt).toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })
+              : "";
+            const title = review.title ? `<h3 class="reviews__item-title">${escapeHtml(review.title)}</h3>` : "";
+            const body = review.body ? `<p class="reviews__item-body">${escapeHtml(review.body)}</p>` : "";
+            return `
+              <li class="reviews__item">
+                <div class="reviews__item-head">
+                  <span class="reviews__stars" aria-label="${review.rating} out of 5">${stars(review.rating)}</span>
+                  ${badge}
+                </div>
+                ${title}
+                ${body}
+                <p class="reviews__item-meta">${escapeHtml(review.reviewerFirstName)} · ${date}</p>
+              </li>`;
+          })
+          .join("");
+
+        empty.hidden = true;
+        list.hidden = false;
+      } catch {
+        // Leave the static empty state showing — no need to surface a
+        // fetch failure for a page section nobody asked to refresh.
+      }
+
+      function escapeHtml(value: string): string {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    })();
 
     // Newsletter signup form (same pattern used across the site).
     document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {

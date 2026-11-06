@@ -149,6 +149,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         ageRangeMax: product.ageRangeMax,
         kitContents: product.kitContents,
         tilesPerKit: product.costRecipe?.tilesPerKit ?? null,
+        givingTilesPerKit: product.givingTilesPerKit,
       });
     }
 
@@ -175,6 +176,7 @@ export default async function handler(req: any, res: any): Promise<any> {
       ageRangeMax: product.ageRangeMax,
       kitContents: product.kitContents,
       tilesPerKit: product.costRecipe?.tilesPerKit ?? null,
+      givingTilesPerKit: product.givingTilesPerKit,
     });
   } catch (err) {
     console.error('[drop-status] Lookup failed:', err);
