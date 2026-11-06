@@ -14,7 +14,15 @@ const homeProduct = {
   priceCents: 2900,
   totalUnits: 11,
 };
-const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 700, height: 495, format: "webp" });
+const defaultDropTarget = "2026-09-23T18:00:00+10:00";
+const isDropLiveInitially = new Date(defaultDropTarget).getTime() <= Date.now();
+
+const slowBloomAddToBagImage = await getImage({
+  src: SlowBloomHeroImage,
+  width: 700,
+  height: 495,
+  format: "webp",
+});
 ---
 
 <Layout
@@ -30,16 +38,23 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
         <p class="hero__eyebrow">Interlocking Textile Module System</p>
         <h1 class="hero__title">One tile.<br />Endless possibilities.</h1>
         <p class="hero__body">
-          Imagine building 3D textile creations without needing to sew or stitch.
+          Imagine building 3D textile creations without needing to sew or
+          stitch.
         </p>
         <div class="hero__ctas">
-          <a href="/playground" class="btn btn-filled">Explore the Playground</a>
+          <a href="/playground" class="btn btn-filled">Explore the Playground</a
+          >
           <a href="/shop" class="btn btn-outline">Join the Next Drop</a>
         </div>
       </div>
       <div class="hero__media">
         <div class="ph hero__ph" style="aspect-ratio: 1 / 1;">
-          <img src="/OneTileGif.gif" alt="One tile, endless possibilities: modular textile animation" class="w-full h-full object-contain p-4" onerror="this.style.display='none'" />
+          <img
+            src="/OneTileGif.gif"
+            alt="One tile, endless possibilities: modular textile animation"
+            class="w-full h-full object-contain p-4"
+            onerror="this.style.display='none'"
+          />
         </div>
       </div>
     </section>
@@ -93,13 +108,17 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
          reveal the "Latest Drop" section instead. No manual toggling or
          redeploy needed at launch time; see the script at the bottom of
          this file for how the swap works. -->
-    <section class="wrap section home-countdown-section" id="next-drop-countdown">
+    <section
+      class="wrap section home-countdown-section"
+      id="next-drop-countdown"
+      hidden={isDropLiveInitially}
+    >
       <p class="section__eyebrow">Next Drop</p>
       <h2 class="section__title">Releases Wednesday, 6:00pm</h2>
       <div
         class="countdown countdown--home"
         data-countdown
-        data-target="2026-09-23T18:00:00+10:00"
+        data-target={defaultDropTarget}
         data-reveal="#latest-drop-live"
         aria-label="Time remaining until the next drop"
       >
@@ -123,32 +142,41 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
           <span class="countdown__label">Seconds</span>
         </div>
       </div>
-      <a href="/shop" class="btn btn-outline btn-small home-countdown-section__cta">See Drop Details</a>
+      <a
+        href="/shop"
+        class="btn btn-outline btn-small home-countdown-section__cta"
+        >See Drop Details</a
+      >
     </section>
 
     <!-- ============ LATEST DROP — LIVE (auto-revealed at drop time) ============
-         Hidden by default. The countdown section above reveals this and
-         hides itself once data-target is reached — see script below.
+         The countdown section above reveals this and hides itself once
+         data-target is reached — see script below.
          EDITABLE: swap image/copy/links for the real Slow Bloom product
          page and cart once those exist (currently point at /shop). -->
-    <section class="wrap section latest-drop-live" id="latest-drop-live" hidden>
-      <!-- The floral illustration is a decorative backdrop behind the
-           whole section (like the countdown hero on /shop-countdown),
-           not the fill of the image placeholder itself — the "hero
-           image" box below is a plain grey placeholder sitting in front
-           of it, matching the original wireframe. -->
-      <div class="latest-drop-live__backdrop" aria-hidden="true">
-        <img src="/assets/floral-pattern.png" alt="" />
-      </div>
-
+    <section
+      class="wrap section latest-drop-live"
+      id="latest-drop-live"
+      hidden={!isDropLiveInitially}
+    >
       <div class="latest-drop-live__content">
         <p class="section__eyebrow">Latest Drop</p>
         <h2 class="section__title">Slow Bloom</h2>
-        <p class="latest-drop-live__subtitle">Curated Edition Drop: 2026 RESET x Zero Waste Festival</p>
+        <p class="latest-drop-live__subtitle">
+          Curated Edition Drop: 2026 RESET x Zero Waste Festival
+        </p>
 
         <div class="latest-drop-live__media">
           <div class="ph latest-drop-live__media-inner">
-            <Image src={SlowBloomHeroImage} width={1200} height={849} format="webp" alt="Slow Bloom modular textile kit" class="w-full h-auto" onerror="this.style.display='none'" />
+            <Image
+              src={SlowBloomHeroImage}
+              width={1200}
+              height={849}
+              format="webp"
+              alt="Slow Bloom modular textile kit"
+              class="w-full h-auto"
+              onerror="this.style.display='none'"
+            />
           </div>
         </div>
 
@@ -167,7 +195,9 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
             Add to Bag
           </button>
         </div>
-        <p class="latest-drop-live__added" data-add-to-bag-feedback hidden>Added to your bag.</p>
+        <p class="latest-drop-live__added" data-add-to-bag-feedback hidden>
+          Added to your bag.
+        </p>
       </div>
     </section>
 
@@ -179,10 +209,25 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     <section class="workshop" id="up-next-section" hidden>
       <div class="wrap workshop__inner">
         <div class="workshop__copy">
-          <p class="section__eyebrow" id="up-next-eyebrow">Up Next: Public Experience Workshop</p>
-          <h2 class="workshop__title" id="up-next-title">Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed Square.</h2>
-          <p class="workshop__body" id="up-next-body">Drop-in tile building all day 12pm–6pm, no experience needed. Visit to try out our newly launched virtual playground and go in the raffle draw to win 1 Unstitch's latest drop.</p>
-          <a href="https://zerowastevictoria.org.au/zero-waste-festival/activities/" target="_blank" rel="noopener" class="btn btn-outline workshop__cta" id="up-next-cta">Learn More</a>
+          <p class="section__eyebrow" id="up-next-eyebrow">
+            Up Next: Public Experience Workshop
+          </p>
+          <h2 class="workshop__title" id="up-next-title">
+            Find us at Zero Waste Festival.<br />Saturday 12 Sep 2026.<br />Fed
+            Square.
+          </h2>
+          <p class="workshop__body" id="up-next-body">
+            Drop-in tile building all day 12pm–6pm, no experience needed. Visit
+            to try out our newly launched virtual playground and go in the
+            raffle draw to win 1 Unstitch's latest drop.
+          </p>
+          <a
+            href="https://zerowastevictoria.org.au/zero-waste-festival/activities/"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-outline workshop__cta"
+            id="up-next-cta">Learn More</a
+          >
 
           <!-- Up to 2 more upcoming events beyond the featured one above
                (3 total) — compact, text-only, so the featured event keeps
@@ -203,42 +248,90 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
 
     <!-- ============ ABOUT BLURB — EDITABLE ============ -->
     <section class="wrap about-blurb">
-      <h2 class="about-blurb__title">We're a Melbourne-based circular design studio.</h2>
-      <p class="about-blurb__body">We design zero-waste, interlocking tiles from upcycled textile, each piece crafted with precision. From our own collections to bespoke commissions, we partner with schools and clients to turn ideas into reality.</p>
+      <h2 class="about-blurb__title">
+        We're a Melbourne-based circular design studio.
+      </h2>
+      <p class="about-blurb__body">
+        We design zero-waste, interlocking tiles from upcycled textile, each
+        piece crafted with precision. From our own collections to bespoke
+        commissions, we partner with schools and clients to turn ideas into
+        reality.
+      </p>
     </section>
 
     <!-- ============ LEARN / CUSTOM / SHOP NAV TILES ============ -->
-    <section class="explore-grid">
-      <a class="explore-tile">
-        <div class="explore-tile__media">
-          <img src="/assets/home/learn-workshop-setup.webp" alt="Workshop table set up with modular felt tiles ready for a session" width="446" height="335" loading="lazy" />
-        </div>
-        <span class="explore-tile__label">Learn</span>
-      </a>
-      <a class="explore-tile">
-        <div class="explore-tile__media">
-          <img src="/assets/home/custom-owl.webp" alt="Custom interlocking tile owl installation on a wall" width="446" height="335" loading="lazy" />
-        </div>
-        <span class="explore-tile__label">Custom</span>
-      </a>
-      <!-- <a href="/shop" class="explore-tile">-->
-      <a class="explore-tile">
-        <div class="explore-tile__media">
-          <img src="/assets/home/shop-tote.webp" alt="Modular felt tote bag made from interlocking Unstitch tiles" width="542" height="542" loading="lazy" />
-        </div>
-        <span class="explore-tile__label">Shop</span>
-      </a>
-    </section>
+    <div class="explore-wrap">
+      <section class="explore-grid">
+        <a class="explore-tile">
+          <div class="explore-tile__media">
+            <img
+              src="/assets/home/learn-workshop-setup.webp"
+              alt="Workshop table set up with modular felt tiles ready for a session"
+              width="446"
+              height="335"
+              loading="lazy"
+            />
+          </div>
+          <span class="explore-tile__label">Learn</span>
+        </a>
+        <a class="explore-tile">
+          <div class="explore-tile__media">
+            <img
+              src="/assets/home/custom-owl.webp"
+              alt="Custom interlocking tile owl installation on a wall"
+              width="446"
+              height="335"
+              loading="lazy"
+            />
+          </div>
+          <span class="explore-tile__label">Custom</span>
+        </a>
+        <!-- <a href="/shop" class="explore-tile">-->
+        <a class="explore-tile">
+          <div class="explore-tile__media">
+            <img
+              src="/assets/home/shop-tote.webp"
+              alt="Modular felt tote bag made from interlocking Unstitch tiles"
+              width="542"
+              height="542"
+              loading="lazy"
+            />
+          </div>
+          <span class="explore-tile__label">Shop</span>
+        </a>
+      </section>
+    </div>
 
     <!-- ============ EMAIL SIGNUP ============ -->
     <section class="wrap signup">
-      <p class="signup__text">Every tile saves something out of the landfill. Join the movement.</p>
+      <p class="signup__text">
+        Every tile saves something out of the landfill. Join the movement.
+      </p>
       <form class="signup__form" data-subscribe-form="home-signup">
-        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
+        <input
+          type="text"
+          name="_gotcha"
+          tabindex="-1"
+          autocomplete="off"
+          style="display:none !important;"
+          aria-hidden="true"
+        />
         <label class="sr-only" for="signup-name">Your name</label>
-        <input id="signup-name" class="signup__input" type="text" placeholder="Name" autocomplete="name" />
+        <input
+          id="signup-name"
+          class="signup__input"
+          type="text"
+          placeholder="Name"
+          autocomplete="name"
+        />
         <label class="sr-only" for="signup-email">Your email</label>
-        <input id="signup-email" class="signup__input" type="email" placeholder="Your Email" required />
+        <input
+          id="signup-email"
+          class="signup__input"
+          type="email"
+          placeholder="Your Email"
+          required
+        />
         <button type="submit" class="btn btn-filled">Join</button>
       </form>
     </section>
@@ -271,7 +364,11 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     max-width: 42ch;
     margin-bottom: 28px;
   }
-  .hero__ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero__ctas {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
   .hero__ph {
     border-radius: var(--radius);
     background: #fafafa;
@@ -291,13 +388,19 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     font-size: clamp(1.5rem, 3.4vw, 2.2rem);
     margin: 6px 0 18px;
   }
-  .workshop__body { max-width: 52ch; color: #333; margin-bottom: 24px; }
+  .workshop__body {
+    max-width: 52ch;
+    color: #333;
+    margin-bottom: 24px;
+  }
   .workshop__cta {
     display: inline-flex;
     background: var(--event-cta-bg, rgba(109, 119, 26, 1));
     color: white;
     border-color: var(--event-cta-bg, rgba(109, 119, 26, 1));
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
   }
 
   /* Up to 2 more upcoming events beyond the featured one — compact
@@ -318,8 +421,13 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     color: var(--ink);
     text-decoration: none;
   }
-  .workshop__more a:hover { text-decoration: underline; }
-  .workshop__more span { color: #666; font-weight: 400; }
+  .workshop__more a:hover {
+    text-decoration: underline;
+  }
+  .workshop__more span {
+    color: #666;
+    font-weight: 400;
+  }
 
   /* Past events — plain, muted, no color band, no imagery: never meant
      to compete with what's upcoming above. */
@@ -331,7 +439,7 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     font-size: 0.78rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #999;
+    color: #555;
     margin-bottom: 10px;
   }
   .past-events__list {
@@ -344,9 +452,12 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   }
   .past-events__list li {
     font-size: 0.85rem;
-    color: #777;
+    color: #444;
   }
-  .past-events__list .past-events__title { color: #555; font-weight: 500; }
+  .past-events__list .past-events__title {
+    color: #555;
+    font-weight: 500;
+  }
 
   .home-countdown-section {
     padding-top: 56px;
@@ -356,33 +467,24 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     flex-direction: column;
     align-items: center;
   }
-  .home-countdown-section .section__eyebrow { text-align: center; }
-  .home-countdown-section .section__title { margin-bottom: 28px; }
-  .countdown--home { margin-bottom: 28px; }
-  .home-countdown-section__cta { margin-top: 4px; }
+  .home-countdown-section .section__eyebrow {
+    text-align: center;
+  }
+  .home-countdown-section .section__title {
+    margin-bottom: 28px;
+  }
+  .countdown--home {
+    margin-bottom: 28px;
+  }
+  .home-countdown-section__cta {
+    margin-top: 4px;
+  }
 
   .latest-drop-live {
     position: relative;
     padding-top: 56px;
     padding-bottom: 56px;
     overflow: hidden;
-  }
-  /* Decorative floral illustration behind the whole section — low
-     opacity, not part of the hero-image placeholder itself. */
-  .latest-drop-live__backdrop {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
-  .latest-drop-live__backdrop img {
-    display: block;
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    opacity: 0.35;
   }
   .latest-drop-live__content {
     position: relative;
@@ -391,8 +493,13 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   /* Eyebrow/title/subtitle stay left-aligned (the section's default);
      only the hero-image placeholder and the button row below are
      centred, per the wireframe. */
-  .latest-drop-live .section__title { margin-bottom: 8px; }
-  .latest-drop-live__subtitle { color: #555; margin-bottom: 28px; }
+  .latest-drop-live .section__title {
+    margin-bottom: 8px;
+  }
+  .latest-drop-live__subtitle {
+    color: #555;
+    margin-bottom: 28px;
+  }
   .latest-drop-live__media {
     width: 100%;
   }
@@ -401,8 +508,10 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
      to a fixed height so it doesn't reflow the section as the viewport
      changes. */
   .latest-drop-live__media-inner {
-    background: none;
-    border: none;
+    position: relative;
+    background: #fafafa;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
     min-height: 0;
     display: block;
     height: 600px;
@@ -427,25 +536,81 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     text-align: center;
   }
 
-  .about-blurb { padding-top: 56px; padding-bottom: 32px; }
+  .about-blurb {
+    padding-top: 56px;
+    padding-bottom: 32px;
+  }
   .about-blurb__title {
     font-size: clamp(1.5rem, 3.4vw, 2.1rem);
     margin-bottom: 14px;
   }
-  .about-blurb__body { max-width: 60ch; color: #333; }
+  .about-blurb__body {
+    max-width: 60ch;
+    color: #333;
+  }
+
+  .explore-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1140px;
+    margin: 0 auto;
+  }
+  /* Margin lines outside Learn (left) and Shop (right) extending unevenly beyond the section height */
+  .explore-wrap::before,
+  .explore-wrap::after {
+    content: "";
+    position: absolute;
+    width: 1px;
+    background: var(--ink);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .explore-wrap::before {
+    left: -1px;
+    top: -24px;
+    bottom: -16px;
+  }
+  .explore-wrap::after {
+    right: -1px;
+    top: -14px;
+    bottom: -28px;
+  }
 
   .explore-grid {
+    position: relative;
     display: flex;
     justify-content: center;
+    width: 100%;
     border-top: 1px solid var(--ink);
     border-bottom: 1px solid var(--ink);
+  }
+  /* Horizontal margin lines extending slightly and unevenly past the left and right edges on desktop */
+  .explore-grid::before,
+  .explore-grid::after {
+    content: "";
+    position: absolute;
+    height: 1px;
+    background: var(--ink);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .explore-grid::before {
+    top: -1px;
+    left: -20px;
+    right: -28px;
+  }
+  .explore-grid::after {
+    bottom: -1px;
+    left: -26px;
+    right: -16px;
   }
   .explore-grid .explore-tile {
     width: 100%;
     max-width: 380px;
+    flex: 1 1 0;
   }
   .explore-tile {
-    border-right: 1px solid var(--ink);
+    position: relative;
     padding: 0 0 20px;
     display: block;
     transition: background 0.2s ease;
@@ -453,7 +618,29 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   .explore-tile:hover {
     background: #faf8f9;
   }
-  .explore-tile:last-child { border-right: none; }
+  .explore-tile:last-child {
+    border-right: none;
+  }
+  /* Margin lines around Custom (middle tile): vertical lines extending unevenly top/bottom */
+  .explore-tile:nth-child(2)::before,
+  .explore-tile:nth-child(2)::after {
+    content: "";
+    position: absolute;
+    width: 1px;
+    background: var(--ink);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .explore-tile:nth-child(2)::before {
+    left: 0;
+    top: -18px;
+    bottom: -22px;
+  }
+  .explore-tile:nth-child(2)::after {
+    right: 0;
+    top: -26px;
+    bottom: -14px;
+  }
   .explore-tile__media {
     aspect-ratio: 4 / 3;
     border: none;
@@ -483,15 +670,40 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     margin-top: 18px;
   }
 
+  @media (max-width: 900px) {
+    /* Hide all decorative margin extension lines on tablets and mobile devices */
+    .explore-wrap::before,
+    .explore-wrap::after,
+    .explore-grid::before,
+    .explore-grid::after,
+    .explore-tile:nth-child(2)::before,
+    .explore-tile:nth-child(2)::after {
+      display: none !important;
+    }
+  }
+
   @media (max-width: 768px) {
-    .hero { grid-template-columns: 1fr; padding-top: 32px; padding-bottom: 44px; }
-    .hero__media { order: -1; }
-    .explore-tile { border-right: none; border-bottom: 1px solid var(--ink); padding-bottom: 24px; }
-    .explore-tile:last-child { border-bottom: none; }
+    .explore-wrap {
+      width: 100%;
+    }
+    .hero {
+      grid-template-columns: 1fr;
+      padding-top: 32px;
+      padding-bottom: 44px;
+    }
+    .hero__media {
+      order: -1;
+    }
+    .explore-tile {
+      border-right: none;
+      padding-bottom: 24px;
+    }
     /* 1200px reads as an absurdly tall sliver on a phone-width crop —
        keep the same "fixed height, no reflow" idea but scaled down for
        this breakpoint. */
-    .latest-drop-live__media-inner { height: 320px; }
+    .latest-drop-live__media-inner {
+      height: 320px;
+    }
   }
 </style>
 
@@ -501,8 +713,11 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   // Mirrors shop.astro's own Add to Bag wiring (src/pages/shop.astro) —
   // this button has no quantity stepper, so it always adds a single unit.
   function initAddToBag() {
-    const addBtn = document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
-    const feedback = document.querySelector<HTMLElement>("[data-add-to-bag-feedback]");
+    const addBtn =
+      document.querySelector<HTMLButtonElement>("[data-add-to-bag]");
+    const feedback = document.querySelector<HTMLElement>(
+      "[data-add-to-bag-feedback]",
+    );
     if (!addBtn) return;
 
     // Keep this button's price/name/stock in sync with the database, the
@@ -511,13 +726,21 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
     // wouldn't reach the homepage without a redeploy.
     (async () => {
       try {
-        const res = await fetch(`/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`);
+        const res = await fetch(
+          `/api/drop-status?slug=${encodeURIComponent(addBtn.dataset.productId || "")}`,
+        );
         if (!res.ok) return;
         const data = await res.json();
-        if (typeof data.slug === "string" && data.slug) addBtn.dataset.productId = data.slug;
-        if (typeof data.name === "string" && data.name) addBtn.dataset.productName = data.name;
-        if (typeof data.imageUrl === "string" && data.imageUrl) addBtn.dataset.productImage = data.imageUrl;
-        if (typeof data.basePriceCents === "number" && data.basePriceCents > 0) {
+        if (typeof data.slug === "string" && data.slug)
+          addBtn.dataset.productId = data.slug;
+        if (typeof data.name === "string" && data.name)
+          addBtn.dataset.productName = data.name;
+        if (typeof data.imageUrl === "string" && data.imageUrl)
+          addBtn.dataset.productImage = data.imageUrl;
+        if (
+          typeof data.basePriceCents === "number" &&
+          data.basePriceCents > 0
+        ) {
           addBtn.dataset.productPrice = String(data.basePriceCents);
         }
         if (typeof data.totalUnits === "number" && data.totalUnits > 0) {
@@ -544,7 +767,9 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
 
       if (feedback) {
         feedback.hidden = false;
-        window.setTimeout(() => { feedback.hidden = true; }, 2500);
+        window.setTimeout(() => {
+          feedback.hidden = true;
+        }, 2500);
       }
 
       window.dispatchEvent(new CustomEvent("cart:open"));
@@ -552,28 +777,28 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   }
 
   function initCountdown() {
-    document.querySelectorAll<HTMLElement>('[data-countdown]').forEach((el) => {
+    document.querySelectorAll<HTMLElement>("[data-countdown]").forEach((el) => {
       const existingTimer = (el as any)._cdTimer;
       if (existingTimer) clearInterval(existingTimer);
 
-      const targetStr = el.dataset.target || '';
+      const targetStr = el.dataset.target || "";
       const target = new Date(targetStr).getTime();
-      const daysEl = el.querySelector<HTMLElement>('[data-cd-days]');
-      const hoursEl = el.querySelector<HTMLElement>('[data-cd-hours]');
-      const minsEl = el.querySelector<HTMLElement>('[data-cd-mins]');
-      const secsEl = el.querySelector<HTMLElement>('[data-cd-secs]');
-      const pad = (n: number) => String(Math.max(0, n)).padStart(2, '0');
+      const daysEl = el.querySelector<HTMLElement>("[data-cd-days]");
+      const hoursEl = el.querySelector<HTMLElement>("[data-cd-hours]");
+      const minsEl = el.querySelector<HTMLElement>("[data-cd-mins]");
+      const secsEl = el.querySelector<HTMLElement>("[data-cd-secs]");
+      const pad = (n: number) => String(Math.max(0, n)).padStart(2, "0");
 
       let timer: ReturnType<typeof setInterval> | undefined;
 
       const tick = () => {
         const diff = target - Date.now();
         if (diff <= 0) {
-          if (daysEl) daysEl.textContent = '00';
-          if (hoursEl) hoursEl.textContent = '00';
-          if (minsEl) minsEl.textContent = '00';
-          if (secsEl) secsEl.textContent = '00';
-          el.classList.add('is-complete');
+          if (daysEl) daysEl.textContent = "00";
+          if (hoursEl) hoursEl.textContent = "00";
+          if (minsEl) minsEl.textContent = "00";
+          if (secsEl) secsEl.textContent = "00";
+          el.classList.add("is-complete");
           if (timer !== undefined) clearInterval(timer);
 
           // Auto-swap: hide the countdown section and reveal the "live
@@ -585,8 +810,9 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
           // countdown first).
           const revealSelector = el.dataset.reveal;
           if (revealSelector) {
-            const revealTarget = document.querySelector<HTMLElement>(revealSelector);
-            const countdownSection = el.closest('section');
+            const revealTarget =
+              document.querySelector<HTMLElement>(revealSelector);
+            const countdownSection = el.closest("section");
             if (revealTarget) revealTarget.hidden = false;
             if (countdownSection) countdownSection.hidden = true;
           }
@@ -594,8 +820,10 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
         }
         const totalSeconds = Math.floor(diff / 1000);
         if (daysEl) daysEl.textContent = pad(Math.floor(totalSeconds / 86400));
-        if (hoursEl) hoursEl.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
-        if (minsEl) minsEl.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
+        if (hoursEl)
+          hoursEl.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
+        if (minsEl)
+          minsEl.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
         if (secsEl) secsEl.textContent = pad(totalSeconds % 60);
       };
 
@@ -607,22 +835,25 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
 
   async function initEvents() {
     try {
-      const res = await fetch('/api/events');
+      const res = await fetch("/api/events");
       if (!res.ok) return;
       const data = await res.json();
 
       // Dynamic Batch Drop handling
       if (data.nextBatchDrop && data.nextBatchDrop.releaseAt) {
-        const countdownEl = document.querySelector<HTMLElement>('#next-drop-countdown [data-countdown]');
-        const countdownSection = document.getElementById('next-drop-countdown');
-        const liveSection = document.getElementById('latest-drop-live');
-        const titleEl = countdownSection?.querySelector('.section__title');
+        const countdownEl = document.querySelector<HTMLElement>(
+          "#next-drop-countdown [data-countdown]",
+        );
+        const countdownSection = document.getElementById("next-drop-countdown");
+        const liveSection = document.getElementById("latest-drop-live");
+        const titleEl = countdownSection?.querySelector(".section__title");
 
         const dropTime = new Date(data.nextBatchDrop.releaseAt).getTime();
         if (dropTime > Date.now()) {
-          if (countdownEl) countdownEl.dataset.target = data.nextBatchDrop.releaseAt;
+          if (countdownEl)
+            countdownEl.dataset.target = data.nextBatchDrop.releaseAt;
           if (titleEl && data.nextBatchDrop.productName) {
-            titleEl.textContent = `${data.nextBatchDrop.productName}: Drop ${data.nextBatchDrop.dropCode || ''}`;
+            titleEl.textContent = `${data.nextBatchDrop.productName}: Drop ${data.nextBatchDrop.dropCode || ""}`;
           }
           if (countdownSection) countdownSection.hidden = false;
           if (liveSection) liveSection.hidden = true;
@@ -634,19 +865,21 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
       }
 
       // Dynamic Upcoming Workshop / Event handling
-      const section = document.getElementById('up-next-section');
+      const section = document.getElementById("up-next-section");
       if (data.upcoming) {
         const event = data.upcoming;
-        const eyebrow = document.getElementById('up-next-eyebrow');
-        const title = document.getElementById('up-next-title');
-        const body = document.getElementById('up-next-body');
-        const cta = document.getElementById('up-next-cta') as HTMLAnchorElement | null;
+        const eyebrow = document.getElementById("up-next-eyebrow");
+        const title = document.getElementById("up-next-title");
+        const body = document.getElementById("up-next-body");
+        const cta = document.getElementById(
+          "up-next-cta",
+        ) as HTMLAnchorElement | null;
 
         if (section) {
           section.hidden = false;
           if (event.color) {
-            section.style.setProperty('--event-bg', `${event.color}22`);
-            section.style.setProperty('--event-cta-bg', event.color);
+            section.style.setProperty("--event-bg", `${event.color}22`);
+            section.style.setProperty("--event-cta-bg", event.color);
           }
           if (eyebrow) {
             eyebrow.textContent = `Up Next: ${event.title}`;
@@ -672,21 +905,24 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
       // matching the array the API already caps at 3) — compact text
       // links, no color treatment, so the featured event above keeps
       // the spotlight.
-      const moreList = document.getElementById('up-next-more');
+      const moreList = document.getElementById("up-next-more");
       if (moreList) {
         moreList.replaceChildren();
-        const rest: any[] = Array.isArray(data.upcomingEvents) ? data.upcomingEvents.slice(1, 3) : [];
+        const rest: any[] = Array.isArray(data.upcomingEvents)
+          ? data.upcomingEvents.slice(1, 3)
+          : [];
         if (rest.length > 0) {
           for (const event of rest) {
-            const li = document.createElement('li');
-            const link = document.createElement('a');
-            link.href = event.ctaUrl || '#';
+            const li = document.createElement("li");
+            const link = document.createElement("a");
+            link.href = event.ctaUrl || "#";
             link.textContent = event.title;
             li.appendChild(link);
             const dateStr = formatEventDate(event.startsAt);
             if (dateStr || event.location) {
-              const span = document.createElement('span');
-              span.textContent = ' — ' + [dateStr, event.location].filter(Boolean).join(', ');
+              const span = document.createElement("span");
+              span.textContent =
+                " — " + [dateStr, event.location].filter(Boolean).join(", ");
               li.appendChild(span);
             }
             moreList.appendChild(li);
@@ -699,21 +935,27 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
 
       // Past events — up to 3, most recent first, deliberately muted so
       // they never compete with what's upcoming above.
-      const pastSection = document.getElementById('past-events-section');
-      const pastList = document.getElementById('past-events-list');
+      const pastSection = document.getElementById("past-events-section");
+      const pastList = document.getElementById("past-events-list");
       if (pastSection && pastList) {
         pastList.replaceChildren();
-        const past: any[] = Array.isArray(data.past) ? data.past.slice(0, 3) : [];
+        const past: any[] = Array.isArray(data.past)
+          ? data.past.slice(0, 3)
+          : [];
         if (past.length > 0) {
           for (const event of past) {
-            const li = document.createElement('li');
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'past-events__title';
+            const li = document.createElement("li");
+            const titleSpan = document.createElement("span");
+            titleSpan.className = "past-events__title";
             titleSpan.textContent = event.title;
             li.appendChild(titleSpan);
             const dateStr = formatEventDate(event.startsAt);
             if (dateStr || event.location) {
-              li.appendChild(document.createTextNode(' — ' + [dateStr, event.location].filter(Boolean).join(', ')));
+              li.appendChild(
+                document.createTextNode(
+                  " — " + [dateStr, event.location].filter(Boolean).join(", "),
+                ),
+              );
             }
             pastList.appendChild(li);
           }
@@ -728,65 +970,97 @@ const slowBloomAddToBagImage = await getImage({ src: SlowBloomHeroImage, width: 
   }
 
   function formatEventDate(iso: string | null | undefined): string {
-    if (!iso) return '';
+    if (!iso) return "";
     const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   }
 
   function initForms() {
-    document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
-      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-      const originalLabel = submitBtn ? submitBtn.textContent : '';
+    document
+      .querySelectorAll<HTMLFormElement>("[data-subscribe-form]")
+      .forEach((form) => {
+        const submitBtn = form.querySelector<HTMLButtonElement>(
+          'button[type="submit"]',
+        );
+        const originalLabel = submitBtn ? submitBtn.textContent : "";
 
-      let feedback = form.nextElementSibling as HTMLElement;
-      if (!feedback || !feedback.classList.contains('form-feedback')) {
-        feedback = document.createElement('p');
-        feedback.className = 'form-feedback';
-        feedback.setAttribute('role', 'status');
-        form.insertAdjacentElement('afterend', feedback);
-      }
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nameInput = form.querySelector<HTMLInputElement>('input[type="text"]:not([name="_gotcha"])');
-        const emailInput = form.querySelector<HTMLInputElement>('input[type="email"]');
-        const gotchaInput = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
-        const name = nameInput ? nameInput.value.trim() : '';
-        const email = emailInput ? emailInput.value.trim() : '';
-        const _gotcha = gotchaInput ? gotchaInput.value : '';
-
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
-        feedback.textContent = '';
-        feedback.className = 'form-feedback';
-
-        try {
-          const res = await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, source: form.dataset.subscribeForm || undefined, _gotcha }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.error || (res.status === 429 ? 'Too many requests. Please wait a moment.' : 'Something went wrong.'));
-
-          form.reset();
-          feedback.textContent = "You're on the list.";
-          feedback.classList.add('form-feedback--success');
-        } catch (err: any) {
-          feedback.textContent = err.message || 'Something went wrong. Please try again.';
-          feedback.classList.add('form-feedback--error');
-        } finally {
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+        let feedback = form.nextElementSibling as HTMLElement;
+        if (!feedback || !feedback.classList.contains("form-feedback")) {
+          feedback = document.createElement("p");
+          feedback.className = "form-feedback";
+          feedback.setAttribute("role", "status");
+          form.insertAdjacentElement("afterend", feedback);
         }
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const nameInput = form.querySelector<HTMLInputElement>(
+            'input[type="text"]:not([name="_gotcha"])',
+          );
+          const emailInput = form.querySelector<HTMLInputElement>(
+            'input[type="email"]',
+          );
+          const gotchaInput = form.querySelector<HTMLInputElement>(
+            'input[name="_gotcha"]',
+          );
+          const name = nameInput ? nameInput.value.trim() : "";
+          const email = emailInput ? emailInput.value.trim() : "";
+          const _gotcha = gotchaInput ? gotchaInput.value : "";
+
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Sending…";
+          }
+          feedback.textContent = "";
+          feedback.className = "form-feedback";
+
+          try {
+            const res = await fetch("/api/subscribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name,
+                email,
+                source: form.dataset.subscribeForm || undefined,
+                _gotcha,
+              }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok)
+              throw new Error(
+                data.error ||
+                  (res.status === 429
+                    ? "Too many requests. Please wait a moment."
+                    : "Something went wrong."),
+              );
+
+            form.reset();
+            feedback.textContent = "You're on the list.";
+            feedback.classList.add("form-feedback--success");
+          } catch (err: any) {
+            feedback.textContent =
+              err.message || "Something went wrong. Please try again.";
+            feedback.classList.add("form-feedback--error");
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalLabel;
+            }
+          }
+        });
       });
-    });
   }
 
   initAddToBag();
   initCountdown();
   initForms();
   initEvents();
-  document.addEventListener('astro:page-load', () => {
+  document.addEventListener("astro:page-load", () => {
     initAddToBag();
     initCountdown();
     initForms();

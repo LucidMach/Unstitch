@@ -184,7 +184,7 @@ const PlayCanvas: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center h-full w-full bg-white/10 relative" onPointerDown={pc.handlePointerDown} onPointerUp={pc.handlePointerUp}>
+    <div className="flex flex-col justify-center items-center h-full w-full bg-white/10 relative touch-none" style={{ touchAction: 'none' }} onPointerDown={pc.handlePointerDown} onPointerUp={pc.handlePointerUp}>
       <Canvas shadows gl={{ preserveDrawingBuffer: true }} camera={{ position: cameraPosition, fov: 45 }} className="w-full h-full bg-zinc-50">
         <OrbitControls 
           ref={controlsRef} 

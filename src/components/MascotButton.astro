@@ -1,6 +1,133 @@
 ---
 ---
 
-<button class="mascot-btn" aria-label="Chat with us (coming soon)" title="Chat (coming soon)" onclick="window.location.href='/contact'">
-  <img src="/assets/mascot.svg" alt="Unstitch Mascot" />
-</button>
+---
+---
+
+<div class="mascot-widget" data-mascot-widget>
+  <div class="mascot-tooltip" data-mascot-tooltip role="tooltip" aria-hidden="true">
+    <p class="mascot-tooltip__title">Need a hand or custom advice?</p>
+    <p class="mascot-tooltip__sub">Say hello to our Naarm circular design studio.</p>
+    <div class="mascot-tooltip__actions">
+      <a href="/contact" class="btn btn-filled btn-small mascot-tooltip__btn">Contact Us</a>
+      <a href="/playground" class="btn btn-outline btn-small mascot-tooltip__btn">Try 3D Studio</a>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="mascot-btn"
+    aria-label="Need help? Click for quick studio contact"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    data-mascot-toggle
+  >
+    <img src="/assets/mascot.svg" alt="Unstitch Mascot" />
+  </button>
+</div>
+
+<style is:global>
+  .mascot-widget {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 65;
+  }
+  .mascot-widget .mascot-btn {
+    position: relative;
+    right: auto;
+    bottom: auto;
+  }
+  .mascot-tooltip {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 0;
+    width: min(290px, 85vw);
+    background: var(--paper, #fff);
+    border: 1.5px solid var(--ink, #111);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 28px rgba(17, 17, 17, 0.16);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px) scale(0.96);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    pointer-events: none;
+  }
+  .mascot-tooltip.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .mascot-tooltip__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .mascot-tooltip__sub {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #555;
+    margin: 0 0 12px;
+  }
+  .mascot-tooltip__actions {
+    display: flex;
+    gap: 8px;
+  }
+  .mascot-tooltip__btn {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .mascot-widget {
+      right: 16px;
+      bottom: calc(var(--mobile-nav-h) + 14px + env(safe-area-inset-bottom, 0));
+    }
+  }
+</style>
+
+<script>
+  function initMascotWidget() {
+    const widget = document.querySelector<HTMLElement>('[data-mascot-widget]');
+    if (!widget) return;
+    const toggle = widget.querySelector<HTMLButtonElement>('[data-mascot-toggle]');
+    const tooltip = widget.querySelector<HTMLElement>('[data-mascot-tooltip]');
+    if (!toggle || !tooltip) return;
+
+    let isOpen = false;
+    const setOpen = (open: boolean) => {
+      isOpen = open;
+      toggle.setAttribute('aria-expanded', String(open));
+      tooltip.classList.toggle('is-active', open);
+      tooltip.setAttribute('aria-hidden', String(!open));
+    };
+
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setOpen(!isOpen);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (isOpen && !widget.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+  }
+
+  initMascotWidget();
+  document.addEventListener('astro:page-load', initMascotWidget);
+</script>

@@ -256,83 +256,61 @@ const galleryImages = [
     </section>
 
     <!-- ============ WRITE-A-REVIEW MODAL ============
-         UI only for now. A review can only exist against a delivered
-         order (Review.orderId), so submitting needs a real API endpoint
-         that verifies the passport/order code below before saving —
-         built alongside checkout. Until then the form validates and
-         explains what happens next rather than pretending to post. -->
+         Informed verified-owner flow: Reviews are tied to delivered kits and
+         authenticated via Digital Product Passport. Explains clearly how to
+         leave a verified review rather than presenting an empty dead-end form. -->
     <div class="review-modal" data-review-modal hidden>
       <div class="review-modal__overlay" data-review-close></div>
       <div class="review-modal__panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
         <div class="review-modal__top">
-          <h2 class="review-modal__title" id="review-modal-title">Write a review</h2>
-          <button type="button" class="icon-btn" data-review-close aria-label="Close review form">
+          <h2 class="review-modal__title" id="review-modal-title">Verified Kit Reviews</h2>
+          <button type="button" class="icon-btn" data-review-close aria-label="Close review dialog">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </button>
         </div>
 
-        <form class="review-form" data-review-form>
-          <label class="review-field">
-            <span class="review-field__label">Kit passport / order code</span>
-            <input type="text" class="review-field__input" name="passport" placeholder="e.g. UX-X000-000" required />
-            <span class="review-field__hint">This is what verifies you actually own a kit. Found on your postcard and in your order email.</span>
-          </label>
-
-          <label class="review-field">
-            <span class="review-field__label">Title</span>
-            <input type="text" class="review-field__input" name="title" maxlength="200" placeholder="Sum it up in a few words" required />
-          </label>
-
-          <label class="review-field">
-            <span class="review-field__label">Comment</span>
-            <textarea class="review-field__input" name="body" rows="4" placeholder="How did it build? What did you make?" required></textarea>
-          </label>
-
-          <fieldset class="review-ratings">
-            <legend class="review-field__label">Ratings</legend>
-            {[
-              { name: "ratingPlay", label: "Play experience" },
-              { name: "ratingBuild", label: "Building experience" },
-              { name: "ratingValue", label: "Value for money" },
-            ].map((cat) => (
-              <div class="review-rating" data-rating-group={cat.name}>
-                <span class="review-rating__label">{cat.label}</span>
-                <span class="review-rating__stars">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      type="button"
-                      class="review-rating__star"
-                      data-rating-value={n}
-                      aria-label={`${cat.label}: ${n} out of 5`}
-                    >★</button>
-                  ))}
-                </span>
-                <input type="hidden" name={cat.name} value="0" />
-              </div>
-            ))}
-          </fieldset>
-
-          <label class="review-check">
-            <input type="checkbox" name="wouldRecommend" />
-            <span>I would recommend this to a friend</span>
-          </label>
-
-          <label class="review-check">
-            <input type="checkbox" name="showPassport" checked />
-            <span>Show my kit's edition number on the review (e.g. "Slow Bloom #7 of {product.totalUnits}")</span>
-          </label>
-
-          <p class="review-form__note">Your review will show your first name and the date you posted it. Reviews are checked before they appear.</p>
-
-          <div class="review-form__actions">
-            <button type="button" class="btn btn-outline" data-review-close>Cancel</button>
-            <button type="submit" class="btn btn-filled">Submit review</button>
+        <div class="review-info-body" style="padding: 12px 0 20px;">
+          <div style="background: var(--accent-pale); border-left: 3px solid var(--accent); padding: 14px 16px; border-radius: var(--radius); margin-bottom: 18px;">
+            <p style="font-weight: 600; font-size: 0.92rem; margin: 0 0 6px; color: var(--ink);">
+              How do verified reviews work?
+            </p>
+            <p style="font-size: 0.85rem; line-height: 1.45; color: #333; margin: 0;">
+              Every Unstitch kit comes with a unique <strong>Digital Product Passport</strong> and serial QR postcard. Once your kit arrives, scan the QR code on your card to register ownership and post your verified owner review directly.
+            </p>
           </div>
 
-          <p class="review-form__feedback" data-review-feedback role="status"></p>
-        </form>
+          <p style="font-size: 0.88rem; color: #555; line-height: 1.45; margin-bottom: 20px;">
+            Already received your Slow Bloom kit? Have your postcard or order confirmation email handy:
+          </p>
+
+          <form class="passport-lookup-form" action="/passport" method="GET" style="display: flex; gap: 8px; flex-direction: column;">
+            <label for="review-passport-serial" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; font-weight: 600;">
+              Enter Kit Serial or Order Code
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <input
+                id="review-passport-serial"
+                type="text"
+                name="serial"
+                placeholder="e.g. UX-D001-001"
+                required
+                style="flex: 1; min-height: 44px; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--radius); font-size: 1rem;"
+              />
+              <button type="submit" class="btn btn-filled" style="flex: none; min-height: 44px;">
+                Open Passport ↗
+              </button>
+            </div>
+            <p style="font-size: 0.78rem; color: #777; margin-top: 4px;">
+              Your passport code links your review directly to your kit's serial edition number.
+            </p>
+          </form>
+        </div>
+
+        <div class="review-form__actions" style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 16px;">
+          <button type="button" class="btn btn-outline" data-review-close style="width: 100%;">Close</button>
+        </div>
       </div>
     </div>
   </main>
@@ -957,7 +935,7 @@ const galleryImages = [
       const openReview = () => {
         reviewModal.hidden = false;
         document.body.style.overflow = "hidden";
-        reviewModal.querySelector<HTMLInputElement>("input[name='passport']")?.focus();
+        reviewModal.querySelector<HTMLInputElement>("input[name='serial']")?.focus();
       };
       const closeReview = () => {
         reviewModal.hidden = true;
@@ -972,48 +950,6 @@ const galleryImages = [
       );
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !reviewModal.hidden) closeReview();
-      });
-
-      // Star ratings — each group writes its score into a hidden input.
-      reviewModal.querySelectorAll<HTMLElement>("[data-rating-group]").forEach((group) => {
-        const hidden = group.querySelector<HTMLInputElement>("input[type='hidden']");
-        const stars = Array.from(group.querySelectorAll<HTMLButtonElement>("[data-rating-value]"));
-        const paint = (score: number) => {
-          stars.forEach((star) => {
-            star.classList.toggle("is-active", Number(star.dataset.ratingValue) <= score);
-          });
-        };
-        stars.forEach((star) => {
-          star.addEventListener("click", () => {
-            const score = Number(star.dataset.ratingValue);
-            if (hidden) hidden.value = String(score);
-            paint(score);
-          });
-        });
-      });
-
-      const reviewForm = reviewModal.querySelector<HTMLFormElement>("[data-review-form]");
-      const reviewFeedback = reviewModal.querySelector<HTMLElement>("[data-review-feedback]");
-      reviewForm?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (!reviewFeedback) return;
-
-        const missingRating = Array.from(
-          reviewForm.querySelectorAll<HTMLInputElement>("input[type='hidden']"),
-        ).some((input) => Number(input.value) === 0);
-
-        if (missingRating) {
-          reviewFeedback.textContent = "Please give a star rating for all three categories.";
-          reviewFeedback.className = "review-form__feedback is-error";
-          return;
-        }
-
-        // No endpoint yet: a review has to be checked against a real
-        // delivered order before it can be saved, and that API is built
-        // with checkout. Say so plainly rather than faking a success.
-        reviewFeedback.textContent =
-          "Thanks — review submission goes live with checkout, once we can verify your order. Nothing has been saved yet.";
-        reviewFeedback.className = "review-form__feedback is-info";
       });
     }
 

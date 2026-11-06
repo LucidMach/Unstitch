@@ -157,14 +157,35 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
         <section id="p-quickstart-section" class="passport-card">
           <h2>Quick start guide</h2>
           <p class="passport__body">The basics behind every design, before you get into the specific instructions for yours.</p>
-          <Image
-            src={QuickStartGuideImage}
-            alt="Quick start: 1. Size — tiles nest from XS up to XL. 2. Connect — a tab on one tile slots into a matching slot on another. 3. Pattern — layer tiles with a gap between them, or lay them flat edge to edge."
-            width={1266}
-            height={356}
-            format="webp"
-            class="passport-quickstart-img"
-          />
+          <div class="passport-quickstart-graphic">
+            <Image
+              src={QuickStartGuideImage}
+              alt="Quick start: 1. Size — tiles nest from XS up to XL. 2. Connect — a tab on one tile slots into a matching slot on another. 3. Pattern — layer tiles with a gap between them, or lay them flat edge to edge."
+              width={1266}
+              height={356}
+              format="webp"
+              class="passport-quickstart-img"
+            />
+          </div>
+
+          <!-- Mobile-optimized readable 3-step cards for small screens -->
+          <div class="passport-quickstart-steps" aria-label="Quick start summary steps">
+            <div class="passport-quickstart-step">
+              <span class="passport-quickstart-step__num">01. Size</span>
+              <p class="passport-quickstart-step__title">Nest from XS up to XL</p>
+              <p class="passport-quickstart-step__desc">Modular tiles nest proportionally, allowing different size scales to interlock symmetrically.</p>
+            </div>
+            <div class="passport-quickstart-step">
+              <span class="passport-quickstart-step__num">02. Connect</span>
+              <p class="passport-quickstart-step__title">Slot tab into keyway</p>
+              <p class="passport-quickstart-step__desc">Gently flex a tab and slip it into the slot of an adjoining tile. No sewing, thread, or glue needed.</p>
+            </div>
+            <div class="passport-quickstart-step">
+              <span class="passport-quickstart-step__num">03. Pattern</span>
+              <p class="passport-quickstart-step__title">Layered or flat origami</p>
+              <p class="passport-quickstart-step__desc">Layer tiles with consistent offsets for flexible textiles, or fold along structural hinges for 3D forms.</p>
+            </div>
+          </div>
         </section>
 
         <!-- Separate from "Assembly & care" above (which is how to build
@@ -216,10 +237,24 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
 
 <style is:global>
   .passport {
-    min-height: 50vh; padding-top: 40px; padding-bottom: 60px;
-    display: flex; align-items: center; justify-content: center;
+    min-height: 50vh;
+    padding-top: 40px;
+    padding-bottom: 60px;
+    width: 100%;
+    box-sizing: border-box;
   }
-  .passport__panel { max-width: 480px; margin: 0 auto; text-align: center; width: 100%; }
+  #passport-result {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .passport__panel {
+    max-width: 480px;
+    margin: 40px auto;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
   /* Scoped to the pre-lookup panels only (search / loading / error) so
      they read identically to order/lookup.astro's "Where's my order?"
      panel. .passport__eyebrow/__title/__body are reused across the whole
@@ -247,14 +282,59 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
   .passport__title { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 10px; }
   .passport__body { font-size: 0.92rem; color: #444; margin: 0 0 18px; line-height: 1.6; }
   .passport__form { display: flex; gap: 8px; }
-  .passport__form--stacked { flex-direction: column; align-items: stretch; }
+  .passport__form--stacked { flex-direction: column; align-items: stretch; gap: 10px; }
   .passport__form input {
     flex: 1; padding: 11px 14px; border: 1px solid #ccc; border-radius: var(--radius);
-    font-family: var(--font-body); font-size: 0.9rem;
+    font-family: var(--font-body); font-size: 16px; /* 16px prevents iOS Safari auto-zoom on focus */
   }
   .passport-quickstart-img { display: block; width: 100%; height: auto; max-width: 640px; margin: 0 auto; }
 
-  .passport-hero { max-width: 560px; margin: 0 auto; text-align: center; padding-bottom: 8px; }
+  /* Responsive 3-step cards for small screens */
+  .passport-quickstart-steps {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .passport-quickstart-step {
+    background: #faf8f9;
+    border: 1px solid #eedfe9;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    text-align: left;
+  }
+  .passport-quickstart-step__num {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .passport-quickstart-step__title {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .passport-quickstart-step__desc {
+    font-size: 0.84rem;
+    color: #444;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  .passport-hero {
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    padding-bottom: 8px;
+    box-sizing: border-box;
+  }
   .passport-hero__title { font-family: var(--font-display); font-size: 2rem; margin: 0 0 4px; line-height: 1.1; }
   .passport-hero__edition { font-family: var(--font-display); font-size: 1.15rem; color: var(--accent); font-weight: 600; margin: 6px 0 18px; }
   .passport-authenticity {
@@ -266,10 +346,15 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
   .passport-hero__serial strong { color: var(--ink); font-family: var(--font-display); letter-spacing: 0.03em; }
 
   .passport-card {
-    max-width: 560px; margin: 20px auto; border: 1px solid #eee; border-radius: 10px; padding: 22px;
-    /* Keeps an anchor-jumped-to card from landing underneath the sticky
-       .passport-toc bar below — see buildToc(). */
-    scroll-margin-top: 68px;
+    max-width: 560px;
+    width: 100%;
+    margin: 20px auto;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 22px;
+    box-sizing: border-box;
+    /* Desktop: clears sticky header (64px) + sticky TOC (50px) + margin */
+    scroll-margin-top: 130px;
   }
   .passport-card h2 { font-family: var(--font-display); font-size: 1rem; margin: 0 0 14px; }
   .passport-card--accent { background: var(--accent-pale); border-color: transparent; }
@@ -288,14 +373,20 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
      so this nav gets the media query below to go back to top: 0 there,
      matching the header no longer occupying that space. */
   .passport-toc {
-    position: sticky; top: var(--header-h); z-index: 5;
-    max-width: 560px; margin: 0 auto 10px; padding: 10px 4px;
+    position: sticky;
+    top: var(--header-h);
+    z-index: 5;
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto 10px;
+    padding: 10px 4px;
     background: var(--paper, #fff);
-    display: flex; gap: 8px; overflow-x: auto;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
-  }
-  @media (max-width: 768px) {
-    .passport-toc { top: 0; }
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
   .passport-toc::-webkit-scrollbar { display: none; }
   .passport-toc::after {
@@ -404,6 +495,75 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
   .pv-grid svg { width: 100%; height: 90px; display: block; }
   .pv-grid span { display: block; font-size: 0.75rem; margin-top: 4px; }
   .pv-hide { display: none !important; }
+
+  /* Responsive Overrides (Cascaded after all base definitions) */
+  @media (max-width: 768px) {
+    .passport-card {
+      scroll-margin-top: 68px;
+      padding: 20px 16px;
+      margin: 16px auto;
+    }
+    .passport-toc {
+      top: 0;
+      padding-top: max(10px, env(safe-area-inset-top));
+      padding-left: 8px;
+      padding-right: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .pv-nav button {
+      min-height: 48px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .pv-dot {
+      min-width: 44px;
+      min-height: 40px;
+      padding: 8px 12px;
+    }
+    .pv-tabs button {
+      min-height: 40px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+    }
+    .passport-gift-toggle {
+      padding: 8px 0;
+      min-height: 44px;
+      font-size: 0.92rem;
+    }
+    .passport-gift-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+  }
+
+  @media (max-width: 540px) {
+    .passport-quickstart-graphic {
+      display: none;
+    }
+    .passport-quickstart-steps {
+      display: flex;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .passport__form:not(.passport__form--stacked) {
+      flex-direction: column;
+    }
+    .passport__form:not(.passport__form--stacked) .btn {
+      width: 100%;
+      min-height: 46px;
+    }
+    .passport-card {
+      padding: 16px 14px;
+    }
+    .passport-specs {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
 </style>
 
 <script>
