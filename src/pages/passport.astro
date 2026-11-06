@@ -410,9 +410,9 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
   .passport-design-tabs__btn:hover, .passport-design-tabs__btn:focus-visible { border-color: var(--accent); }
   .passport-design-tabs__btn[aria-selected="true"] { border-color: var(--accent); background: var(--accent-pale-strong, #ece2e7); }
 
-  .passport-specs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .passport-specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .passport-specs__label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 4px; }
-  .passport-specs__value { font-weight: 600; font-size: 0.92rem; margin: 0; }
+  .passport-specs__value { font-weight: 600; font-size: 0.92rem; margin: 0; word-break: break-word; overflow-wrap: break-word; }
   .passport-specs__swatches { display: flex; gap: 6px; }
   .passport-swatch { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--ink); display: inline-block; }
   .passport-specs__list-row { margin-top: 16px; }
@@ -498,19 +498,34 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
 
   /* Responsive Overrides (Cascaded after all base definitions) */
   @media (max-width: 768px) {
+    .passport {
+      padding-top: 24px;
+      padding-bottom: 40px;
+    }
     .passport-card {
+      width: 100%;
+      max-width: 100%;
       scroll-margin-top: 68px;
       padding: 20px 16px;
       margin: 16px auto;
+      box-sizing: border-box;
     }
     .passport-toc {
       top: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       padding-top: max(10px, env(safe-area-inset-top));
       padding-left: 8px;
       padding-right: 8px;
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+    }
+    .passport-hero {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .pv-nav button {
       min-height: 48px;
@@ -546,6 +561,10 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
     .passport-quickstart-steps {
       display: flex;
     }
+    .passport-specs {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
   }
 
   @media (max-width: 420px) {
@@ -558,10 +577,6 @@ import QuickStartGuideImage from "../assets/quick-start-guide.png";
     }
     .passport-card {
       padding: 16px 14px;
-    }
-    .passport-specs {
-      grid-template-columns: 1fr;
-      gap: 12px;
     }
   }
 </style>
