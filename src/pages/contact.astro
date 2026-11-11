@@ -1,6 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { countryCodes } from "../lib/constants/countryCodes.js";
+import {
+  tracksGroupedByLens,
+  NOT_SURE_TRACK,
+  budgetOptions,
+  hearAboutOptions,
+} from "../lib/constants/schoolWorkshop";
 ---
 
 <Layout
@@ -37,17 +43,30 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
           <!-- Honeypot spam trap -->
           <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none !important;" aria-hidden="true" />
 
-          <div class="form-group">
+          <div class="form-group fg-subject">
+            <label class="sr-only" for="cf-subject">Subject</label>
+            <select id="cf-subject" name="subject" class="contact-input contact-input--select" data-subject-select required>
+              <option value="" disabled selected>Select Enquiry Subject</option>
+              <option value="general-enquiry">General Enquiry</option>
+              <option value="school-workshop-enquiry">School Workshop</option>
+              <option value="corporate-workshop-enquiry">Corporate Workshop</option>
+              <option value="venue-partnership-enquiry">Venue Partnership (Gallery / Museum / Council)</option>
+              <option value="surplus-material-enquiry">Surplus Material - Become a Partner</option>
+              <option value="custom-piece-enquiry">Custom Piece / Commission</option>
+            </select>
+          </div>
+
+          <div class="form-group fg-name">
             <label class="sr-only" for="cf-name">Full Name</label>
             <input id="cf-name" name="name" class="contact-input" type="text" placeholder="Full Name" required />
           </div>
 
-          <div class="form-group">
+          <div class="form-group fg-email">
             <label class="sr-only" for="cf-email">Email</label>
             <input id="cf-email" name="email" class="contact-input" type="email" placeholder="Email" required />
           </div>
 
-          <div class="form-group">
+          <div class="form-group fg-phone">
             <label class="sr-only" for="cf-phone">Phone number</label>
             <div class="phone-group">
               <!-- Searchable Country Code Combobox -->
@@ -111,24 +130,52 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="sr-only" for="cf-subject">Subject</label>
-            <select id="cf-subject" name="subject" class="contact-input contact-input--select" data-subject-select required>
-              <option value="" disabled selected>Select Enquiry Subject</option>
-              <option value="general-enquiry">General Enquiry</option>
-              <option value="school-workshop-enquiry">School Workshop</option>
-              <option value="corporate-workshop-enquiry">Corporate Workshop</option>
-              <option value="venue-partnership-enquiry">Venue Partnership (Gallery / Museum / Council)</option>
-              <option value="surplus-material-enquiry">Surplus Material - Become a Partner</option>
-              <option value="custom-piece-enquiry">Custom Piece / Commission</option>
-            </select>
-          </div>
+          <!-- Dynamic Subject: School Workshop
+               This block is rendered with `display: contents` (see the style
+               block) so its fields become direct children of the form and
+               can be interleaved with the shared name / email / phone fields
+               using CSS `order` -- that's what gives the school form its own
+               field order without duplicating the shared inputs. The track
+               options come from the same list that renders the cards on
+               /learn/schools. -->
+          <div class="contact-form__extra contact-form__extra--school" data-subject-fields="school-workshop-enquiry" hidden>
+            <p class="school-note">
+              Tell us a little about your school and we'll reply with a tailored proposal within 2-3 business days. We look forward to working with your school and students.
+            </p>
 
-          <!-- Dynamic Subject: School Workshop -->
-          <div class="contact-form__extra" data-subject-fields="school-workshop-enquiry" hidden>
-            <input name="schoolName" class="contact-input" type="text" placeholder="School / Institution Name" />
-            <input name="yearLevel" class="contact-input" type="text" placeholder="Target Year Level(s), e.g. Year 8–10" />
-            <input name="preferredDate" class="contact-input" type="date" placeholder="Preferred Date" />
+            <input name="schoolName" class="contact-input school-f school-f--school" type="text" placeholder="Organisation / school name" aria-label="Organisation or school name" data-required="Organisation / school name" />
+            <input name="yourRole" class="contact-input school-f school-f--role" type="text" placeholder="Your role (e.g. Head of Design &amp; Technology)" aria-label="Your role" data-required="Your role" />
+
+            <div class="contact-form__row school-f school-f--year">
+              <input name="yearLevel" class="contact-input" type="text" placeholder="Year level(s), e.g. Year 8–10" aria-label="Year level" data-required="Year level" />
+              <input name="studentCount" class="contact-input" type="number" min="1" max="1000" inputmode="numeric" placeholder="Number of students" aria-label="Number of students" data-required="Number of students" />
+            </div>
+
+            <input name="preferredTerm" class="contact-input school-f school-f--term" type="text" placeholder="Preferred term or date (e.g. Term 2 2027)" aria-label="Preferred term" />
+
+            <select name="budget" class="contact-input contact-input--select school-f school-f--budget" aria-label="Budget">
+              <option value="" selected>Budget</option>
+              {budgetOptions.map((opt) => <option value={opt}>{opt}</option>)}
+            </select>
+
+            <fieldset class="check-group school-f school-f--tracks">
+              <legend class="check-group__legend">Theme or track <span>(choose any that interest you)</span></legend>
+              {tracksGroupedByLens.map((track) => (
+                <label class="checkbox-label">
+                  <input type="checkbox" name="tracks" value={`${track.tag}: ${track.title}`} />
+                  <span><strong class="check-group__lens">{track.tag}:</strong> {track.title}</span>
+                </label>
+              ))}
+              <label class="checkbox-label">
+                <input type="checkbox" name="tracks" value={NOT_SURE_TRACK.title} />
+                <span>{NOT_SURE_TRACK.title}</span>
+              </label>
+            </fieldset>
+
+            <select name="hearAbout" class="contact-input contact-input--select school-f school-f--hear" aria-label="How did you hear about Unstitch?">
+              <option value="" selected>How did you hear about Unstitch? (optional)</option>
+              {hearAboutOptions.map((opt) => <option value={opt}>{opt}</option>)}
+            </select>
           </div>
 
           <!-- Dynamic Subject: Corporate Workshop -->
@@ -155,7 +202,7 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
             <input name="targetTimeline" class="contact-input" type="text" placeholder="Target Completion Date" />
           </div>
 
-          <div class="form-group">
+          <div class="form-group fg-message">
             <label class="sr-only" for="cf-message">Message</label>
             <textarea id="cf-message" name="message" class="contact-input contact-textarea" placeholder="Tell us more about your project or enquiry..." rows="5" required></textarea>
           </div>
@@ -246,6 +293,67 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
     background: #faf8f9;
     border: 1.5px dashed var(--accent);
     border-radius: var(--radius);
+  }
+
+  /* ---------- School enquiry layout ----------
+     The school block is `display: contents`, so its fields are direct
+     children of the form and can be interleaved with the shared fields via
+     `order`. Only applies while the school subject is selected. */
+  .contact-form__extra--school:not([hidden]) { display: contents; }
+  .contact-form.is-school .fg-subject { order: 0; }
+  .contact-form.is-school .school-note { order: 1; }
+  .contact-form.is-school .fg-name { order: 2; }
+  .contact-form.is-school .school-f--school { order: 3; }
+  .contact-form.is-school .school-f--role { order: 4; }
+  .contact-form.is-school .fg-email { order: 5; }
+  .contact-form.is-school .fg-phone { order: 6; }
+  .contact-form.is-school .school-f--year { order: 7; }
+  .contact-form.is-school .school-f--term { order: 8; }
+  .contact-form.is-school .school-f--budget { order: 9; }
+  .contact-form.is-school .school-f--tracks { order: 10; }
+  .contact-form.is-school .school-f--hear { order: 11; }
+  .contact-form.is-school .fg-message { order: 12; }
+  .contact-form.is-school .contact-optin { order: 13; }
+  .contact-form.is-school .contact-form__submit { order: 14; }
+  .contact-form.is-school .form-feedback { order: 15; }
+
+  .school-note {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: #444;
+  }
+  .check-group__lens { font-weight: 600; color: var(--ink); }
+
+  .contact-form__extra-note {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: #555;
+  }
+  .contact-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .check-group {
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .check-group__legend {
+    padding: 0;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .check-group__legend span {
+    font-weight: 400;
+    color: #6b6b6b;
   }
 
   .phone-group {
@@ -377,9 +485,10 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
     flex: 1;
   }
 
+  .checkbox-label input { margin-top: 3px; flex-shrink: 0; }
   .checkbox-label {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     font-size: 0.88rem;
     color: #555;
@@ -388,6 +497,7 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
   @media (max-width: 768px) {
     .contact-layout { grid-template-columns: 1fr; gap: 36px; padding-top: 36px; }
+    .contact-form__row { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 480px) {
@@ -500,10 +610,20 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
     // ============ SUBJECT EXTRA FIELDS ============
     const extraBlocks = Array.from(document.querySelectorAll<HTMLElement>('[data-subject-fields]'));
 
+    const formEl = document.getElementById('contact-form');
+    const nameInput = document.getElementById('cf-name') as HTMLInputElement | null;
+    const phoneField = document.getElementById('cf-phone') as HTMLInputElement | null;
+
     const showFieldsFor = (value: string) => {
       extraBlocks.forEach((block) => {
         block.hidden = block.dataset.subjectFields !== value;
       });
+      // The school enquiry re-orders the form (see .is-school in the styles)
+      // and asks for a first name and a direct phone line.
+      const isSchool = value === 'school-workshop-enquiry';
+      formEl?.classList.toggle('is-school', isSchool);
+      if (nameInput) nameInput.placeholder = isSchool ? 'First name' : 'Full Name';
+      if (phoneField) phoneField.placeholder = isSchool ? 'Direct phone (optional)' : 'Phone number (optional)';
     };
 
     // Parse URL parameter
@@ -532,10 +652,33 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
       const details: Record<string, any> = {};
       const activeBlock = extraBlocks.find((b) => !b.hidden);
+
+      // Required-ness of the dynamic fields is checked here (not with the
+      // `required` attribute) because hidden fields with `required` would
+      // silently block submission of every other subject.
+      const missing = Array.from(activeBlock?.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-required]') ?? []).find(
+        (el) => !el.value.trim(),
+      );
+      if (missing) {
+        feedback.textContent = `Please fill in: ${missing.dataset.required}.`;
+        feedback.classList.add('form-feedback--error');
+        missing.focus();
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+        return;
+      }
+
       activeBlock?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea').forEach((el) => {
-        if (el.name && el.value) details[el.name] = el.value;
+        if (!el.name) return;
+        if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+          // Checkbox groups (multiselect) are sent as an array of the ticked values.
+          if (el.checked) (details[el.name] ||= []).push(el.value);
+        } else if (el.value) {
+          details[el.name] = el.value;
+        }
       });
 
+      const isSchoolEnquiry = subjectSelect.value === 'school-workshop-enquiry';
       const countryCode = (contactForm.querySelector<HTMLInputElement>('#cf-country-code')?.value || '+61').trim();
       const phoneNumber = (contactForm.querySelector<HTMLInputElement>('#cf-phone')?.value || '').trim();
 
@@ -564,7 +707,9 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
         contactForm.reset();
         showFieldsFor('');
-        feedback.textContent = "Thanks! We've received your enquiry and will be in touch soon.";
+        feedback.textContent = isSchoolEnquiry
+          ? "Thanks! We've received your school enquiry. We'll be in touch shortly with a proposal and welcome pack."
+          : "Thanks! We've received your enquiry and will be in touch soon.";
         feedback.classList.add('form-feedback--success');
       } catch (err: any) {
         feedback.textContent = err.message || 'Something went wrong. Please try again.';

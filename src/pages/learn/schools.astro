@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { subjectTracks } from "../../lib/constants/schoolWorkshop";
 ---
 
 <Layout
@@ -46,6 +47,25 @@ import Layout from "../../layouts/Layout.astro";
       </div>
     </section>
 
+    <!-- ============ PARTNERS ============
+         Same logos and treatment as the (hidden) /learn page's partner strip. -->
+    <section class="wrap section partners-section" aria-label="Partners">
+      <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
+      <div class="partners-grid">
+        <div class="partner-logo partner-logo--monash">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
+        </div>
+        <div class="partner-logo partner-logo--zwv">
+          <img src="/assets/partners/zero-waste-festival-logo-trimmed.png" alt="Zero Waste Victoria Festival" />
+        </div>
+        <div class="partner-logo partner-logo--datta">
+          <img src="/assets/partners/datta-vic-logo-trimmed.png" alt="DATTA Victoria" />
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
     <!-- ============ HERO ============ -->
     <section class="wrap section schools-hero">
       <div class="schools-hero__grid">
@@ -83,7 +103,7 @@ import Layout from "../../layouts/Layout.astro";
           <p class="program-card__body">Open-ended, guided making with the tile system.<br />An introductory taste of Unstitch for all ages.</p>
           <div class="program-card__meta">
             <span class="program-card__spec">90 min · up to 25 students</span>
-            <span class="program-card__fee">$500</span>
+            <span class="program-card__fee">From $500</span>
           </div>
           <a href="#lab" class="btn btn-outline btn-small">Details</a>
         </div>
@@ -132,8 +152,8 @@ import Layout from "../../layouts/Layout.astro";
           <div class="spec-card__value">Up to 25 students</div>
         </div>
         <div class="spec-card">
-          <div class="spec-card__label">Standard fee</div>
-          <div class="spec-card__value spec-card__value--accent">$500</div>
+          <div class="spec-card__label">Fee</div>
+          <div class="spec-card__value spec-card__value--accent">From $500</div>
         </div>
         <div class="spec-card">
           <div class="spec-card__label">Delivery</div>
@@ -188,8 +208,8 @@ import Layout from "../../layouts/Layout.astro";
           <div class="spec-card__value">Up to 25 students</div>
         </div>
         <div class="spec-card">
-          <div class="spec-card__label">Standard fee</div>
-          <div class="spec-card__value spec-card__value--accent">$650</div>
+          <div class="spec-card__label">Fee</div>
+          <div class="spec-card__value spec-card__value--accent">From $650</div>
         </div>
         <div class="spec-card">
           <div class="spec-card__label">Delivery</div>
@@ -204,7 +224,7 @@ import Layout from "../../layouts/Layout.astro";
           <div class="session-card">
             <div class="session-card__label">Standard</div>
             <div class="session-card__duration">90 minutes</div>
-            <div class="session-card__fee">$650</div>
+            <div class="session-card__fee">From $650</div>
           </div>
           <div class="session-card">
             <div class="session-card__label">Half-day</div>
@@ -224,59 +244,19 @@ import Layout from "../../layouts/Layout.astro";
         <p class="session-length__note">Content and framing shift with the subject. Six tracks are currently offered:</p>
 
         <div class="subject-tracks__grid">
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Systems</span>
-              <h4 class="track-card__title">Sustainable Lifecycles &amp; Circular Economy</h4>
-              <p class="track-card__desc">Students learn circular economy principles by visiting global traditional packaging techniques, then prototype reimagined 3D packaging without glue.</p>
+          {subjectTracks.map((track) => (
+            <div class="track-card">
+              <div class="track-card__body">
+                <span class="track-card__tag">{track.tag}</span>
+                <h4 class="track-card__title">{track.title}</h4>
+                <p class="track-card__desc">{track.description}</p>
+              </div>
+              <div class="track-card__fit">
+                <strong>Curriculum fit:</strong> {track.curriculumFit}
+                {track.note && (<><br /><br />*<i>{track.note}</i></>)}
+              </div>
             </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Geography, Design and Technology</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">STEAM</span>
-              <h4 class="track-card__title">Tactile STEAM &amp; Geometry</h4>
-              <p class="track-card__desc">Students explore structural thinking and spatial reasoning using tactile geometry, symmetry, pattern and tessellation to transform 2D flat tiles into 3D structures.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Mathematics, Design and Technology</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Value &amp; Identity</span>
-              <h4 class="track-card__title">Community Eco-Emblem</h4>
-              <p class="track-card__desc">Students collaborate, design, prototype and pitch simplified, abstract emblems that physically represent the school's values that becomes a permanent school asset.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Wellness, Design and Technology (Graphic and Branding)</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Systems</span>
-              <h4 class="track-card__title">Architectural Systems in Spaces</h4>
-              <p class="track-card__desc">Students construct interior spatial elements, acoustic wall paneling, or architectural models using the tile system.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Engineering, Design and Technology (Spatial Design)</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">STEAM</span>
-              <h4 class="track-card__title">Interactive E-Textiles &amp; Wearable Tech</h4>
-              <p class="track-card__desc">Students rapid prototype a smart garment or an interactive soft sculpture that reacts to light, touch or sound with simple open-source hardware such as micro:bits or conductive thread.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Digital Technologies, Design and Technology<br /><br />*<i>Currently only available to schools with electronic kits.</i></div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Value &amp; Identity</span>
-              <h4 class="track-card__title">Textile Animation</h4>
-              <p class="track-card__desc">Students direct and build creative storytelling through tactile frame-by-frame animation.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Media &amp; Visual Arts</div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -356,7 +336,7 @@ import Layout from "../../layouts/Layout.astro";
 
 <style>
   /* ---------- Hero ---------- */
-  .schools-hero { padding-top: 48px; }
+  .schools-hero { padding-top: 24px; }
   .schools-hero__grid {
     display: grid;
     grid-template-columns: 1.3fr 1fr;
@@ -378,7 +358,7 @@ import Layout from "../../layouts/Layout.astro";
   .schools-hero__intro { font-size: 1.15rem; line-height: 1.6; font-style: italic; font-weight: 300; margin: 0 0 14px; }
   .schools-hero__body { font-size: 0.95rem; line-height: 1.7; color: #555; margin: 0 0 20px; }
   .schools-hero__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-  .schools-hero__media { aspect-ratio: 4/3; border-radius: var(--radius); overflow: hidden; }
+  .schools-hero__media { aspect-ratio: 4/3; border: 1.5px solid var(--ink); border-radius: var(--radius); overflow: hidden; }
   .schools-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   /* ---------- Workshop photo carousel banner ---------- */
@@ -479,9 +459,27 @@ import Layout from "../../layouts/Layout.astro";
   .schools-cta .btn-filled { background: #fff; border-color: #fff; color: var(--ink); }
   .schools-cta .btn-filled:hover { background: #eee; border-color: #eee; }
 
+  /* ---------- Partners strip ---------- */
+  .partners-section { padding-top: 12px; padding-bottom: 24px; }
+  .partners-section__eyebrow { text-align: center; margin-bottom: 4px; }
+  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 64px; flex-wrap: wrap; padding: 12px 0 0; }
+  .partner-logo { display: flex; align-items: center; justify-content: center; }
+  /* The three logos have very different shapes (wide crest, tall badge, wide
+     wordmark), so each gets its own height -- the logo files are cropped to
+     their artwork, which makes these heights what you actually see. */
+  .partner-logo img { width: auto; object-fit: contain; filter: grayscale(100%); opacity: 0.8; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .partner-logo--monash img { height: 44px; }
+  .partner-logo--zwv img { height: 76px; }
+  .partner-logo--datta img { height: 52px; }
+  .partner-logo img:hover { filter: none; opacity: 1; }
+
   @media (max-width: 768px) {
     .schools-hero__grid { grid-template-columns: 1fr; gap: 24px; }
     .two-col { gap: 24px; }
+    .partners-grid { gap: 32px 36px; }
+    .partner-logo--monash img { height: 34px; }
+    .partner-logo--zwv img { height: 60px; }
+    .partner-logo--datta img { height: 42px; }
   }
 </style>
 
