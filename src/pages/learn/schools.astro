@@ -47,6 +47,25 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
       </div>
     </section>
 
+    <!-- ============ PARTNERS ============
+         Same logos and treatment as the (hidden) /learn page's partner strip. -->
+    <section class="wrap section partners-section" aria-label="Partners">
+      <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
+      <div class="partners-grid">
+        <div class="partner-logo partner-logo--monash">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
+        </div>
+        <div class="partner-logo partner-logo--zwv">
+          <img src="/assets/partners/zero-waste-festival-logo-trimmed.png" alt="Zero Waste Victoria Festival" />
+        </div>
+        <div class="partner-logo partner-logo--datta">
+          <img src="/assets/partners/datta-vic-logo-trimmed.png" alt="DATTA Victoria" />
+        </div>
+      </div>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
     <!-- ============ HERO ============ -->
     <section class="wrap section schools-hero">
       <div class="schools-hero__grid">
@@ -301,23 +320,6 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
       </div>
     </section>
 
-    <!-- ============ PARTNERS ============
-         Same logos and treatment as the (hidden) /learn page's partner strip. -->
-    <section class="wrap section partners-section" aria-label="Partners">
-      <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
-      <div class="partners-grid">
-        <div class="partner-logo partner-logo--monash">
-          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
-        </div>
-        <div class="partner-logo partner-logo--zwv">
-          <img src="/assets/partners/zero-waste-festival-logo-trimmed.png" alt="Zero Waste Victoria Festival" />
-        </div>
-        <div class="partner-logo partner-logo--datta">
-          <img src="/assets/partners/datta-vic-logo-trimmed.png" alt="DATTA Victoria" />
-        </div>
-      </div>
-    </section>
-
     <!-- ============ BOOKING / CONTACT ============
          Full-bleed black banner (edge-to-edge), not constrained to .wrap —
          inner content centered via .schools-cta__inner instead. -->
@@ -334,7 +336,7 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
 
 <style>
   /* ---------- Hero ---------- */
-  .schools-hero { padding-top: 48px; }
+  .schools-hero { padding-top: 24px; }
   .schools-hero__grid {
     display: grid;
     grid-template-columns: 1.3fr 1fr;
@@ -356,7 +358,7 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
   .schools-hero__intro { font-size: 1.15rem; line-height: 1.6; font-style: italic; font-weight: 300; margin: 0 0 14px; }
   .schools-hero__body { font-size: 0.95rem; line-height: 1.7; color: #555; margin: 0 0 20px; }
   .schools-hero__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-  .schools-hero__media { aspect-ratio: 4/3; border-radius: var(--radius); overflow: hidden; }
+  .schools-hero__media { aspect-ratio: 4/3; border: 1.5px solid var(--ink); border-radius: var(--radius); overflow: hidden; }
   .schools-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   /* ---------- Workshop photo carousel banner ---------- */
@@ -458,8 +460,9 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
   .schools-cta .btn-filled:hover { background: #eee; border-color: #eee; }
 
   /* ---------- Partners strip ---------- */
-  .partners-section__eyebrow { text-align: center; margin-bottom: 8px; }
-  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 64px; flex-wrap: wrap; padding: 24px 0; }
+  .partners-section { padding-top: 12px; padding-bottom: 24px; }
+  .partners-section__eyebrow { text-align: center; margin-bottom: 4px; }
+  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 64px; flex-wrap: wrap; padding: 12px 0 0; }
   .partner-logo { display: flex; align-items: center; justify-content: center; }
   /* The three logos have very different shapes (wide crest, tall badge, wide
      wordmark), so each gets its own height -- the logo files are cropped to
