@@ -26,16 +26,13 @@ export const subjectLabels = {
 // whatever arrives. `tracks` and `facilities` are multiselect arrays.
 export const SchoolWorkshopDetailsSchema = z.object({
   schoolName: z.string().trim().max(150).optional().default(''),
-  sector: z.string().trim().max(100).optional().default(''),
   yourRole: z.string().trim().max(150).optional().default(''),
-  spendApprover: z.string().trim().max(150).optional().default(''),
   yearLevel: z.string().trim().max(100).optional().default(''),
   studentCount: z.string().trim().max(10).optional().default(''),
-  preferredDates: z.string().trim().max(150).optional().default(''),
-  budget: z.string().trim().max(150).optional().default(''),
-  tracks: z.array(z.string().trim().max(120)).max(12).optional().default([]),
-  facilities: z.array(z.string().trim().max(120)).max(12).optional().default([]),
-  procurement: z.string().trim().max(50).optional().default(''),
+  preferredTerm: z.string().trim().max(150).optional().default(''),
+  budget: z.string().trim().max(100).optional().default(''),
+  tracks: z.array(z.string().trim().max(150)).max(12).optional().default([]),
+  hearAbout: z.string().trim().max(100).optional().default(''),
 });
 
 export const CorporateWorkshopDetailsSchema = z.object({

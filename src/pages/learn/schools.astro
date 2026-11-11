@@ -306,14 +306,14 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
     <section class="wrap section partners-section" aria-label="Partners">
       <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
       <div class="partners-grid">
-        <div class="partner-logo">
+        <div class="partner-logo partner-logo--monash">
           <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
         </div>
-        <div class="partner-logo">
-          <img src="/assets/partners/zero-waste-festival-logo.png" alt="Zero Waste Festival" />
+        <div class="partner-logo partner-logo--zwv">
+          <img src="/assets/partners/zero-waste-festival-logo-trimmed.png" alt="Zero Waste Victoria Festival" />
         </div>
-        <div class="partner-logo">
-          <img src="/assets/partners/datta-vic-logo.jpeg" alt="DATTA Vic" />
+        <div class="partner-logo partner-logo--datta">
+          <img src="/assets/partners/datta-vic-logo-trimmed.png" alt="DATTA Victoria" />
         </div>
       </div>
     </section>
@@ -459,15 +459,24 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
 
   /* ---------- Partners strip ---------- */
   .partners-section__eyebrow { text-align: center; margin-bottom: 8px; }
-  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 48px; flex-wrap: wrap; padding: 20px 0; }
-  .partner-logo img { height: 54px; width: auto; object-fit: contain; filter: grayscale(100%); opacity: 0.75; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 64px; flex-wrap: wrap; padding: 24px 0; }
+  .partner-logo { display: flex; align-items: center; justify-content: center; }
+  /* The three logos have very different shapes (wide crest, tall badge, wide
+     wordmark), so each gets its own height -- the logo files are cropped to
+     their artwork, which makes these heights what you actually see. */
+  .partner-logo img { width: auto; object-fit: contain; filter: grayscale(100%); opacity: 0.8; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .partner-logo--monash img { height: 44px; }
+  .partner-logo--zwv img { height: 76px; }
+  .partner-logo--datta img { height: 52px; }
   .partner-logo img:hover { filter: none; opacity: 1; }
 
   @media (max-width: 768px) {
     .schools-hero__grid { grid-template-columns: 1fr; gap: 24px; }
     .two-col { gap: 24px; }
-    .partners-grid { gap: 28px; }
-    .partner-logo img { height: 42px; }
+    .partners-grid { gap: 32px 36px; }
+    .partner-logo--monash img { height: 34px; }
+    .partner-logo--zwv img { height: 60px; }
+    .partner-logo--datta img { height: 42px; }
   }
 </style>
 

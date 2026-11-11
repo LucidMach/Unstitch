@@ -186,10 +186,10 @@ describe('Contact API Handler (/api/contact)', () => {
         message: 'We would like a proposal for Year 9 Design and Technology.',
         details: {
           schoolName: 'Melbourne Grammar',
-          sector: 'Independent',
           studentCount: '24',
-          tracks: ['Textile Animation', 'Tactile STEAM & Geometry'],
-          procurement: 'Yes',
+          budget: '$1,000 – $2,000',
+          tracks: ['Value & Identity: Textile Animation', 'STEAM: Tactile STEAM & Geometry'],
+          hearAbout: 'Instagram',
         },
       },
     };
@@ -203,8 +203,9 @@ describe('Contact API Handler (/api/contact)', () => {
     expect(sent.to).toBe('hello@unstitchx.com');
     expect(sent.replyTo).toBe('sam@school.vic.edu.au');
     expect(sent.subject).toBe('New enquiry — School Workshop — Melbourne Grammar');
-    expect(sent.text).toContain('Theme / track: Textile Animation, Tactile STEAM & Geometry');
-    expect(sent.html).toContain('Tactile STEAM &amp; Geometry');
+    expect(sent.text).toContain('Theme / track: Value & Identity: Textile Animation, STEAM: Tactile STEAM & Geometry');
+    expect(sent.text).toContain('Heard about Unstitch via: Instagram');
+    expect(sent.html).toContain('STEAM: Tactile STEAM &amp; Geometry');
     expect(sent.html).not.toContain('<b>Teacher</b>');
     delete process.env.RESEND_API_KEY;
   });

@@ -20,17 +20,14 @@ const escapeHtml = (value: unknown) =>
 // Friendly labels for the school enquiry's detail rows; anything not listed
 // falls back to the camelCase key split into words.
 const DETAIL_LABELS: Record<string, string> = {
-  schoolName: 'School',
-  sector: 'Sector',
+  schoolName: 'Organisation / school',
   yourRole: 'Their role',
-  spendApprover: 'Approves the spend',
   yearLevel: 'Year level',
   studentCount: 'Number of students',
-  preferredDates: 'Preferred dates / term',
+  preferredTerm: 'Preferred term',
   budget: 'Budget',
   tracks: 'Theme / track',
-  facilities: 'School can provide',
-  procurement: 'PO / procurement needed',
+  hearAbout: 'Heard about Unstitch via',
 };
 
 const detailLabel = (key: string) =>

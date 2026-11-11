@@ -68,13 +68,25 @@ export const subjectTracks: SubjectTrack[] = [
 /** Shown after the six tracks so a school can still enquire without choosing. */
 export const NOT_SURE_TRACK = { id: 'not-sure', title: 'Not sure yet — recommend something' };
 
-export const schoolSectors = ['Government (state)', 'Independent', 'Catholic', 'Other'];
+/** Display order of the lenses; the contact form lists tracks grouped in this order. */
+export const trackLenses: SubjectTrack['tag'][] = ['Systems', 'STEAM', 'Value & Identity'];
 
-export const schoolFacilities = [
-  'Indoor room with tables',
-  'Projector or screen',
-  'Student devices (laptops or tablets)',
-  'Reliable internet',
+/** Tracks sorted so each lens's tracks sit together, in the order above. */
+export const tracksGroupedByLens: SubjectTrack[] = trackLenses.flatMap((lens) =>
+  subjectTracks.filter((track) => track.tag === lens),
+);
+
+/** Budget brackets for the enquiry dropdown. */
+export const budgetOptions = ['Under $500', '$500 – $1,000', '$1,000 – $2,000', '$2,000 – $5,000', 'Over $5,000'];
+
+export const hearAboutOptions = [
+  'Instagram',
+  'LinkedIn',
+  'Google search',
+  'Word of mouth / a colleague',
+  'Zero Waste Festival',
+  'Monash University',
+  'DATTA Vic',
+  'Education event or conference',
+  'Other',
 ];
-
-export const procurementOptions = ['Yes', 'No', 'Not sure'];
