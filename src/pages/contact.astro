@@ -140,7 +140,7 @@ import {
                /learn/schools. -->
           <div class="contact-form__extra contact-form__extra--school" data-subject-fields="school-workshop-enquiry" hidden>
             <p class="school-note">
-              Tell us a little about your school and we'll reply with a tailored proposal within 2–3 business days. We look forward to working with your school and students.
+              Tell us a little about your school and we'll reply with a tailored proposal within 2-3 business days. We look forward to working with your school and students.
             </p>
 
             <input name="schoolName" class="contact-input school-f school-f--school" type="text" placeholder="Organisation / school name" aria-label="Organisation or school name" data-required="Organisation / school name" />
@@ -151,10 +151,10 @@ import {
               <input name="studentCount" class="contact-input" type="number" min="1" max="1000" inputmode="numeric" placeholder="Number of students" aria-label="Number of students" data-required="Number of students" />
             </div>
 
-            <input name="preferredTerm" class="contact-input school-f school-f--term" type="text" placeholder="Preferred term (e.g. Term 2 2027)" aria-label="Preferred term" />
+            <input name="preferredTerm" class="contact-input school-f school-f--term" type="text" placeholder="Preferred term or date (e.g. Term 2 2027)" aria-label="Preferred term" />
 
             <select name="budget" class="contact-input contact-input--select school-f school-f--budget" aria-label="Budget">
-              <option value="" selected>Budget (optional)</option>
+              <option value="" selected>Budget</option>
               {budgetOptions.map((opt) => <option value={opt}>{opt}</option>)}
             </select>
 

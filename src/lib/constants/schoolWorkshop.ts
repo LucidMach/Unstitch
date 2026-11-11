@@ -80,13 +80,11 @@ export const tracksGroupedByLens: SubjectTrack[] = trackLenses.flatMap((lens) =>
 export const budgetOptions = ['Under $500', '$500 – $1,000', '$1,000 – $2,000', '$2,000 – $5,000', 'Over $5,000'];
 
 export const hearAboutOptions = [
-  'Instagram',
+  'Social media',
   'LinkedIn',
   'Google search',
   'Word of mouth / a colleague',
   'Zero Waste Festival',
-  'Monash University',
-  'DATTA Vic',
   'Education event or conference',
   'Other',
 ];
