@@ -9,6 +9,35 @@ import { GENERAL_FROM_EMAIL } from '../lib/emailTemplate.js';
 
 const NOTIFY_EMAIL = 'hello@unstitchx.com';
 
+const escapeHtml = (value: unknown) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+// Friendly labels for the school enquiry's detail rows; anything not listed
+// falls back to the camelCase key split into words.
+const DETAIL_LABELS: Record<string, string> = {
+  schoolName: 'School',
+  sector: 'Sector',
+  yourRole: 'Their role',
+  spendApprover: 'Approves the spend',
+  yearLevel: 'Year level',
+  studentCount: 'Number of students',
+  preferredDates: 'Preferred dates / term',
+  budget: 'Budget',
+  tracks: 'Theme / track',
+  facilities: 'School can provide',
+  procurement: 'PO / procurement needed',
+};
+
+const detailLabel = (key: string) =>
+  DETAIL_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+
+const detailValue = (val: unknown) => (Array.isArray(val) ? val.join(', ') : String(val));
+
 interface NotificationData {
   name: string;
   email: string;
@@ -26,7 +55,7 @@ function generateNotificationHtml({ name, email, phone, subject, message, market
   const subjectTitle = (subjectLabels as Record<string, string>)[subject] || subject;
   
   const detailRows = Object.entries(details || {})
-    .map(([key, val]) => `<tr><td style="padding: 6px 12px; font-weight: 600; color: #555; text-transform: capitalize;">${key.replace(/([A-Z])/g, ' $1')}:</td><td style="padding: 6px 12px; color: #111;">${val}</td></tr>`)
+    .map(([key, val]) => `<tr><td style="padding: 6px 12px; font-weight: 600; color: #555; vertical-align: top;">${escapeHtml(detailLabel(key))}:</td><td style="padding: 6px 12px; color: #111;">${escapeHtml(detailValue(val))}</td></tr>`)
     .join('');
 
   return `
@@ -39,13 +68,13 @@ function generateNotificationHtml({ name, email, phone, subject, message, market
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; background: #fff; border-radius: 6px; border: 1px solid #eee;">
         <tr>
           <td style="padding: 8px 12px; font-weight: 600; color: #555; width: 120px;">From:</td>
-          <td style="padding: 8px 12px; color: #111;"><strong>${name}</strong></td>
+          <td style="padding: 8px 12px; color: #111;"><strong>${escapeHtml(name)}</strong></td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; font-weight: 600; color: #555;">Email:</td>
-          <td style="padding: 8px 12px;"><a href="mailto:${email}" style="color: #1a1a1a; text-decoration: underline;">${email}</a></td>
+          <td style="padding: 8px 12px;"><a href="mailto:${escapeHtml(email)}" style="color: #1a1a1a; text-decoration: underline;">${escapeHtml(email)}</a></td>
         </tr>
-        ${phone ? `<tr><td style="padding: 8px 12px; font-weight: 600; color: #555;">Phone:</td><td style="padding: 8px 12px;"><a href="tel:${phone}" style="color: #1a1a1a;">${phone}</a></td></tr>` : ''}
+        ${phone ? `<tr><td style="padding: 8px 12px; font-weight: 600; color: #555;">Phone:</td><td style="padding: 8px 12px;"><a href="tel:${escapeHtml(phone)}" style="color: #1a1a1a;">${escapeHtml(phone)}</a></td></tr>` : ''}
         <tr>
           <td style="padding: 8px 12px; font-weight: 600; color: #555;">Newsletter:</td>
           <td style="padding: 8px 12px;">${marketingOptIn ? '<span style="color: #16a34a; font-weight: 600;">Subscribed (Yes)</span>' : '<span style="color: #737373;">No</span>'}</td>
@@ -55,7 +84,7 @@ function generateNotificationHtml({ name, email, phone, subject, message, market
 
       <div style="background: #ffffff; padding: 16px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px;">
         <h4 style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: #888; letter-spacing: 0.05em;">Message</h4>
-        <p style="margin: 0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; color: #222;">${message}</p>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; color: #222;">${escapeHtml(message)}</p>
       </div>
 
       <p style="font-size: 12px; color: #999; margin: 0; text-align: center;">Sent from Unstitch Studio Platform</p>
@@ -165,8 +194,13 @@ export default async function handler(req: any, res: any): Promise<any> {
       const fromEmail = process.env.RESEND_FROM_EMAIL || GENERAL_FROM_EMAIL;
       const toEmail = process.env.CONTACT_NOTIFY_EMAIL || NOTIFY_EMAIL;
 
+      // School enquiries get the school's name in the subject line so a
+      // proposal queue in the hello@ inbox is scannable at a glance.
+      const schoolName = subject === 'school-workshop-enquiry' && typeof details?.schoolName === 'string' ? details.schoolName.replace(/[\r\n]+/g, ' ') : '';
+      const schoolSuffix = schoolName ? ` — ${schoolName}` : '';
+
       const detailLines = Object.entries(details || {})
-        .map(([k, v]) => `${k}: ${v}`)
+        .map(([k, v]) => `${detailLabel(k)}: ${detailValue(v)}`)
         .join('\n');
 
       const plainText = [
@@ -183,7 +217,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         from: fromEmail,
         to: toEmail,
         replyTo: email,
-        subject: `New enquiry — ${subjectTitle}`,
+        subject: `New enquiry — ${subjectTitle}${schoolSuffix}`,
         text: plainText,
         html: generateNotificationHtml({ name, email, phone, subject, message, marketingOptIn, details }),
       });

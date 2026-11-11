@@ -175,4 +175,37 @@ describe('Contact API Handler (/api/contact)', () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toContain('issue saving your message');
   });
+  it('emails hello@ a readable school enquiry with the multiselect tracks, escaped', async () => {
+    const req = {
+      method: 'POST',
+      headers: { 'x-real-ip': '192.168.1.77' },
+      body: {
+        name: 'Sam <b>Teacher</b>',
+        email: 'sam@school.vic.edu.au',
+        subject: 'school-workshop-enquiry',
+        message: 'We would like a proposal for Year 9 Design and Technology.',
+        details: {
+          schoolName: 'Melbourne Grammar',
+          sector: 'Independent',
+          studentCount: '24',
+          tracks: ['Textile Animation', 'Tactile STEAM & Geometry'],
+          procurement: 'Yes',
+        },
+      },
+    };
+    const res = createMockRes();
+
+    process.env.RESEND_API_KEY = 'test-resend-key';
+    await contactHandler(req, res);
+    expect(res.statusCode).toBe(200);
+
+    const sent = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+    expect(sent.to).toBe('hello@unstitchx.com');
+    expect(sent.replyTo).toBe('sam@school.vic.edu.au');
+    expect(sent.subject).toBe('New enquiry — School Workshop — Melbourne Grammar');
+    expect(sent.text).toContain('Theme / track: Textile Animation, Tactile STEAM & Geometry');
+    expect(sent.html).toContain('Tactile STEAM &amp; Geometry');
+    expect(sent.html).not.toContain('<b>Teacher</b>');
+    delete process.env.RESEND_API_KEY;
+  });
 });

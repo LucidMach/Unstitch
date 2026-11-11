@@ -20,10 +20,22 @@ export const subjectLabels = {
 };
 
 // Sub-schemas for subject details
+// Documents the shape the school form on /contact sends in `details`. Kept
+// permissive on purpose (everything optional): the page enforces which fields
+// are required, and ContactSchema's sanitizer below is what actually cleans
+// whatever arrives. `tracks` and `facilities` are multiselect arrays.
 export const SchoolWorkshopDetailsSchema = z.object({
-  schoolName: z.string().trim().max(150, 'School name must be under 150 characters').optional().default(''),
-  yearLevel: z.string().trim().max(100, 'Year level must be under 100 characters').optional().default(''),
-  preferredDate: z.string().trim().max(50, 'Preferred date must be under 50 characters').optional().default(''),
+  schoolName: z.string().trim().max(150).optional().default(''),
+  sector: z.string().trim().max(100).optional().default(''),
+  yourRole: z.string().trim().max(150).optional().default(''),
+  spendApprover: z.string().trim().max(150).optional().default(''),
+  yearLevel: z.string().trim().max(100).optional().default(''),
+  studentCount: z.string().trim().max(10).optional().default(''),
+  preferredDates: z.string().trim().max(150).optional().default(''),
+  budget: z.string().trim().max(150).optional().default(''),
+  tracks: z.array(z.string().trim().max(120)).max(12).optional().default([]),
+  facilities: z.array(z.string().trim().max(120)).max(12).optional().default([]),
+  procurement: z.string().trim().max(50).optional().default(''),
 });
 
 export const CorporateWorkshopDetailsSchema = z.object({
@@ -120,8 +132,19 @@ export const ContactSchema = z
     // Sanitize details map
     const cleanDetails: Record<string, any> = {};
     if (data.details && typeof data.details === 'object') {
-      for (const [k, v] of Object.entries(data.details)) {
-        if (typeof k === 'string' && k.length <= 60 && v !== undefined && v !== null && v !== '') {
+      for (const [k, v] of Object.entries(data.details).slice(0, 30)) {
+        if (typeof k !== 'string' || k.length > 60 || v === undefined || v === null || v === '') continue;
+        if (Array.isArray(v)) {
+          // Multiselect fields (e.g. school workshop tracks): keep only a
+          // short list of trimmed strings so a crafted request can't bloat
+          // the stored record or the notification email.
+          const items = v
+            .filter((item): item is string => typeof item === 'string')
+            .map((item) => item.trim().slice(0, 150))
+            .filter(Boolean)
+            .slice(0, 15);
+          if (items.length) cleanDetails[k] = items;
+        } else {
           cleanDetails[k] = typeof v === 'string' ? v.trim().slice(0, 1000) : v;
         }
       }

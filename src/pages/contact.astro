@@ -1,6 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { countryCodes } from "../lib/constants/countryCodes.js";
+import {
+  subjectTracks,
+  NOT_SURE_TRACK,
+  schoolSectors,
+  schoolFacilities,
+  procurementOptions,
+} from "../lib/constants/schoolWorkshop";
 ---
 
 <Layout
@@ -124,11 +131,61 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
             </select>
           </div>
 
-          <!-- Dynamic Subject: School Workshop -->
+          <!-- Dynamic Subject: School Workshop
+               Collects what's needed to send a proposal and move from
+               enquiry to purchase order quickly. The track options come
+               from the same list that renders the cards on /learn/schools. -->
           <div class="contact-form__extra" data-subject-fields="school-workshop-enquiry" hidden>
-            <input name="schoolName" class="contact-input" type="text" placeholder="School / Institution Name" />
-            <input name="yearLevel" class="contact-input" type="text" placeholder="Target Year Level(s), e.g. Year 8–10" />
-            <input name="preferredDate" class="contact-input" type="date" placeholder="Preferred Date" />
+            <p class="contact-form__extra-note">
+              Tell us a little about your school and we'll reply with a tailored proposal. We aim to take schools from enquiry to a confirmed booking, including any purchase order, within about 1.5 weeks.
+            </p>
+
+            <input name="schoolName" class="contact-input" type="text" placeholder="School name" aria-label="School name" data-required="School name" />
+
+            <select name="sector" class="contact-input contact-input--select" aria-label="School sector" data-required="School sector">
+              <option value="" disabled selected>School sector</option>
+              {schoolSectors.map((sector) => <option value={sector}>{sector}</option>)}
+            </select>
+
+            <input name="yourRole" class="contact-input" type="text" placeholder="Your role (e.g. Head of Design &amp; Technology)" aria-label="Your role" data-required="Your role" />
+            <input name="spendApprover" class="contact-input" type="text" placeholder="Who approves the spend? (role or name)" aria-label="Who approves the spend" />
+
+            <div class="contact-form__row">
+              <input name="yearLevel" class="contact-input" type="text" placeholder="Year level(s), e.g. Year 8–10" aria-label="Year level" data-required="Year level" />
+              <input name="studentCount" class="contact-input" type="number" min="1" max="1000" inputmode="numeric" placeholder="Number of students" aria-label="Number of students" data-required="Number of students" />
+            </div>
+
+            <input name="preferredDates" class="contact-input" type="text" placeholder="Preferred dates or term (e.g. Term 2, or 12 May)" aria-label="Preferred dates or term" />
+            <input name="budget" class="contact-input" type="text" placeholder="Budget, total or per student (optional)" aria-label="Budget, total or per student" />
+
+            <fieldset class="check-group">
+              <legend class="check-group__legend">Theme or track <span>(choose any that interest you)</span></legend>
+              {subjectTracks.map((track) => (
+                <label class="checkbox-label">
+                  <input type="checkbox" name="tracks" value={track.title} />
+                  <span>{track.title} <em class="check-group__tag">{track.tag}</em></span>
+                </label>
+              ))}
+              <label class="checkbox-label">
+                <input type="checkbox" name="tracks" value={NOT_SURE_TRACK.title} />
+                <span>{NOT_SURE_TRACK.title}</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="check-group">
+              <legend class="check-group__legend">What can the school provide? <span>(room, projector, devices, internet)</span></legend>
+              {schoolFacilities.map((item) => (
+                <label class="checkbox-label">
+                  <input type="checkbox" name="facilities" value={item} />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </fieldset>
+
+            <select name="procurement" class="contact-input contact-input--select" aria-label="Does the school need a purchase order or procurement process?" data-required="Purchase order / procurement answer">
+              <option value="" disabled selected>Does the school need a purchase order or procurement process?</option>
+              {procurementOptions.map((opt) => <option value={opt}>{opt}</option>)}
+            </select>
           </div>
 
           <!-- Dynamic Subject: Corporate Workshop -->
@@ -246,6 +303,43 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
     background: #faf8f9;
     border: 1.5px dashed var(--accent);
     border-radius: var(--radius);
+  }
+
+  .contact-form__extra-note {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: #555;
+  }
+  .contact-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .check-group {
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .check-group__legend {
+    padding: 0;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .check-group__legend span {
+    font-weight: 400;
+    color: #6b6b6b;
+  }
+  .check-group__tag {
+    font-style: normal;
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-left: 4px;
   }
 
   .phone-group {
@@ -379,7 +473,7 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
   .checkbox-label {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     font-size: 0.88rem;
     color: #555;
@@ -388,6 +482,7 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
   @media (max-width: 768px) {
     .contact-layout { grid-template-columns: 1fr; gap: 36px; padding-top: 36px; }
+    .contact-form__row { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 480px) {
@@ -532,10 +627,33 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
       const details: Record<string, any> = {};
       const activeBlock = extraBlocks.find((b) => !b.hidden);
+
+      // Required-ness of the dynamic fields is checked here (not with the
+      // `required` attribute) because hidden fields with `required` would
+      // silently block submission of every other subject.
+      const missing = Array.from(activeBlock?.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-required]') ?? []).find(
+        (el) => !el.value.trim(),
+      );
+      if (missing) {
+        feedback.textContent = `Please fill in: ${missing.dataset.required}.`;
+        feedback.classList.add('form-feedback--error');
+        missing.focus();
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+        return;
+      }
+
       activeBlock?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea').forEach((el) => {
-        if (el.name && el.value) details[el.name] = el.value;
+        if (!el.name) return;
+        if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+          // Checkbox groups (multiselect) are sent as an array of the ticked values.
+          if (el.checked) (details[el.name] ||= []).push(el.value);
+        } else if (el.value) {
+          details[el.name] = el.value;
+        }
       });
 
+      const isSchoolEnquiry = subjectSelect.value === 'school-workshop-enquiry';
       const countryCode = (contactForm.querySelector<HTMLInputElement>('#cf-country-code')?.value || '+61').trim();
       const phoneNumber = (contactForm.querySelector<HTMLInputElement>('#cf-phone')?.value || '').trim();
 
@@ -564,7 +682,9 @@ import { countryCodes } from "../lib/constants/countryCodes.js";
 
         contactForm.reset();
         showFieldsFor('');
-        feedback.textContent = "Thanks! We've received your enquiry and will be in touch soon.";
+        feedback.textContent = isSchoolEnquiry
+          ? "Thanks! We've received your school enquiry. We'll be in touch shortly with a proposal and welcome pack."
+          : "Thanks! We've received your enquiry and will be in touch soon.";
         feedback.classList.add('form-feedback--success');
       } catch (err: any) {
         feedback.textContent = err.message || 'Something went wrong. Please try again.';

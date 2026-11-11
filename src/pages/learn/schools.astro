@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { subjectTracks } from "../../lib/constants/schoolWorkshop";
 ---
 
 <Layout
@@ -83,7 +84,7 @@ import Layout from "../../layouts/Layout.astro";
           <p class="program-card__body">Open-ended, guided making with the tile system.<br />An introductory taste of Unstitch for all ages.</p>
           <div class="program-card__meta">
             <span class="program-card__spec">90 min · up to 25 students</span>
-            <span class="program-card__fee">$500</span>
+            <span class="program-card__fee">From $500</span>
           </div>
           <a href="#lab" class="btn btn-outline btn-small">Details</a>
         </div>
@@ -132,8 +133,8 @@ import Layout from "../../layouts/Layout.astro";
           <div class="spec-card__value">Up to 25 students</div>
         </div>
         <div class="spec-card">
-          <div class="spec-card__label">Standard fee</div>
-          <div class="spec-card__value spec-card__value--accent">$500</div>
+          <div class="spec-card__label">Fee</div>
+          <div class="spec-card__value spec-card__value--accent">From $500</div>
         </div>
         <div class="spec-card">
           <div class="spec-card__label">Delivery</div>
@@ -188,8 +189,8 @@ import Layout from "../../layouts/Layout.astro";
           <div class="spec-card__value">Up to 25 students</div>
         </div>
         <div class="spec-card">
-          <div class="spec-card__label">Standard fee</div>
-          <div class="spec-card__value spec-card__value--accent">$650</div>
+          <div class="spec-card__label">Fee</div>
+          <div class="spec-card__value spec-card__value--accent">From $650</div>
         </div>
         <div class="spec-card">
           <div class="spec-card__label">Delivery</div>
@@ -204,7 +205,7 @@ import Layout from "../../layouts/Layout.astro";
           <div class="session-card">
             <div class="session-card__label">Standard</div>
             <div class="session-card__duration">90 minutes</div>
-            <div class="session-card__fee">$650</div>
+            <div class="session-card__fee">From $650</div>
           </div>
           <div class="session-card">
             <div class="session-card__label">Half-day</div>
@@ -224,59 +225,19 @@ import Layout from "../../layouts/Layout.astro";
         <p class="session-length__note">Content and framing shift with the subject. Six tracks are currently offered:</p>
 
         <div class="subject-tracks__grid">
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Systems</span>
-              <h4 class="track-card__title">Sustainable Lifecycles &amp; Circular Economy</h4>
-              <p class="track-card__desc">Students learn circular economy principles by visiting global traditional packaging techniques, then prototype reimagined 3D packaging without glue.</p>
+          {subjectTracks.map((track) => (
+            <div class="track-card">
+              <div class="track-card__body">
+                <span class="track-card__tag">{track.tag}</span>
+                <h4 class="track-card__title">{track.title}</h4>
+                <p class="track-card__desc">{track.description}</p>
+              </div>
+              <div class="track-card__fit">
+                <strong>Curriculum fit:</strong> {track.curriculumFit}
+                {track.note && (<><br /><br />*<i>{track.note}</i></>)}
+              </div>
             </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Geography, Design and Technology</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">STEAM</span>
-              <h4 class="track-card__title">Tactile STEAM &amp; Geometry</h4>
-              <p class="track-card__desc">Students explore structural thinking and spatial reasoning using tactile geometry, symmetry, pattern and tessellation to transform 2D flat tiles into 3D structures.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Mathematics, Design and Technology</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Value &amp; Identity</span>
-              <h4 class="track-card__title">Community Eco-Emblem</h4>
-              <p class="track-card__desc">Students collaborate, design, prototype and pitch simplified, abstract emblems that physically represent the school's values that becomes a permanent school asset.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Wellness, Design and Technology (Graphic and Branding)</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Systems</span>
-              <h4 class="track-card__title">Architectural Systems in Spaces</h4>
-              <p class="track-card__desc">Students construct interior spatial elements, acoustic wall paneling, or architectural models using the tile system.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Engineering, Design and Technology (Spatial Design)</div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">STEAM</span>
-              <h4 class="track-card__title">Interactive E-Textiles &amp; Wearable Tech</h4>
-              <p class="track-card__desc">Students rapid prototype a smart garment or an interactive soft sculpture that reacts to light, touch or sound with simple open-source hardware such as micro:bits or conductive thread.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Digital Technologies, Design and Technology<br /><br />*<i>Currently only available to schools with electronic kits.</i></div>
-          </div>
-
-          <div class="track-card">
-            <div class="track-card__body">
-              <span class="track-card__tag">Value &amp; Identity</span>
-              <h4 class="track-card__title">Textile Animation</h4>
-              <p class="track-card__desc">Students direct and build creative storytelling through tactile frame-by-frame animation.</p>
-            </div>
-            <div class="track-card__fit"><strong>Curriculum fit:</strong> Media &amp; Visual Arts</div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -337,6 +298,23 @@ import Layout from "../../layouts/Layout.astro";
       <div class="callout-card">
         <div class="callout-card__title">How to take part</div>
         <p class="callout-card__body">Mention "Founding Schools Program" when you enquire below — spots are limited to 6 schools and confirmed on a first-come basis.</p>
+      </div>
+    </section>
+
+    <!-- ============ PARTNERS ============
+         Same logos and treatment as the (hidden) /learn page's partner strip. -->
+    <section class="wrap section partners-section" aria-label="Partners">
+      <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
+      <div class="partners-grid">
+        <div class="partner-logo">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
+        </div>
+        <div class="partner-logo">
+          <img src="/assets/partners/zero-waste-festival-logo.png" alt="Zero Waste Festival" />
+        </div>
+        <div class="partner-logo">
+          <img src="/assets/partners/datta-vic-logo.jpeg" alt="DATTA Vic" />
+        </div>
       </div>
     </section>
 
@@ -479,9 +457,17 @@ import Layout from "../../layouts/Layout.astro";
   .schools-cta .btn-filled { background: #fff; border-color: #fff; color: var(--ink); }
   .schools-cta .btn-filled:hover { background: #eee; border-color: #eee; }
 
+  /* ---------- Partners strip ---------- */
+  .partners-section__eyebrow { text-align: center; margin-bottom: 8px; }
+  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 48px; flex-wrap: wrap; padding: 20px 0; }
+  .partner-logo img { height: 54px; width: auto; object-fit: contain; filter: grayscale(100%); opacity: 0.75; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .partner-logo img:hover { filter: none; opacity: 1; }
+
   @media (max-width: 768px) {
     .schools-hero__grid { grid-template-columns: 1fr; gap: 24px; }
     .two-col { gap: 24px; }
+    .partners-grid { gap: 28px; }
+    .partner-logo img { height: 42px; }
   }
 </style>
 

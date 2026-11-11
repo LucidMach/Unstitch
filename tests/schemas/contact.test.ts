@@ -100,4 +100,32 @@ describe('ContactSchema validation', () => {
       }
     }
   });
+  it('keeps multiselect details (school workshop tracks) as a cleaned array', () => {
+    const res = ContactSchema.safeParse({
+      ...baseValidPayload,
+      subject: 'school-workshop-enquiry',
+      details: {
+        schoolName: 'Melbourne Grammar',
+        tracks: ['  Textile Animation ', 'Tactile STEAM & Geometry', '', 42, 'x'.repeat(400)],
+        facilities: [],
+      },
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.details.tracks).toHaveLength(3);
+      expect(res.data.details.tracks[0]).toBe('Textile Animation');
+      expect(res.data.details.tracks[2]).toHaveLength(150);
+      // An empty array is dropped, same as an empty string.
+      expect(res.data.details.facilities).toBeUndefined();
+    }
+  });
+
+  it('caps the number of items kept in a multiselect array', () => {
+    const res = ContactSchema.safeParse({
+      ...baseValidPayload,
+      details: { tracks: Array.from({ length: 40 }, (_, i) => `track ${i}`) },
+    });
+    expect(res.success).toBe(true);
+    if (res.success) expect(res.data.details.tracks).toHaveLength(15);
+  });
 });
