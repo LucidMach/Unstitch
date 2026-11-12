@@ -33,6 +33,7 @@ export const SchoolWorkshopDetailsSchema = z.object({
   budget: z.string().trim().max(100).optional().default(''),
   tracks: z.array(z.string().trim().max(150)).max(12).optional().default([]),
   hearAbout: z.string().trim().max(100).optional().default(''),
+  accessibilityNeeds: z.string().trim().max(1000).optional().default(''),
 });
 
 export const CorporateWorkshopDetailsSchema = z.object({

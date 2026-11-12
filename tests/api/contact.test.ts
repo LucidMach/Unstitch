@@ -189,7 +189,8 @@ describe('Contact API Handler (/api/contact)', () => {
           studentCount: '24',
           budget: '$1,000 – $2,000',
           tracks: ['Value & Identity: Textile Animation', 'STEAM: Tactile STEAM & Geometry'],
-          hearAbout: 'Instagram',
+          hearAbout: 'Social media',
+          accessibilityNeeds: 'One student uses a wheelchair.',
         },
       },
     };
@@ -204,7 +205,8 @@ describe('Contact API Handler (/api/contact)', () => {
     expect(sent.replyTo).toBe('sam@school.vic.edu.au');
     expect(sent.subject).toBe('New enquiry — School Workshop — Melbourne Grammar');
     expect(sent.text).toContain('Theme / track: Value & Identity: Textile Animation, STEAM: Tactile STEAM & Geometry');
-    expect(sent.text).toContain('Heard about Unstitch via: Instagram');
+    expect(sent.text).toContain('Heard about Unstitch via: Social media');
+    expect(sent.text).toContain('Accessibility needs: One student uses a wheelchair.');
     expect(sent.html).toContain('STEAM: Tactile STEAM &amp; Geometry');
     expect(sent.html).not.toContain('<b>Teacher</b>');
     delete process.env.RESEND_API_KEY;
