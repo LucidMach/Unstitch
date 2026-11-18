@@ -15,6 +15,7 @@ const pages: SitemapEntry[] = [
   { path: '/learn', changefreq: 'monthly', priority: '0.8' },
   { path: '/custom', changefreq: 'monthly', priority: '0.8' },
   { path: '/archive', changefreq: 'monthly', priority: '0.8' },
+  { path: '/learn/schools', changefreq: 'monthly', priority: '0.7' },
   { path: '/contact', changefreq: 'monthly', priority: '0.8' },
   { path: '/shop-countdown', changefreq: 'weekly', priority: '0.6' }
 ];

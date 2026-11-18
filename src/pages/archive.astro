@@ -123,11 +123,17 @@ const materials = [
     <!-- ============ INTERACTIVE MODAL VIEWER ============ -->
     <div class="material-overlay" data-material-overlay hidden></div>
     <div class="material-shell" data-material-shell hidden role="dialog" aria-modal="true" aria-label="Material File Detail">
-      <button class="icon-btn material-close" data-material-close aria-label="Close file">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M5 5l14 14M19 5 5 19" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </button>
+      <div class="modal-ctrls">
+        <button type="button" class="modal-ctrl" data-material-prev aria-label="Previous file">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="modal-ctrl" data-material-next aria-label="Next file">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="modal-ctrl" data-material-close aria-label="Close file">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
 
       <div class="material-scroll" data-material-scroll>
         {materials.map((m) => (
@@ -196,13 +202,6 @@ const materials = [
                      there's a real 3D view to link to. -->
               </div>
             </div>
-
-            <!-- Invisible full-card nav zones, cursor-driven on mouse/trackpad
-                 (no floating arrow buttons) — hidden on touch, where swipe
-                 takes over instead. See the script below and the
-                 hover-media-query rules in the style block. -->
-            <button class="material-modal__nav-zone material-modal__nav-zone--prev" data-material-prev aria-label="Previous file"></button>
-            <button class="material-modal__nav-zone material-modal__nav-zone--next" data-material-next aria-label="Next file"></button>
           </div>
         ))}
       </div>
@@ -330,15 +329,6 @@ const materials = [
     opacity: 1;
     transform: scale(1) translateY(var(--drag-y, 0px));
   }
-  .material-close {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 10;
-    background: #ffffff;
-    border: 1.5px solid var(--ink);
-  }
-
   .material-scroll {
     overflow-y: auto;
     height: 100%;
@@ -406,52 +396,6 @@ const materials = [
     color: #fff;
     text-align: center;
     background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0));
-  }
-
-  /* ---- in-card hover navigation ----
-     Invisible zones spanning the whole card (images + info), the same
-     approach as the earlier static-HTML archive: no floating arrow
-     buttons — the cursor itself becomes a left/right arrow while
-     hovering that third of the card. CTA links inside .material-modal__info
-     sit above these zones (z-index) so they stay clickable. */
-  .material-modal__nav-zone {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 30%;
-    z-index: 4;
-    margin: 0;
-    border: none;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-  }
-  .material-modal__nav-zone--prev { left: 0; }
-  .material-modal__nav-zone--next { right: 0; }
-  .material-modal__nav-zone[disabled] {
-    cursor: default;
-    pointer-events: none;
-  }
-
-  /* Mouse/trackpad: no visible icon — the cursor becomes a left/right
-     arrow while hovering that zone, reverting to default past the
-     first/last file. */
-  @media (hover: hover) and (pointer: fine) {
-    .material-modal__nav-zone--prev {
-      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M18 10l-6 6 6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, w-resize;
-    }
-    .material-modal__nav-zone--next {
-      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='14.5' fill='white' stroke='%23111111' stroke-width='1.5'/%3E%3Cpath d='M14 10l6 6-6 6' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, e-resize;
-    }
-  }
-
-  /* Touch can't hover or show a custom cursor, so the zones are invisible
-     (and inert) there — mobile navigates by swipe instead, see the script. */
-  @media (hover: none) {
-    .material-modal__nav-zone { display: none; }
   }
 
   .material-modal__title {

@@ -931,6 +931,12 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
         <p class="admin-muted">Each product can collect its own "notify me" signups from that drop's countdown page. Sending here reaches only subscribers waiting on that specific product who haven't already been notified or unsubscribed — and marks them notified, so a second send only reaches anyone new.</p>
         <div id="broadcast-waitlist-list"><p class="admin-muted">Loading…</p></div>
       </div>
+
+      <div class="admin-card">
+        <h2>Sent</h2>
+        <p class="admin-muted">Every newsletter and waitlist notification actually sent, most recent first — no more digging through your own inbox to find one. "View" shows exactly what was emailed; "Load into composer" copies it back into the general newsletter card above so you can tweak and send it again.</p>
+        <div id="broadcast-sent-list"><p class="admin-muted">Loading…</p></div>
+      </div>
     </section>
 
   </main>
@@ -2842,12 +2848,6 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     el.hidden = false;
   }
 
-  // --- Tabs ---
-  function activateTab(target: string) {
-    document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => {
-      t.classList.toggle("is-active", t.dataset.tab === target);
-    });
-    document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
   // --- Workshops (hidden workshop hub bookings) ---
   type AdminWorkshop = {
     id: string; code: string; schoolName: string; workshopDate: string | null; teams: number;
@@ -3150,6 +3150,12 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     if (w) openWorkshopDetail(w);
   });
 
+  // --- Tabs ---
+  function activateTab(target: string) {
+    document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => {
+      t.classList.toggle("is-active", t.dataset.tab === target);
+    });
+    document.querySelectorAll<HTMLElement>(".admin__panel").forEach((panel) => {
       panel.hidden = panel.dataset.panel !== target;
     });
     if (target === "product") loadProductOverview();
@@ -3158,14 +3164,14 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     if (target === "passport") loadPassport();
     if (target === "customers") loadCustomers();
     if (target === "events") loadEvents();
+    if (target === "objects") loadObjects();
+    if (target === "workshops") loadWorkshops();
     if (target === "batch-drops") loadBatchDrops();
     if (target === "email") loadEmailTemplateSettings();
     if (target === "broadcasts") loadBroadcastStats();
   }
   document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((tab) => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab as string));
-    if (target === "objects") loadObjects();
-    if (target === "workshops") loadWorkshops();
   });
 
   document.getElementById("logout-btn")?.addEventListener("click", async () => {
@@ -4205,12 +4211,6 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     }
   });
 
-  // --- Batch Drops as Events (Distinct Section) ---
-  const batchDropsCache = new Map<string, AdminBatchDrop>();
-  let currentEditingDropId: string | null = null;
-
-  function renderBatchDropRow(d: AdminBatchDrop): string {
-    const releaseStr = d.releaseAt
   // --- Catalogue Objects (the /how-it-works page) ---
   type AdminObject = {
     id: string;
@@ -4570,6 +4570,12 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     }
   });
 
+  // --- Batch Drops as Events (Distinct Section) ---
+  const batchDropsCache = new Map<string, AdminBatchDrop>();
+  let currentEditingDropId: string | null = null;
+
+  function renderBatchDropRow(d: AdminBatchDrop): string {
+    const releaseStr = d.releaseAt
       ? `${new Date(d.releaseAt).toLocaleDateString()} ${new Date(d.releaseAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
       : "Unscheduled";
     const statusMap: Record<string, string> = {
@@ -7121,10 +7127,115 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
           generalDraftApplied = true;
         }
         renderBroadcastWaitlists(data.waitlists || []);
+        renderSentHistory(data.sentHistory || []);
       }
     } catch {
       // Silent -- the per-product cards just stay on their "Loading…" state.
     }
+  }
+
+  type SentBroadcastSummary = {
+    id: string;
+    mode: "general" | "waitlist";
+    productId: string | null;
+    productName: string | null;
+    subject: string;
+    sentAt: string;
+    sentCount: number;
+    failedCount: number;
+    totalRecipients: number;
+  };
+
+  function formatSentAt(sentAt: string): string {
+    try {
+      return new Date(sentAt).toLocaleString();
+    } catch {
+      return sentAt;
+    }
+  }
+
+  function renderSentHistory(history: SentBroadcastSummary[]) {
+    const container = document.getElementById("broadcast-sent-list") as HTMLElement;
+    if (!history.length) {
+      container.innerHTML = `<p class="admin-muted">Nothing sent yet.</p>`;
+      return;
+    }
+    container.innerHTML = history
+      .map((item) => {
+        const target = item.mode === "general" ? "General newsletter" : `Waitlist: ${item.productName || "Unknown product"}`;
+        const countLabel = item.failedCount
+          ? `${item.sentCount}/${item.totalRecipients} sent (${item.failedCount} failed)`
+          : `${item.sentCount}/${item.totalRecipients} sent`;
+        return `
+        <div class="admin-card admin-card--nested" data-sent-id="${item.id}">
+          <div class="admin-field-row" style="justify-content:space-between;align-items:flex-start;">
+            <div>
+              <strong>${(item.subject || "(no subject)").replace(/</g, "&lt;")}</strong>
+              <p class="admin-muted" style="margin:2px 0 0;">${target} · ${formatSentAt(item.sentAt)} · ${countLabel}</p>
+            </div>
+            <div class="admin-field-row">
+              <button type="button" class="btn-ghost btn-ghost--small sent-view">View</button>
+              <button type="button" class="btn-ghost btn-ghost--small sent-load">Load into composer</button>
+            </div>
+          </div>
+        </div>`;
+      })
+      .join("");
+
+    container.querySelectorAll<HTMLButtonElement>(".sent-view").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = (btn.closest("[data-sent-id]") as HTMLElement).dataset.sentId;
+        btn.disabled = true;
+        try {
+          const res = await api(`/api/admin/broadcast?sentId=${encodeURIComponent(id || "")}`);
+          const data = await res.json();
+          if (res.ok && data.record?.previewHtml) openEmailPreview(data.record.previewHtml);
+          else window.alert(data.error || "Failed to load that sent broadcast.");
+        } catch {
+          window.alert("Network error.");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    container.querySelectorAll<HTMLButtonElement>(".sent-load").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = (btn.closest("[data-sent-id]") as HTMLElement).dataset.sentId;
+        btn.disabled = true;
+        try {
+          const res = await api(`/api/admin/broadcast?sentId=${encodeURIComponent(id || "")}`);
+          const data = await res.json();
+          if (!res.ok || !data.record) {
+            window.alert(data.error || "Failed to load that sent broadcast.");
+            return;
+          }
+          const record = data.record;
+          if (record.mode !== "general") {
+            // Waitlist cards are rebuilt from scratch on every stats refresh
+            // (see renderBroadcastWaitlists), so there's no stable element to
+            // load a waitlist send back into -- only the general newsletter
+            // card stays mounted across a refresh. Loading a past waitlist
+            // send into the general card would silently change who it's
+            // sent to, which is worse than just not offering it here.
+            window.alert(`This was a waitlist send for "${record.productName || "a product"}". Loading past sends back into a waitlist card isn't supported yet -- copy the subject/content manually if you'd like to resend it.`);
+            return;
+          }
+          (document.getElementById("broadcast-general-subject") as HTMLInputElement).value = record.subject || "";
+          (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = record.gifUrl || "";
+          (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = record.signatureName || "";
+          (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = record.signatureRole || "";
+          generalComposer.setBlocks(migrateDraftBlocks(record.blocks || []));
+          (document.getElementById("broadcast-general-draft-status") as HTMLElement).textContent =
+            `Loaded from the ${formatSentAt(record.sentAt)} send -- not saved as a draft yet, and not sent until you click Send.`;
+          document.querySelector('[data-tab="broadcasts"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          window.alert("Network error.");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
   }
 
   function renderBroadcastWaitlists(waitlists: { productId: string; productName: string; pendingCount: number }[]) {

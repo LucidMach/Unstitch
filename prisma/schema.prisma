@@ -885,6 +885,46 @@ model Setting {
   @@map("settings")
 }
 
+// ---------------------------------------------------------------------------
+// A permanent record of every newsletter/waitlist broadcast actually sent
+// (src/server/admin/broadcast.ts), so an admin can look back at what was
+// sent and when without digging through their own inbox or Resend's
+// dashboard. Written once, right after a real send succeeds -- never for a
+// preview or a one-off test email, and never touched again afterwards (no
+// edit/resend-in-place; re-sending means building a new send, which writes
+// a new row here).
+//
+// `blocks` and `previewHtml` are both snapshots taken at send time: blocks
+// already has every image URL resolved to absolute
+// (resolveBlockImageUrls/resolveProductImageUrls in broadcast.ts), and
+// previewHtml is the fully rendered email body (rendered once generically,
+// not per-recipient -- same as the composer's own "Preview" button), so
+// this stays readable later even if a referenced product's price, photo or
+// existence changes, or the Product row is deleted outright. productId is
+// kept for display, with productName captured alongside it as a snapshot
+// for the same reason -- a deleted product shouldn't turn an old
+// newsletter's history entry into "Unknown".
+// ---------------------------------------------------------------------------
+
+model BroadcastSend {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mode            String   @db.VarChar(20) // "general" | "waitlist"
+  productId       String?  @db.Uuid @map("product_id")
+  productName     String?  @db.VarChar(200) @map("product_name")
+  subject         String   @db.VarChar(200)
+  blocks          Json
+  gifUrl          String?  @map("gif_url")
+  signatureName   String?  @map("signature_name")
+  signatureRole   String?  @map("signature_role")
+  previewHtml     String   @map("preview_html")
+  sentCount       Int      @map("sent_count")
+  failedCount     Int      @map("failed_count")
+  totalRecipients Int      @map("total_recipients")
+  sentAt          DateTime @default(now()) @map("sent_at")
+
+  @@index([sentAt])
+  @@map("broadcast_sends")
+}
 
 // ---------------------------------------------------------------------------
 // Objects shown in the /how-it-works catalogue that were added from the admin
