@@ -1051,3 +1051,33 @@ button { font-family: inherit; cursor: pointer; }
     padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0));
   }
 }
+
+/* ==========================================================================
+   MODAL CONTROLS — previous / next / close, three identical squares in the
+   popup's top-right corner (How it works objects, Material Archive).
+   ========================================================================== */
+.modal-ctrls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+.modal-ctrl {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.modal-ctrl svg { width: 22px; height: 22px; }
+.modal-ctrl:hover { background: var(--accent-pale); }
+.modal-ctrl:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.modal-ctrl[disabled] { color: #aaa; border-color: #bbb; background: #fff; cursor: default; }

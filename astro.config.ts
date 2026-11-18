@@ -53,6 +53,10 @@ const API_ROUTES: Record<string, string> = {
   '/api/admin/broadcast': './src/server/admin/broadcast.ts',
   '/api/unsubscribe': './src/server/unsubscribe.ts',
   '/api/events': './src/server/events.ts',
+  '/api/objects': './src/server/objects.ts',
+  '/api/admin/objects': './src/server/admin/objects.ts',
+  '/api/workshop': './src/server/workshop.ts',
+  '/api/admin/workshops': './src/server/admin/workshops.ts',
   '/api/order-lookup-request': './src/server/order-lookup-request.ts',
   '/api/order-lookup': './src/server/order-lookup.ts',
   '/api/order-lookup-by-number': './src/server/order-lookup-by-number.ts',
@@ -80,6 +84,11 @@ function apiDevMiddleware(): any {
             const [, rest] = req.url.split('/passport/');
             const serial = decodeURIComponent(rest.split('?')[0]);
             req.url = `/passport?serial=${encodeURIComponent(serial)}`;
+          }
+
+          // Facilitator link: /workshop-NAME serves the workshop hub page, which reads the name from the path.
+          if (req.url && /^\/workshop-[A-Za-z0-9]+\/?(\?|#|$)/.test(req.url)) {
+            req.url = '/workshop';
           }
 
           if (req.url && /^\/shop\/[^/?]+/.test(req.url)) {

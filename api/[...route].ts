@@ -41,6 +41,8 @@ import events from '../src/server/events.js';
 import unsubscribe from '../src/server/unsubscribe.js';
 import resubscribe from '../src/server/resubscribe.js';
 import reviews from '../src/server/reviews.js';
+import objects from '../src/server/objects.js';
+import workshop from '../src/server/workshop.js';
 
 const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   contact,
@@ -58,6 +60,8 @@ const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   unsubscribe,
   resubscribe,
   reviews,
+  objects,
+  workshop,
 };
 
 export default async function handler(req: any, res: any): Promise<any> {

@@ -884,3 +884,90 @@ model Setting {
 
   @@map("settings")
 }
+
+
+// ---------------------------------------------------------------------------
+// Objects shown in the /how-it-works catalogue that were added from the admin
+// (Admin > Objects) rather than in code. They appear on the page alongside
+// the built-in ones in src/lib/constants/objects.ts. The photo is stored on
+// the row (resized in the browser before upload) and served, cached forever
+// per version, by GET /api/objects?image=<slug>&v=<n>.
+// ---------------------------------------------------------------------------
+
+model DesignObject {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique @db.VarChar(160)
+  name        String   @db.VarChar(200)
+  tagline     String   @db.VarChar(200)
+  summary     String
+  objectType  String   @map("object_type") @db.VarChar(120)
+  tiles       Int?
+  materials   Json     @default("[]")
+  buildTime   String?  @map("build_time") @db.VarChar(80)
+  credits     Json     @default("[]")
+  imageAlt    String   @map("image_alt") @db.VarChar(400)
+  imageData   Bytes?   @map("image_data")
+  imageMime   String?  @map("image_mime") @db.VarChar(40)
+  imageWidth  Int?     @map("image_width")
+  imageHeight Int?     @map("image_height")
+  sortOrder   Int      @default(0) @map("sort_order")
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([hidden, sortOrder])
+  @@map("design_objects")
+}
+
+// ---------------------------------------------------------------------------
+// Workshop hub: one row per school booking. The hidden /workshop page opens
+// with ?c=<code> (that is what the QR code carries). A code is valid while
+// `active` is true and `expiresAt` (if set) is in the future. Looked up by
+// GET /api/workshop?code=; managed in Admin > Workshops.
+// ---------------------------------------------------------------------------
+
+model Workshop {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String    @unique @db.VarChar(16)
+  schoolName   String    @map("school_name") @db.VarChar(200)
+  workshopDate DateTime? @map("workshop_date") @db.Date
+  teams        Int       @default(9)
+  notes        String?
+  active       Boolean   @default(true)
+  expiresAt    DateTime? @map("expires_at")
+  // Random key for the facilitator's own link (/workshop?f=<key>). Students
+  // use the short `code`; only the facilitator link shows the Facilitator tab.
+  facilitatorKey String?  @unique @map("facilitator_key") @db.VarChar(24)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+  feedback     WorkshopFeedback[]
+
+  @@index([active, expiresAt])
+  @@map("workshops")
+}
+
+// ---------------------------------------------------------------------------
+// Anonymous student feedback from the workshop hub's Participants tab. One
+// row per submission (append-only; nothing is edited), grouped by team number
+// in Admin > Workshops. No names, emails or device identifiers are stored.
+// `submissionId` is generated on the student's device so a retry or a double
+// tap cannot create a duplicate.
+// ---------------------------------------------------------------------------
+
+model WorkshopFeedback {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workshopId   String   @map("workshop_id") @db.Uuid
+  workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  submissionId String   @unique @map("submission_id") @db.VarChar(64)
+  teamNumber   Int      @map("team_number")
+  rating       Int
+  oneWord      String?  @map("one_word") @db.VarChar(40)
+  wouldChange  String?  @map("would_change") @db.VarChar(500)
+  whatWeMade   String?  @map("what_we_made") @db.VarChar(240)
+  teamName     String?  @map("team_name") @db.VarChar(80)
+  hidden       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workshopId, teamNumber])
+  @@map("workshop_feedback")
+}
