@@ -374,6 +374,65 @@ async function sendEmailWithRetry(resend: any, params: { from: string; to: strin
   return { ok: false, error: 'unknown reason' };
 }
 
+/** Best-effort record of a real send, written after it actually goes out --
+ * never for a preview or a testEmail, and never blocks or fails the send
+ * itself if this write has a problem (a broadcast that sent successfully
+ * shouldn't come back as an error just because its history row didn't
+ * save). previewHtml is rendered once generically (name: "there", no
+ * subscriberId/unsubscribe link) rather than stored per-recipient, same
+ * as what the composer's own "Preview" button already shows. */
+async function recordSentBroadcast({
+  req,
+  mode,
+  productId,
+  productName,
+  subject,
+  blocks,
+  productsById,
+  gifUrl,
+  signatureName,
+  signatureRole,
+  sentCount,
+  failedCount,
+  totalRecipients,
+}: {
+  req: any;
+  mode: 'general' | 'waitlist';
+  productId?: string | null;
+  productName?: string | null;
+  subject: string;
+  blocks: BroadcastBlock[];
+  productsById: ProductsById;
+  gifUrl?: string;
+  signatureName?: string;
+  signatureRole?: string;
+  sentCount: number;
+  failedCount: number;
+  totalRecipients: number;
+}): Promise<void> {
+  try {
+    const { html: previewHtml } = renderFor({ req, subject, blocks, productsById, gifUrl, signatureName, signatureRole, name: 'there' });
+    await prisma.broadcastSend.create({
+      data: {
+        mode,
+        productId: productId || null,
+        productName: productName || null,
+        subject,
+        blocks: blocks as any,
+        gifUrl: gifUrl || null,
+        signatureName: signatureName || null,
+        signatureRole: signatureRole || null,
+        previewHtml,
+        sentCount,
+        failedCount,
+        totalRecipients,
+      },
+    });
+  } catch (err) {
+    console.error('[admin/broadcast] Failed to record sent-broadcast history (send itself still succeeded):', err);
+  }
+}
+
 /** Sequential small batches rather than one giant Promise.all, so a large
  * list doesn't fire everything at Resend at once. */
 async function sendInBatches<T, R>(recipients: T[], sendOne: (recipient: T) => Promise<R>): Promise<R[]> {
@@ -394,8 +453,44 @@ export default async function handler(req: any, res: any): Promise<any> {
   if (!prisma) return sendJson(res, 503, { error: 'Not configured' });
 
   if (req.method === 'GET') {
+    // ?sentId=<id> -- full detail for one past send (used by the "View" /
+    // "Load into composer" actions on the Sent history list below), kept
+    // as a separate lookup rather than always included in the list so the
+    // list itself (sentHistory below) stays light -- previewHtml/blocks
+    // can be sizeable and aren't needed just to render the list.
+    const { searchParams } = new URL(req.url, 'http://placeholder.local');
+    const sentId = searchParams.get('sentId');
+    if (sentId) {
+      try {
+        const record = await prisma.broadcastSend.findUnique({ where: { id: sentId } });
+        if (!record) return sendJson(res, 404, { error: 'Sent broadcast not found.' });
+        return sendJson(res, 200, {
+          ok: true,
+          record: {
+            id: record.id,
+            mode: record.mode,
+            productId: record.productId,
+            productName: record.productName,
+            subject: record.subject,
+            blocks: record.blocks,
+            gifUrl: record.gifUrl,
+            signatureName: record.signatureName,
+            signatureRole: record.signatureRole,
+            previewHtml: record.previewHtml,
+            sentAt: record.sentAt,
+            sentCount: record.sentCount,
+            failedCount: record.failedCount,
+            totalRecipients: record.totalRecipients,
+          },
+        });
+      } catch (err) {
+        console.error('[admin/broadcast] Failed to load sent broadcast detail:', err);
+        return sendJson(res, 500, { error: 'Failed to load that sent broadcast.' });
+      }
+    }
+
     try {
-      const [generalCount, pending, products, generalDraft, waitlistDrafts] = await Promise.all([
+      const [generalCount, pending, products, generalDraft, waitlistDrafts, sentHistory] = await Promise.all([
         prisma.subscriber.count({ where: { unsubscribedAt: null } }),
         prisma.subscriber.groupBy({
           by: ['productId'],
@@ -416,6 +511,24 @@ export default async function handler(req: any, res: any): Promise<any> {
         // saved draft without a separate round trip each.
         getGeneralBroadcastDraft(),
         getAllWaitlistBroadcastDrafts(),
+        // Most recent sends, newest first -- 50 is a generous scrollback
+        // for a composer-side list (full detail for any one of these is a
+        // separate ?sentId= lookup above, so this stays cheap regardless).
+        prisma.broadcastSend.findMany({
+          orderBy: { sentAt: 'desc' },
+          take: 50,
+          select: {
+            id: true,
+            mode: true,
+            productId: true,
+            productName: true,
+            subject: true,
+            sentAt: true,
+            sentCount: true,
+            failedCount: true,
+            totalRecipients: true,
+          },
+        }),
       ]);
 
       const productIds = pending.map((p: any) => p.productId).filter(Boolean);
@@ -432,7 +545,7 @@ export default async function handler(req: any, res: any): Promise<any> {
         }))
         .sort((a: any, b: any) => b.pendingCount - a.pendingCount);
 
-      return sendJson(res, 200, { generalCount, waitlists, products, drafts: { general: generalDraft, waitlist: waitlistDrafts } });
+      return sendJson(res, 200, { generalCount, waitlists, products, drafts: { general: generalDraft, waitlist: waitlistDrafts }, sentHistory });
     } catch (err) {
       console.error('[admin/broadcast] GET failed:', err);
       return sendJson(res, 500, { error: 'Failed to load broadcast stats.' });
@@ -597,6 +710,20 @@ export default async function handler(req: any, res: any): Promise<any> {
       const sent = results.filter((r) => r.ok);
       if (failed.length > 0) console.error('[admin/broadcast] Some general-send emails failed:', failed);
 
+      await recordSentBroadcast({
+        req,
+        mode: 'general',
+        subject,
+        blocks: resolvedBlocks,
+        productsById: resolvedProductsById,
+        gifUrl,
+        signatureName,
+        signatureRole,
+        sentCount: sent.length,
+        failedCount: failed.length,
+        totalRecipients: recipients.length,
+      });
+
       return sendJson(res, 200, { ok: true, sent: sent.length, failed: failed.map((f) => ({ email: f.email, error: f.error })), total: recipients.length });
     }
 
@@ -694,6 +821,22 @@ export default async function handler(req: any, res: any): Promise<any> {
         await prisma.subscriber.updateMany({ where: { id: { in: sent.map((r) => r.id) } }, data: { notifiedAt: new Date() } });
       }
       if (failed.length > 0) console.error('[admin/broadcast] Some waitlist-notify emails failed:', failed);
+
+      await recordSentBroadcast({
+        req,
+        mode: 'waitlist',
+        productId,
+        productName: product.name,
+        subject,
+        blocks: resolvedBlocks,
+        productsById: resolvedProductsById,
+        gifUrl,
+        signatureName,
+        signatureRole,
+        sentCount: sent.length,
+        failedCount: failed.length,
+        totalRecipients: recipients.length,
+      });
 
       return sendJson(res, 200, {
         ok: true,

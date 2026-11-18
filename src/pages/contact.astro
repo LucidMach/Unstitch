@@ -176,6 +176,8 @@ import {
               <option value="" selected>How did you hear about Unstitch? (optional)</option>
               {hearAboutOptions.map((opt) => <option value={opt}>{opt}</option>)}
             </select>
+
+            <textarea name="accessibilityNeeds" class="contact-input contact-textarea school-f school-f--access" rows="3" maxlength="1000" placeholder="Accessibility needs (optional) — e.g. mobility, sensory or learning support for students or staff" aria-label="Accessibility needs"></textarea>
           </div>
 
           <!-- Dynamic Subject: Corporate Workshop -->
@@ -312,10 +314,11 @@ import {
   .contact-form.is-school .school-f--budget { order: 9; }
   .contact-form.is-school .school-f--tracks { order: 10; }
   .contact-form.is-school .school-f--hear { order: 11; }
-  .contact-form.is-school .fg-message { order: 12; }
-  .contact-form.is-school .contact-optin { order: 13; }
-  .contact-form.is-school .contact-form__submit { order: 14; }
-  .contact-form.is-school .form-feedback { order: 15; }
+  .contact-form.is-school .school-f--access { order: 12; }
+  .contact-form.is-school .fg-message { order: 13; }
+  .contact-form.is-school .contact-optin { order: 14; }
+  .contact-form.is-school .contact-form__submit { order: 15; }
+  .contact-form.is-school .form-feedback { order: 16; }
 
   .school-note {
     margin: 0;

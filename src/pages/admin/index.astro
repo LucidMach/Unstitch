@@ -1,5 +1,23 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { objects as builtinObjects } from "../../lib/constants/objects";
+
+// The objects built into the site's code, listed in Admin > Catalogue so they
+// can be imported into the database (and from then on edited there).
+const builtinForAdmin = builtinObjects.map((o, i) => ({
+  slug: o.slug,
+  name: o.name,
+  tagline: o.tagline,
+  summary: o.summary,
+  objectType: o.objectType,
+  tiles: o.tiles ?? null,
+  materials: o.materials ?? [],
+  buildTime: o.buildTime ?? null,
+  credits: o.designedBy,
+  imageAlt: o.imageAlt,
+  imageUrl: o.image.src,
+  sortOrder: (i + 1) * 10,
+}));
 
 /**
  * Minimal admin dashboard — orders lookup/resend, pricing editor
@@ -47,6 +65,8 @@ import Layout from "../../layouts/Layout.astro";
       <button class="admin__tab" data-tab="passport">Passport</button>
       <button class="admin__tab" data-tab="customers">Customers</button>
       <button class="admin__tab" data-tab="events">Events</button>
+      <button class="admin__tab" data-tab="objects">Catalogue</button>
+      <button class="admin__tab" data-tab="workshops">Workshops</button>
       <button class="admin__tab" data-tab="batch-drops">Batch Drops</button>
       <button class="admin__tab" data-tab="email">Send Email</button>
       <button class="admin__tab" data-tab="broadcasts">Broadcasts</button>
@@ -633,6 +653,160 @@ import Layout from "../../layouts/Layout.astro";
       </div>
     </section>
 
+    <!-- CATALOGUE OBJECTS (the /how-it-works page) -->
+    <section data-panel="objects" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Catalogue</h2>
+        <div class="admin__panel-header-actions">
+          <button id="objects-new" class="btn-primary btn-primary--small">+ New object</button>
+          <button id="objects-import-all" class="btn-ghost btn-ghost--small" hidden>Import built-in objects</button>
+          <button id="objects-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">Objects added here appear on the How it works page as soon as you save (no redeploy). Each opens as a popup with its photo, summary, materials and credits. Objects marked "Built-in" are the ones in the site's code: click "Import" to copy one (with its photo) here so you can edit, reorder or hide it. Display order: the built-in objects are numbered 10 to 60 (Mushroom 10, Cup Warmer 20, Turtle 30, Elephant 40, Felt Cube 50, Medify 60), so use 100+ to add yours at the end, or e.g. 25 to slot one between Cup Warmer and Turtle.</p>
+      <script type="application/json" id="builtin-objects-data" set:html={JSON.stringify(builtinForAdmin)} />
+      <table class="admin-table">
+        <thead>
+          <tr><th>Photo</th><th>Name</th><th>Type</th><th>Tiles</th><th>Order</th><th>Status</th></tr>
+        </thead>
+        <tbody id="objects-tbody">
+          <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin__order-detail" id="object-detail" hidden>
+        <div class="admin__panel-header">
+          <h2 id="object-detail-heading">Edit object</h2>
+          <button id="object-detail-close" class="btn-ghost btn-ghost--small">Close</button>
+        </div>
+
+        <div class="admin-grid">
+          <label>Name<input id="od-name" type="text" maxlength="200" placeholder="e.g. Turtle" /></label>
+          <label>Slug <span class="admin-muted">(share link ending: lowercase, hyphens only)</span><input id="od-slug" type="text" maxlength="160" placeholder="turtle" /></label>
+          <label>Card tagline <span class="admin-muted">(one line under the name on the card)</span><input id="od-tagline" type="text" maxlength="200" placeholder="A 22-tile soft sculpture" /></label>
+          <label>Object type <span class="admin-muted">(plain words: "Soft sculpture", "Cup holder")</span><input id="od-type" type="text" maxlength="120" /></label>
+          <label>Number of tiles <span class="admin-muted">(optional)</span><input id="od-tiles" type="number" min="1" max="9999" /></label>
+          <label>Build time <span class="admin-muted">(optional, e.g. 20 minutes)</span><input id="od-build-time" type="text" maxlength="80" /></label>
+          <label>Display order <span class="admin-muted">(lower shows first; see note above)</span><input id="od-sort" type="number" value="100" /></label>
+        </div>
+
+        <label>Summary <span class="admin-muted">(1-2 plain, factual sentences. Make the FIRST sentence make sense on its own: Google and AI assistants quote it. E.g. "The Turtle is a soft sculpture built from 22 interlocking textile tiles.")</span>
+          <textarea id="od-summary" rows="3" maxlength="1500"></textarea>
+        </label>
+        <label>Materials <span class="admin-muted">(optional, separate with commas)</span><input id="od-materials" type="text" placeholder="Rescued deadstock textile, Turquoise fleece" /></label>
+
+        <div class="admin-card" style="margin-top: 14px; background: #faf9f6;">
+          <h3 style="margin: 0 0 6px; font-size: 0.95rem;">Made by</h3>
+          <p class="admin-muted">Acknowledge who designed or made it. Add a link if they'd like one.</p>
+          <div id="od-credits"></div>
+          <button type="button" id="od-credit-add" class="btn-ghost btn-ghost--small" style="margin-top: 8px;">+ Add person</button>
+        </div>
+
+        <div class="admin-card" style="margin-top: 14px; background: #faf9f6;">
+          <h3 style="margin: 0 0 6px; font-size: 0.95rem;">Photo</h3>
+          <p class="admin-muted">Any shape works and the whole photo is always shown. It's resized automatically (longest side 1400px).</p>
+          <div style="display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px;">
+            <img id="od-preview" alt="" hidden style="width: 140px; height: 140px; object-fit: contain; border: 1.5px solid #e8e5df; border-radius: 6px; background: #eee;" />
+            <div style="display: grid; gap: 8px;">
+              <input id="od-file" type="file" accept="image/png,image/jpeg,image/webp" />
+              <button type="button" id="od-remove-image" class="btn-ghost btn-ghost--small" hidden>Remove photo</button>
+            </div>
+          </div>
+        </div>
+        <label>Photo description <span class="admin-muted">(alt text: say what is actually in the photo)</span><input id="od-alt" type="text" maxlength="400" placeholder="A soft turtle sculpture on a woven rug, with a turquoise fleece shell…" /></label>
+
+        <label class="admin-checkbox-label"><input id="od-visible" type="checkbox" checked /> Show on the site</label>
+
+        <div class="admin__actions" style="margin-top: 16px; display: flex; gap: 10px;">
+          <button id="object-detail-save" class="btn-primary">Save object</button>
+          <button id="object-detail-delete" class="btn-danger" title="Permanently deletes this object" hidden>Delete object</button>
+        </div>
+        <p id="object-detail-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
+    <section data-panel="workshops" class="admin__panel" hidden>
+      <div class="admin__panel-header">
+        <h2>Workshops</h2>
+        <div class="admin__panel-header-actions">
+          <button id="workshops-new" class="btn-primary btn-primary--small">+ New workshop</button>
+          <button id="workshops-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+        </div>
+      </div>
+      <p class="admin-muted">One row per school booking. Each gets a short code and a QR code that opens the hidden workshop hub (not linked anywhere on the site and hidden from search). Give students the QR. The facilitator has their own private link (copy it from the Links column, or open a workshop): it is the only one that shows the Facilitator tab. A code stops working 3 days after the workshop date (or the cut-off you set), or as soon as you switch it off.</p>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Code</th><th>School</th><th>Date</th><th>Teams</th><th>Status</th><th>Links</th></tr>
+        </thead>
+        <tbody id="workshops-tbody">
+          <tr><td colspan="6" class="admin-table__empty">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin__order-detail" id="workshop-detail" hidden>
+        <div class="admin__panel-header">
+          <h2 id="workshop-detail-heading">Edit workshop</h2>
+          <button id="workshop-detail-close" class="btn-ghost btn-ghost--small">Close</button>
+        </div>
+        <div class="admin-grid">
+          <label>School name<input id="wk-school" type="text" maxlength="200" placeholder="e.g. Glen Waverley Secondary College" /></label>
+          <label>Workshop date <span class="admin-muted">(optional)</span><input id="wk-date" type="date" /></label>
+          <label>Number of teams<input id="wk-teams" type="number" min="1" max="40" value="9" /></label>
+          <label>Facilitator link name <span class="admin-muted">(blank = random. Typed as <code>/workshop-NAME</code>; 5-24 letters/numbers, not case sensitive. Pick something others won't guess.)</span><input id="wk-fkey" type="text" maxlength="24" placeholder="e.g. CGGSF" /></label>
+          <label>Code <span class="admin-muted">(leave blank to generate one; 4-16 letters/numbers)</span><input id="wk-code" type="text" maxlength="16" placeholder="Auto" style="text-transform: uppercase;" /></label>
+          <label>Stops working after <span class="admin-muted">(optional; blank = 3 days after the workshop date)</span><input id="wk-expires" type="date" /></label>
+        </div>
+        <label>Notes <span class="admin-muted">(only you see these: teacher contact, room, device notes)</span>
+          <textarea id="wk-notes" rows="3" maxlength="2000"></textarea>
+        </label>
+        <label class="admin-checkbox-label"><input id="wk-active" type="checkbox" checked /> Code is switched on</label>
+
+        <div class="admin-card" id="wk-link-card" style="margin-top: 14px; background: #faf9f6;" hidden>
+          <h3 style="margin: 0 0 6px; font-size: 0.95rem;">Student link and QR code</h3>
+          <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <canvas id="wk-qr" width="180" height="180" style="width: 180px; height: 180px; border: 1.5px solid #e8e5df; border-radius: 6px; background: #fff;"></canvas>
+            <div style="display: grid; gap: 8px; min-width: 240px; flex: 1;">
+              <input id="wk-link" type="text" readonly />
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="wk-copy" class="btn-ghost btn-ghost--small">Copy link</button>
+                <button type="button" id="wk-open" class="btn-ghost btn-ghost--small">Open hub</button>
+                <button type="button" id="wk-qr-download" class="btn-ghost btn-ghost--small">Download QR (PNG)</button>
+              </div>
+              <p class="admin-muted" style="margin: 0;">The PNG has the code printed under the QR so it can also be typed in.</p>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1.5px solid #e8e5df;">
+            <h3 style="margin: 0 0 6px; font-size: 0.95rem;">Facilitator link</h3>
+            <p class="admin-muted" style="margin: 0 0 8px;">Open this one on the projector laptop (or just type it: <code>/workshop-NAME</code>). It is the only link that shows the Facilitator tab (timer and projector view). Keep it to yourself: don't put it on a slide or print it as a QR. Change the name in the form above and save.</p>
+            <input id="wk-flink" type="text" readonly />
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+              <button type="button" id="wk-fcopy" class="btn-ghost btn-ghost--small">Copy facilitator link</button>
+              <button type="button" id="wk-fopen" class="btn-ghost btn-ghost--small">Open as facilitator</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card" id="wk-feedback-card" style="margin-top: 14px; background: #faf9f6;" hidden>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <h3 style="margin: 0; font-size: 0.95rem;">Student feedback</h3>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="wk-feedback-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
+              <button type="button" id="wk-feedback-csv" class="btn-ghost btn-ghost--small" disabled>Export CSV</button>
+            </div>
+          </div>
+          <p class="admin-muted" id="wk-feedback-status" style="margin: 8px 0;">Loading…</p>
+          <div id="wk-feedback-summary"></div>
+          <div id="wk-feedback-list" style="margin-top: 12px;"></div>
+        </div>
+
+        <div class="admin__actions" style="margin-top: 16px; display: flex; gap: 10px;">
+          <button id="workshop-detail-save" class="btn-primary">Save workshop</button>
+          <button id="workshop-detail-delete" class="btn-danger" title="Permanently deletes this workshop" hidden>Delete workshop</button>
+        </div>
+        <p id="workshop-detail-status" class="admin__hint" hidden></p>
+      </div>
+    </section>
+
     <!-- BATCH DROPS AS EVENTS (DISTINCT SECTION) -->
     <section data-panel="batch-drops" class="admin__panel" hidden>
       <div class="admin__panel-header">
@@ -756,6 +930,12 @@ import Layout from "../../layouts/Layout.astro";
         <h2>Drop waitlists</h2>
         <p class="admin-muted">Each product can collect its own "notify me" signups from that drop's countdown page. Sending here reaches only subscribers waiting on that specific product who haven't already been notified or unsubscribed — and marks them notified, so a second send only reaches anyone new.</p>
         <div id="broadcast-waitlist-list"><p class="admin-muted">Loading…</p></div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Sent</h2>
+        <p class="admin-muted">Every newsletter and waitlist notification actually sent, most recent first — no more digging through your own inbox to find one. "View" shows exactly what was emailed; "Load into composer" copies it back into the general newsletter card above so you can tweak and send it again.</p>
+        <div id="broadcast-sent-list"><p class="admin-muted">Loading…</p></div>
       </div>
     </section>
 
@@ -2668,6 +2848,308 @@ import Layout from "../../layouts/Layout.astro";
     el.hidden = false;
   }
 
+  // --- Workshops (hidden workshop hub bookings) ---
+  type AdminWorkshop = {
+    id: string; code: string; schoolName: string; workshopDate: string | null; teams: number;
+    notes: string | null; active: boolean; expiresAt: string | null; facilitatorKey: string | null;
+  };
+  type AdminFeedback = {
+    id: string; teamNumber: number; rating: number; oneWord: string | null; wouldChange: string | null;
+    whatWeMade: string | null; teamName: string | null; hidden: boolean; createdAt: string;
+  };
+  let feedbackCache: AdminFeedback[] = [];
+  const workshopsCache = new Map<string, AdminWorkshop>();
+  let editingWorkshopId: string | null = null;
+  const wkEl = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  function workshopStatus(w: AdminWorkshop): { label: string; cls: string } {
+    if (!w.active) return { label: "Off", cls: "" };
+    if (w.expiresAt && new Date(w.expiresAt).getTime() < Date.now()) return { label: "Expired", cls: "" };
+    return { label: "Live", cls: "is-ok" };
+  }
+  function workshopLink(code: string): string {
+    return `${window.location.origin}/workshop?c=${encodeURIComponent(code)}`;
+  }
+  function facilitatorLink(key: string): string {
+    return `${window.location.origin}/workshop-${encodeURIComponent(key)}`;
+  }
+
+  async function loadWorkshops() {
+    const tbody = wkEl<HTMLTableSectionElement>("workshops-tbody");
+    try {
+      const res = await api("/api/admin/workshops");
+      if (!res.ok) {
+        let reason = res.status === 404 ? "The workshops API isn't running. Restart the dev server (pnpm dev)." : "";
+        try { reason = ((await res.json()) as { error?: string }).error || reason; } catch { /* not JSON */ }
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load workshops. ${esc(reason)}</td></tr>`;
+        return;
+      }
+      const { workshops } = (await res.json()) as { workshops: AdminWorkshop[] };
+      workshopsCache.clear();
+      workshops.forEach((w) => workshopsCache.set(w.id, w));
+      if (!workshops.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">No workshops yet. Click "+ New workshop" above.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = workshops.map((w) => {
+        const st = workshopStatus(w);
+        return `<tr data-workshop-id="${esc(w.id)}" style="cursor: pointer;">
+          <td><strong>${esc(w.code)}</strong></td><td>${esc(w.schoolName)}</td>
+          <td>${esc(w.workshopDate || "-")}</td><td>${w.teams}</td><td>${esc(st.label)}</td>
+          <td style="white-space: nowrap;"><button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="student">Copy student link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="facilitator">Copy facilitator link</button></td></tr>`;
+      }).join("");
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load workshops.</td></tr>`;
+    }
+  }
+
+  async function drawWorkshopQr(canvas: HTMLCanvasElement, link: string, size: number) {
+    const mod = await loadQrCodeModule();
+    const toCanvas: (c: HTMLCanvasElement, text: string, opts: any) => Promise<void> = mod.toCanvas || mod.default?.toCanvas;
+    await toCanvas(canvas, link, { width: size, margin: 2 });
+  }
+
+  function openWorkshopDetail(w: AdminWorkshop | null) {
+    editingWorkshopId = w ? w.id : null;
+    wkEl("workshop-detail-heading").textContent = w ? `Edit workshop: ${w.schoolName}` : "New workshop";
+    wkEl<HTMLInputElement>("wk-school").value = w?.schoolName ?? "";
+    wkEl<HTMLInputElement>("wk-date").value = w?.workshopDate ? w.workshopDate.slice(0, 10) : "";
+    wkEl<HTMLInputElement>("wk-teams").value = String(w?.teams ?? 9);
+    wkEl<HTMLInputElement>("wk-code").value = w?.code ?? "";
+    wkEl<HTMLInputElement>("wk-fkey").value = w?.facilitatorKey ?? "";
+    wkEl<HTMLInputElement>("wk-expires").value = "";
+    wkEl<HTMLTextAreaElement>("wk-notes").value = w?.notes ?? "";
+    wkEl<HTMLInputElement>("wk-active").checked = w ? w.active : true;
+    wkEl("workshop-detail-delete").hidden = !w;
+    wkEl("workshop-detail-status").hidden = true;
+    const card = wkEl("wk-link-card");
+    card.hidden = !w;
+    wkEl("wk-feedback-card").hidden = !w;
+    if (w) {
+      showWorkshopLink(w.code);
+      wkEl<HTMLInputElement>("wk-flink").value = w.facilitatorKey ? facilitatorLink(w.facilitatorKey) : "Save the workshop to create the facilitator link.";
+      loadWorkshopFeedback(w.id);
+    }
+    wkEl("workshop-detail").hidden = false;
+    wkEl("workshop-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function showWorkshopLink(code: string) {
+    const link = workshopLink(code);
+    wkEl<HTMLInputElement>("wk-link").value = link;
+    try {
+      await drawWorkshopQr(wkEl<HTMLCanvasElement>("wk-qr"), link, 180);
+    } catch {
+      const status = wkEl("workshop-detail-status");
+      status.textContent = "Couldn't draw the QR code (it loads from a CDN). The link above still works.";
+      status.hidden = false;
+    }
+  }
+
+  async function loadWorkshopFeedback(workshopId: string) {
+    const status = wkEl("wk-feedback-status");
+    status.textContent = "Loading…";
+    wkEl("wk-feedback-summary").innerHTML = "";
+    wkEl("wk-feedback-list").innerHTML = "";
+    wkEl<HTMLButtonElement>("wk-feedback-csv").disabled = true;
+    try {
+      const res = await api(`/api/admin/workshops?feedback=${encodeURIComponent(workshopId)}`);
+      if (!res.ok) {
+        let reason = "";
+        try { reason = ((await res.json()) as { error?: string }).error || ""; } catch { /* not JSON */ }
+        status.textContent = `Couldn't load feedback. ${reason || "Run pnpm db:generate then pnpm db:push if you haven't since the update."}`;
+        return;
+      }
+      const { feedback } = (await res.json()) as { feedback: AdminFeedback[] };
+      feedbackCache = feedback;
+      renderWorkshopFeedback();
+    } catch {
+      status.textContent = "Couldn't load feedback.";
+    }
+  }
+
+  function renderWorkshopFeedback() {
+    const status = wkEl("wk-feedback-status");
+    const all = feedbackCache;
+    const shown = all.filter((f) => !f.hidden);
+    wkEl<HTMLButtonElement>("wk-feedback-csv").disabled = all.length === 0;
+    if (!all.length) {
+      status.textContent = "No feedback yet. It appears here as students submit it.";
+      wkEl("wk-feedback-summary").innerHTML = "";
+      wkEl("wk-feedback-list").innerHTML = "";
+      return;
+    }
+    const avg = shown.length ? (shown.reduce((n, f) => n + f.rating, 0) / shown.length).toFixed(1) : "-";
+    status.textContent = `${shown.length} response${shown.length === 1 ? "" : "s"} shown (${all.length - shown.length} hidden). Average rating ${avg} out of 5.`;
+
+    const teams = new Map<number, AdminFeedback[]>();
+    shown.forEach((f) => teams.set(f.teamNumber, [...(teams.get(f.teamNumber) || []), f]));
+    const uniq = (items: (string | null)[]) => [...new Set(items.map((x) => (x || "").trim()).filter(Boolean))];
+    const rows = [...teams.entries()].sort((a, b) => a[0] - b[0]).map(([team, items]) => {
+      const a = (items.reduce((n, f) => n + f.rating, 0) / items.length).toFixed(1);
+      return `<tr><td><strong>${team}</strong></td><td>${items.length}</td><td>${a}</td>
+        <td>${esc(uniq(items.map((f) => f.teamName)).join(", ") || "-")}</td>
+        <td>${esc(uniq(items.map((f) => f.whatWeMade)).join(" / ") || "-")}</td>
+        <td>${esc(uniq(items.map((f) => f.oneWord)).join(", ") || "-")}</td></tr>`;
+    });
+    wkEl("wk-feedback-summary").innerHTML = rows.length
+      ? `<table class="admin-table"><thead><tr><th>Team</th><th>Replies</th><th>Avg</th><th>Team name</th><th>What they made</th><th>One word</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+      : "";
+
+    const comments = all.filter((f) => (f.wouldChange || "").trim());
+    wkEl("wk-feedback-list").innerHTML = comments.length
+      ? `<h4 style="margin: 0 0 6px; font-size: 0.85rem;">What they would change</h4>` + comments.map((f) => `
+        <div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid #e8e5df; ${f.hidden ? "opacity: 0.5;" : ""}">
+          <div><strong>Team ${f.teamNumber}</strong> <span class="admin-muted">· ${f.rating}/5${f.oneWord ? ` · "${esc(f.oneWord)}"` : ""}</span><br>${esc(f.wouldChange)}</div>
+          <button type="button" class="btn-ghost btn-ghost--small" data-feedback-toggle="${esc(f.id)}">${f.hidden ? "Show" : "Hide"}</button>
+        </div>`).join("")
+      : "";
+  }
+
+  async function toggleFeedbackHidden(id: string) {
+    const f = feedbackCache.find((x) => x.id === id);
+    if (!f) return;
+    const res = await api("/api/admin/workshops", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feedbackId: id, hidden: !f.hidden }) });
+    if (res.ok) { f.hidden = !f.hidden; renderWorkshopFeedback(); }
+  }
+
+  function exportFeedbackCsv() {
+    const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Team", "Rating", "One word", "Would change", "What we made", "Team name", "Hidden", "Submitted"];
+    const lines = [header.map(cell).join(",")].concat(
+      feedbackCache.map((f) => [f.teamNumber, f.rating, f.oneWord, f.wouldChange, f.whatWeMade, f.teamName, f.hidden ? "yes" : "no", f.createdAt].map(cell).join(",")),
+    );
+    const w = editingWorkshopId ? workshopsCache.get(editingWorkshopId) : null;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    a.download = `unstitch-feedback-${w?.code || "workshop"}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function downloadWorkshopQr() {
+    const code = wkEl<HTMLInputElement>("wk-code").value.trim().toUpperCase() || (editingWorkshopId ? workshopsCache.get(editingWorkshopId)?.code ?? "" : "");
+    if (!code) return;
+    const link = workshopLink(code);
+    const qrSize = 640, labelHeight = 96;
+    const qrCanvas = document.createElement("canvas");
+    await drawWorkshopQr(qrCanvas, link, qrSize);
+    const canvas = document.createElement("canvas");
+    canvas.width = qrSize;
+    canvas.height = qrSize + labelHeight;
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(qrCanvas, 0, 0);
+    ctx.fillStyle = "#111111";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 44px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`Code: ${code}`, canvas.width / 2, qrSize + 34);
+    ctx.font = "500 24px system-ui, -apple-system, sans-serif";
+    ctx.fillText("unstitchx.com/workshop", canvas.width / 2, qrSize + 70);
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `unstitch-workshop-${code}-qr.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function saveWorkshop() {
+    const status = wkEl("workshop-detail-status");
+    status.hidden = false;
+    status.textContent = "Saving…";
+    const payload = {
+      id: editingWorkshopId || undefined,
+      schoolName: wkEl<HTMLInputElement>("wk-school").value,
+      workshopDate: wkEl<HTMLInputElement>("wk-date").value || null,
+      teams: Number(wkEl<HTMLInputElement>("wk-teams").value) || 9,
+      code: wkEl<HTMLInputElement>("wk-code").value.trim() || undefined,
+      facilitatorKey: wkEl<HTMLInputElement>("wk-fkey").value.trim() || undefined,
+      expiresOn: wkEl<HTMLInputElement>("wk-expires").value || null,
+      notes: wkEl<HTMLTextAreaElement>("wk-notes").value || null,
+      active: wkEl<HTMLInputElement>("wk-active").checked,
+    };
+    try {
+      const res = await api("/api/admin/workshops", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = (await res.json().catch(() => ({}))) as { workshop?: AdminWorkshop; error?: string };
+      if (!res.ok || !data.workshop) {
+        status.textContent = data.error || "Couldn't save the workshop.";
+        return;
+      }
+      status.textContent = "Saved.";
+      await loadWorkshops();
+      workshopsCache.set(data.workshop.id, data.workshop);
+      openWorkshopDetail(data.workshop);
+      wkEl("workshop-detail-status").hidden = false;
+      wkEl("workshop-detail-status").textContent = "Saved. The link and QR below are ready to use.";
+    } catch {
+      status.textContent = "Couldn't save the workshop.";
+    }
+  }
+
+  async function deleteWorkshop() {
+    if (!editingWorkshopId) return;
+    if (!window.confirm("Permanently delete this workshop and its code? The QR code will stop working.")) return;
+    const res = await api(`/api/admin/workshops?id=${encodeURIComponent(editingWorkshopId)}`, { method: "DELETE" });
+    if (res.ok) {
+      wkEl("workshop-detail").hidden = true;
+      editingWorkshopId = null;
+      await loadWorkshops();
+    } else {
+      const status = wkEl("workshop-detail-status");
+      status.hidden = false;
+      status.textContent = "Couldn't delete the workshop.";
+    }
+  }
+
+  wkEl("workshops-new").addEventListener("click", () => openWorkshopDetail(null));
+  wkEl("workshops-refresh").addEventListener("click", () => loadWorkshops());
+  wkEl("workshop-detail-close").addEventListener("click", () => { wkEl("workshop-detail").hidden = true; });
+  wkEl("workshop-detail-save").addEventListener("click", saveWorkshop);
+  wkEl("workshop-detail-delete").addEventListener("click", deleteWorkshop);
+  wkEl("wk-qr-download").addEventListener("click", () => { downloadWorkshopQr().catch(() => {}); });
+  wkEl("wk-copy").addEventListener("click", async () => {
+    const link = wkEl<HTMLInputElement>("wk-link").value;
+    try { await navigator.clipboard.writeText(link); wkEl("wk-copy").textContent = "Copied"; setTimeout(() => (wkEl("wk-copy").textContent = "Copy link"), 1500); } catch { wkEl<HTMLInputElement>("wk-link").select(); }
+  });
+  wkEl("wk-open").addEventListener("click", () => window.open(wkEl<HTMLInputElement>("wk-link").value, "_blank", "noopener"));
+  wkEl("wk-fcopy").addEventListener("click", async () => {
+    const link = wkEl<HTMLInputElement>("wk-flink").value;
+    try { await navigator.clipboard.writeText(link); wkEl("wk-fcopy").textContent = "Copied"; setTimeout(() => (wkEl("wk-fcopy").textContent = "Copy facilitator link"), 1500); } catch { wkEl<HTMLInputElement>("wk-flink").select(); }
+  });
+  wkEl("wk-fopen").addEventListener("click", () => { const l = wkEl<HTMLInputElement>("wk-flink").value; if (l.startsWith("http")) window.open(l, "_blank", "noopener"); });
+  wkEl("wk-feedback-refresh").addEventListener("click", () => { if (editingWorkshopId) loadWorkshopFeedback(editingWorkshopId); });
+  wkEl("wk-feedback-csv").addEventListener("click", exportFeedbackCsv);
+  wkEl("wk-feedback-list").addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-feedback-toggle]");
+    if (btn) toggleFeedbackHidden(btn.dataset.feedbackToggle as string);
+  });
+  wkEl("workshops-tbody").addEventListener("click", async (e) => {
+    const copyBtn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-wk-copy]");
+    if (copyBtn) {
+      e.stopPropagation();
+      const row = copyBtn.closest<HTMLElement>("[data-workshop-id]");
+      const w = row ? workshopsCache.get(row.dataset.workshopId as string) : null;
+      if (!w) return;
+      const isFac = copyBtn.dataset.wkCopy === "facilitator";
+      if (isFac && !w.facilitatorKey) { copyBtn.textContent = "No key yet: open and save"; return; }
+      const label = isFac ? "Copy facilitator link" : "Copy student link";
+      try {
+        await navigator.clipboard.writeText(isFac ? facilitatorLink(w.facilitatorKey as string) : workshopLink(w.code));
+        copyBtn.textContent = "Copied";
+      } catch { copyBtn.textContent = "Copy failed"; }
+      setTimeout(() => { copyBtn.textContent = label; }, 1500);
+      return;
+    }
+    const tr = (e.target as HTMLElement).closest<HTMLElement>("[data-workshop-id]");
+    if (!tr) return;
+    const w = workshopsCache.get(tr.dataset.workshopId as string);
+    if (w) openWorkshopDetail(w);
+  });
+
   // --- Tabs ---
   function activateTab(target: string) {
     document.querySelectorAll<HTMLButtonElement>(".admin__tab").forEach((t) => {
@@ -2682,6 +3164,8 @@ import Layout from "../../layouts/Layout.astro";
     if (target === "passport") loadPassport();
     if (target === "customers") loadCustomers();
     if (target === "events") loadEvents();
+    if (target === "objects") loadObjects();
+    if (target === "workshops") loadWorkshops();
     if (target === "batch-drops") loadBatchDrops();
     if (target === "email") loadEmailTemplateSettings();
     if (target === "broadcasts") loadBroadcastStats();
@@ -3721,6 +4205,365 @@ import Layout from "../../layouts/Layout.astro";
       } else {
         const data = await res.json();
         showHint(status, data.error || "Failed to delete event.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  // --- Catalogue Objects (the /how-it-works page) ---
+  type AdminObject = {
+    id: string;
+    slug: string;
+    name: string;
+    tagline: string;
+    summary: string;
+    objectType: string;
+    tiles: number | null;
+    materials: string[];
+    buildTime: string | null;
+    credits: Array<{ name: string; role?: string; url?: string }>;
+    imageAlt: string;
+    imageMime: string | null;
+    sortOrder: number;
+    hidden: boolean;
+    updatedAt: string;
+  };
+  const objectsCache = new Map<string, AdminObject>();
+  let currentEditingObjectId: string | null = null;
+  // A photo picked in this edit session, already resized. null = keep what's saved.
+  let pendingObjectImage: { dataUrl: string; width: number; height: number } | null = null;
+  let objectImageRemoved = false;
+  let objectSlugTouched = false;
+
+  const odEl = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  function slugify(v: string): string {
+    return v
+      .toLowerCase()
+      .replace(/×/g, "x")
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 160);
+  }
+
+  function renderObjectRow(o: AdminObject): string {
+    const thumb = o.imageMime
+      ? `<img src="/api/admin/objects?image=${encodeURIComponent(o.id)}&v=${encodeURIComponent(o.updatedAt)}" alt="" style="width:44px;height:44px;object-fit:contain;border-radius:4px;background:#eee;" />`
+      : '<span class="admin-muted">None</span>';
+    const status = o.hidden
+      ? '<span class="admin-status-chip" data-status="VOID">Hidden</span>'
+      : '<span class="admin-status-chip" data-status="IN_STOCK">Live</span>';
+    return `
+      <tr data-object-row data-object-id="${esc(o.id)}" style="cursor:pointer;">
+        <td>${thumb}</td>
+        <td><strong>${esc(o.name)}</strong><div class="admin-muted" style="font-size:0.75rem;">${esc(o.tagline)}</div></td>
+        <td>${esc(o.objectType)}</td>
+        <td>${o.tiles ?? "—"}</td>
+        <td>${esc(o.sortOrder)}</td>
+        <td>${status}</td>
+      </tr>`;
+  }
+
+  type BuiltinObject = Omit<AdminObject, "id" | "imageMime" | "hidden" | "updatedAt"> & { imageUrl: string };
+  const builtinObjectsList = (): BuiltinObject[] => {
+    try {
+      return JSON.parse(document.getElementById("builtin-objects-data")?.textContent || "[]");
+    } catch {
+      return [];
+    }
+  };
+  const importAllBtn = () => odEl<HTMLButtonElement>("objects-import-all");
+
+  function renderBuiltinRow(o: BuiltinObject): string {
+    return `
+      <tr>
+        <td><img src="${esc(o.imageUrl)}" alt="" style="width:44px;height:44px;object-fit:contain;border-radius:4px;background:#fff;" /></td>
+        <td><strong>${esc(o.name)}</strong><div class="admin-muted" style="font-size:0.75rem;">${esc(o.tagline)}</div></td>
+        <td>${esc(o.objectType)}</td>
+        <td>${o.tiles ?? "—"}</td>
+        <td>${esc(o.sortOrder)}</td>
+        <td><span class="admin-status-chip" data-status="RESERVED">Built-in</span> <button type="button" class="admin-link-btn" data-import-builtin="${esc(o.slug)}">Import to edit</button></td>
+      </tr>`;
+  }
+
+  // Copies a built-in object (and its photo) into the database so it can be edited here.
+  async function importBuiltinObject(o: BuiltinObject): Promise<void> {
+    const imgRes = await fetch(o.imageUrl);
+    if (!imgRes.ok) throw new Error(`Couldn't read the photo for ${o.name}.`);
+    const photo = await resizeObjectPhoto(await imgRes.blob());
+    const res = await api("/api/admin/objects", {
+      method: "POST",
+      body: JSON.stringify({
+        slug: o.slug,
+        name: o.name,
+        tagline: o.tagline,
+        summary: o.summary,
+        objectType: o.objectType,
+        tiles: o.tiles,
+        materials: o.materials,
+        buildTime: o.buildTime,
+        credits: o.credits,
+        imageAlt: o.imageAlt,
+        sortOrder: o.sortOrder,
+        hidden: false,
+        imageDataUrl: photo.dataUrl,
+        imageWidth: photo.width,
+        imageHeight: photo.height,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error((data as { error?: string }).error || `Couldn't import ${o.name}.`);
+    }
+  }
+
+  async function importBuiltin(slug: string, btn: HTMLButtonElement) {
+    const o = builtinObjectsList().find((b) => b.slug === slug);
+    if (!o) return;
+    btn.disabled = true;
+    btn.textContent = "Importing…";
+    try {
+      await importBuiltinObject(o);
+      await loadObjects();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "Import to edit";
+      alert((e as Error).message);
+    }
+  }
+
+  document.getElementById("objects-import-all")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = "Importing…";
+    try {
+      const saved = new Set(Array.from(objectsCache.values()).map((o) => o.slug));
+      for (const o of builtinObjectsList()) {
+        if (!saved.has(o.slug)) await importBuiltinObject(o);
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Import built-in objects";
+      await loadObjects();
+    }
+  });
+
+  async function loadObjects() {
+    const tbody = odEl<HTMLTableSectionElement>("objects-tbody");
+    try {
+      const res = await api("/api/admin/objects");
+      if (!res.ok) {
+        // Show the server's reason (e.g. table not created yet) instead of a bare failure.
+        let reason = res.status === 404 ? "The catalogue API isn't running. Restart the dev server (pnpm dev)." : "";
+        try { reason = ((await res.json()) as { error?: string }).error || reason; } catch { /* not JSON */ }
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load objects. ${esc(reason)}</td></tr>`;
+        return;
+      }
+      const { objects } = (await res.json()) as { objects: AdminObject[] };
+      objectsCache.clear();
+      objects.forEach((o) => objectsCache.set(o.id, o));
+      const saved = new Set(objects.map((o) => o.slug));
+      const pending = builtinObjectsList().filter((b) => !saved.has(b.slug));
+      importAllBtn().hidden = pending.length === 0;
+      if (!objects.length && !pending.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Nothing here yet. Click "+ New object" above.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = objects.map(renderObjectRow).join("") + pending.map(renderBuiltinRow).join("");
+      tbody.querySelectorAll<HTMLElement>("[data-object-row]").forEach((row) => {
+        row.addEventListener("click", () => openObjectDetail(row.dataset.objectId));
+      });
+      tbody.querySelectorAll<HTMLButtonElement>("[data-import-builtin]").forEach((btn) => {
+        btn.addEventListener("click", () => importBuiltin(btn.dataset.importBuiltin || "", btn));
+      });
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load objects.</td></tr>`;
+    }
+  }
+
+  function addCreditRow(c: { name?: string; role?: string; url?: string } = {}) {
+    const row = document.createElement("div");
+    row.className = "od-credit";
+    row.style.cssText = "display:grid;grid-template-columns:1.2fr 1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:center;";
+    row.innerHTML = `
+      <input type="text" class="od-credit-name" maxlength="120" placeholder="Name" value="${esc(c.name || "")}" />
+      <input type="text" class="od-credit-role" maxlength="80" placeholder="Role (Designer, Maker…)" value="${esc(c.role || "")}" />
+      <input type="text" class="od-credit-url" maxlength="500" placeholder="Link (optional) https://…" value="${esc(c.url || "")}" />
+      <button type="button" class="btn-ghost btn-ghost--small" aria-label="Remove person">×</button>`;
+    row.querySelector("button")?.addEventListener("click", () => row.remove());
+    odEl("od-credits").appendChild(row);
+  }
+
+  function setObjectPreview(src: string | null) {
+    const img = odEl<HTMLImageElement>("od-preview");
+    const removeBtn = odEl<HTMLButtonElement>("od-remove-image");
+    if (src) {
+      img.src = src;
+      img.hidden = false;
+      removeBtn.hidden = false;
+    } else {
+      img.removeAttribute("src");
+      img.hidden = true;
+      removeBtn.hidden = true;
+    }
+  }
+
+  function openObjectDetail(id?: string) {
+    const o = id ? objectsCache.get(id) : undefined;
+    currentEditingObjectId = o ? o.id : null;
+    pendingObjectImage = null;
+    objectImageRemoved = false;
+    objectSlugTouched = !!o;
+    odEl("object-detail-status").hidden = true;
+    odEl("object-detail-heading").textContent = o ? `Edit object: ${o.name}` : "New object";
+    odEl<HTMLButtonElement>("object-detail-delete").hidden = !o;
+    odEl<HTMLInputElement>("od-name").value = o?.name || "";
+    odEl<HTMLInputElement>("od-slug").value = o?.slug || "";
+    odEl<HTMLInputElement>("od-tagline").value = o?.tagline || "";
+    odEl<HTMLInputElement>("od-type").value = o?.objectType || "";
+    odEl<HTMLInputElement>("od-tiles").value = o?.tiles != null ? String(o.tiles) : "";
+    odEl<HTMLInputElement>("od-build-time").value = o?.buildTime || "";
+    odEl<HTMLInputElement>("od-sort").value = String(o?.sortOrder ?? 100);
+    odEl<HTMLTextAreaElement>("od-summary").value = o?.summary || "";
+    odEl<HTMLInputElement>("od-materials").value = (o?.materials || []).join(", ");
+    odEl<HTMLInputElement>("od-alt").value = o?.imageAlt || "";
+    odEl<HTMLInputElement>("od-visible").checked = o ? !o.hidden : true;
+    odEl<HTMLInputElement>("od-file").value = "";
+    odEl("od-credits").innerHTML = "";
+    const credits = o?.credits?.length ? o.credits : [{ name: "Unstitch", role: "Designer" }];
+    credits.forEach((c) => addCreditRow(c));
+    setObjectPreview(o?.imageMime ? `/api/admin/objects?image=${encodeURIComponent(o.id)}&v=${encodeURIComponent(o.updatedAt)}` : null);
+    odEl("object-detail").hidden = false;
+    odEl("object-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Resize in the browser so a phone photo (several MB) becomes ~100-200KB.
+  async function resizeObjectPhoto(file: Blob): Promise<{ dataUrl: string; width: number; height: number }> {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas");
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    let dataUrl = canvas.toDataURL("image/webp", 0.86);
+    if (!dataUrl.startsWith("data:image/webp")) dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+    return { dataUrl, width, height };
+  }
+
+  odEl<HTMLInputElement>("od-name")?.addEventListener("input", () => {
+    if (!currentEditingObjectId && !objectSlugTouched) {
+      odEl<HTMLInputElement>("od-slug").value = slugify(odEl<HTMLInputElement>("od-name").value);
+    }
+  });
+  odEl<HTMLInputElement>("od-slug")?.addEventListener("input", () => { objectSlugTouched = true; });
+  odEl<HTMLButtonElement>("od-credit-add")?.addEventListener("click", () => addCreditRow());
+  odEl<HTMLInputElement>("od-file")?.addEventListener("change", async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    const status = odEl("object-detail-status");
+    if (!file) return;
+    try {
+      pendingObjectImage = await resizeObjectPhoto(file);
+      objectImageRemoved = false;
+      setObjectPreview(pendingObjectImage.dataUrl);
+      status.hidden = true;
+    } catch {
+      pendingObjectImage = null;
+      showHint(status, "Couldn't read that image. Try a PNG, JPEG or WebP.", false);
+    }
+  });
+  odEl<HTMLButtonElement>("od-remove-image")?.addEventListener("click", () => {
+    pendingObjectImage = null;
+    objectImageRemoved = true;
+    odEl<HTMLInputElement>("od-file").value = "";
+    setObjectPreview(null);
+  });
+
+  document.getElementById("objects-new")?.addEventListener("click", () => openObjectDetail());
+  document.getElementById("objects-refresh")?.addEventListener("click", loadObjects);
+  document.getElementById("object-detail-close")?.addEventListener("click", () => {
+    odEl("object-detail").hidden = true;
+  });
+
+  document.getElementById("object-detail-save")?.addEventListener("click", async () => {
+    const status = odEl("object-detail-status");
+    const name = odEl<HTMLInputElement>("od-name").value.trim();
+    const slug = odEl<HTMLInputElement>("od-slug").value.trim();
+    const tagline = odEl<HTMLInputElement>("od-tagline").value.trim();
+    const objectType = odEl<HTMLInputElement>("od-type").value.trim();
+    const summary = odEl<HTMLTextAreaElement>("od-summary").value.trim();
+    const imageAlt = odEl<HTMLInputElement>("od-alt").value.trim();
+    if (!name || !slug || !tagline || !objectType || !summary || !imageAlt) {
+      return showHint(status, "Name, slug, tagline, type, summary and photo description are all required.", false);
+    }
+    const tilesRaw = odEl<HTMLInputElement>("od-tiles").value.trim();
+    const credits = Array.from(document.querySelectorAll<HTMLElement>("#od-credits .od-credit"))
+      .map((row) => ({
+        name: (row.querySelector(".od-credit-name") as HTMLInputElement).value.trim(),
+        role: (row.querySelector(".od-credit-role") as HTMLInputElement).value.trim(),
+        url: (row.querySelector(".od-credit-url") as HTMLInputElement).value.trim(),
+      }))
+      .filter((c) => c.name);
+
+    const body: Record<string, unknown> = {
+      id: currentEditingObjectId || undefined,
+      name,
+      slug,
+      tagline,
+      objectType,
+      summary,
+      imageAlt,
+      tiles: tilesRaw ? Number(tilesRaw) : null,
+      buildTime: odEl<HTMLInputElement>("od-build-time").value.trim() || null,
+      materials: odEl<HTMLInputElement>("od-materials").value.split(",").map((m) => m.trim()).filter(Boolean),
+      credits,
+      sortOrder: Number.isFinite(Number(odEl<HTMLInputElement>("od-sort").value)) ? Number(odEl<HTMLInputElement>("od-sort").value) : 100,
+      hidden: !odEl<HTMLInputElement>("od-visible").checked,
+      removeImage: objectImageRemoved,
+    };
+    if (pendingObjectImage) {
+      body.imageDataUrl = pendingObjectImage.dataUrl;
+      body.imageWidth = pendingObjectImage.width;
+      body.imageHeight = pendingObjectImage.height;
+    }
+
+    try {
+      const res = await api("/api/admin/objects", { method: "POST", body: JSON.stringify(body) });
+      const data = await res.json();
+      if (res.ok) {
+        currentEditingObjectId = data.object.id;
+        pendingObjectImage = null;
+        objectImageRemoved = false;
+        showHint(status, "Saved. It's live on the How it works page.", true);
+        await loadObjects();
+        odEl<HTMLButtonElement>("object-detail-delete").hidden = false;
+      } else {
+        showHint(status, data.error || "Failed to save object.", false);
+      }
+    } catch {
+      showHint(status, "Network error.", false);
+    }
+  });
+
+  document.getElementById("object-detail-delete")?.addEventListener("click", async () => {
+    if (!currentEditingObjectId) return;
+    if (!confirm("Permanently delete this object? This can't be undone.")) return;
+    const status = odEl("object-detail-status");
+    try {
+      const res = await api(`/api/admin/objects?id=${encodeURIComponent(currentEditingObjectId)}`, { method: "DELETE" });
+      if (res.ok) {
+        odEl("object-detail").hidden = true;
+        loadObjects();
+      } else {
+        const data = await res.json();
+        showHint(status, data.error || "Failed to delete object.", false);
       }
     } catch {
       showHint(status, "Network error.", false);
@@ -6284,10 +7127,115 @@ import Layout from "../../layouts/Layout.astro";
           generalDraftApplied = true;
         }
         renderBroadcastWaitlists(data.waitlists || []);
+        renderSentHistory(data.sentHistory || []);
       }
     } catch {
       // Silent -- the per-product cards just stay on their "Loading…" state.
     }
+  }
+
+  type SentBroadcastSummary = {
+    id: string;
+    mode: "general" | "waitlist";
+    productId: string | null;
+    productName: string | null;
+    subject: string;
+    sentAt: string;
+    sentCount: number;
+    failedCount: number;
+    totalRecipients: number;
+  };
+
+  function formatSentAt(sentAt: string): string {
+    try {
+      return new Date(sentAt).toLocaleString();
+    } catch {
+      return sentAt;
+    }
+  }
+
+  function renderSentHistory(history: SentBroadcastSummary[]) {
+    const container = document.getElementById("broadcast-sent-list") as HTMLElement;
+    if (!history.length) {
+      container.innerHTML = `<p class="admin-muted">Nothing sent yet.</p>`;
+      return;
+    }
+    container.innerHTML = history
+      .map((item) => {
+        const target = item.mode === "general" ? "General newsletter" : `Waitlist: ${item.productName || "Unknown product"}`;
+        const countLabel = item.failedCount
+          ? `${item.sentCount}/${item.totalRecipients} sent (${item.failedCount} failed)`
+          : `${item.sentCount}/${item.totalRecipients} sent`;
+        return `
+        <div class="admin-card admin-card--nested" data-sent-id="${item.id}">
+          <div class="admin-field-row" style="justify-content:space-between;align-items:flex-start;">
+            <div>
+              <strong>${(item.subject || "(no subject)").replace(/</g, "&lt;")}</strong>
+              <p class="admin-muted" style="margin:2px 0 0;">${target} · ${formatSentAt(item.sentAt)} · ${countLabel}</p>
+            </div>
+            <div class="admin-field-row">
+              <button type="button" class="btn-ghost btn-ghost--small sent-view">View</button>
+              <button type="button" class="btn-ghost btn-ghost--small sent-load">Load into composer</button>
+            </div>
+          </div>
+        </div>`;
+      })
+      .join("");
+
+    container.querySelectorAll<HTMLButtonElement>(".sent-view").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = (btn.closest("[data-sent-id]") as HTMLElement).dataset.sentId;
+        btn.disabled = true;
+        try {
+          const res = await api(`/api/admin/broadcast?sentId=${encodeURIComponent(id || "")}`);
+          const data = await res.json();
+          if (res.ok && data.record?.previewHtml) openEmailPreview(data.record.previewHtml);
+          else window.alert(data.error || "Failed to load that sent broadcast.");
+        } catch {
+          window.alert("Network error.");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    container.querySelectorAll<HTMLButtonElement>(".sent-load").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = (btn.closest("[data-sent-id]") as HTMLElement).dataset.sentId;
+        btn.disabled = true;
+        try {
+          const res = await api(`/api/admin/broadcast?sentId=${encodeURIComponent(id || "")}`);
+          const data = await res.json();
+          if (!res.ok || !data.record) {
+            window.alert(data.error || "Failed to load that sent broadcast.");
+            return;
+          }
+          const record = data.record;
+          if (record.mode !== "general") {
+            // Waitlist cards are rebuilt from scratch on every stats refresh
+            // (see renderBroadcastWaitlists), so there's no stable element to
+            // load a waitlist send back into -- only the general newsletter
+            // card stays mounted across a refresh. Loading a past waitlist
+            // send into the general card would silently change who it's
+            // sent to, which is worse than just not offering it here.
+            window.alert(`This was a waitlist send for "${record.productName || "a product"}". Loading past sends back into a waitlist card isn't supported yet -- copy the subject/content manually if you'd like to resend it.`);
+            return;
+          }
+          (document.getElementById("broadcast-general-subject") as HTMLInputElement).value = record.subject || "";
+          (document.getElementById("broadcast-general-gif-url") as HTMLInputElement).value = record.gifUrl || "";
+          (document.getElementById("broadcast-general-sig-name") as HTMLInputElement).value = record.signatureName || "";
+          (document.getElementById("broadcast-general-sig-role") as HTMLInputElement).value = record.signatureRole || "";
+          generalComposer.setBlocks(migrateDraftBlocks(record.blocks || []));
+          (document.getElementById("broadcast-general-draft-status") as HTMLElement).textContent =
+            `Loaded from the ${formatSentAt(record.sentAt)} send -- not saved as a draft yet, and not sent until you click Send.`;
+          document.querySelector('[data-tab="broadcasts"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          window.alert("Network error.");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
   }
 
   function renderBroadcastWaitlists(waitlists: { productId: string; productName: string; pendingCount: number }[]) {

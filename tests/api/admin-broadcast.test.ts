@@ -66,6 +66,10 @@ describe('admin/broadcast API handler', () => {
     mockSend.mockClear();
     process.env.SESSION_SECRET = 'test-secret-for-admin-broadcast';
     process.env.RESEND_API_KEY = 'test-resend-key';
+    // The sent-history list (GET) and the best-effort record of a real send (POST)
+    // both touch prisma.broadcastSend; keep them off the real database.
+    vi.spyOn(prisma.broadcastSend, 'findMany').mockResolvedValue([] as any);
+    vi.spyOn(prisma.broadcastSend, 'create').mockResolvedValue({} as any);
   });
 
   it('returns 401 without a valid admin session', async () => {
@@ -106,6 +110,7 @@ describe('admin/broadcast API handler', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.products).toEqual([product]);
       expect(res.body.drafts).toEqual({ general: null, waitlist: {} });
+      expect(res.body.sentHistory).toEqual([]);
     });
 
     it('hands back a previously saved general draft and per-product waitlist drafts', async () => {

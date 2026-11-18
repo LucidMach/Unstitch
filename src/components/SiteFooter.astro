@@ -37,10 +37,16 @@
       </div>
     </div>
 
-    <p class="site-footer__ack">
+    <div class="site-footer__ack-row">
+      <p class="site-footer__ack">
       We acknowledge the Wurundjeri people of the Kulin Nation, the traditional custodians of this land on which we work. We pay our respects to their Elders, past and present, and recognise their creativity and connection to this unceded land.
     </p>
 
+      <div class="site-footer__partners">
+        <p class="site-footer__partners-label">Supported by</p>
+        <img class="partner-monash" src="/assets/partners/monash-university-logo.svg" alt="Monash University" loading="lazy" />
+      </div>
+    </div>
     <div class="site-footer__bottom">
       <span>© 2025–2026 Unstitch | Naarm, Melbourne Australia</span>
       <div class="site-footer__social" aria-label="Social media">
@@ -61,3 +67,16 @@
     </div>
   </div>
 </footer>
+
+<style is:global>
+  .site-footer__ack-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px 48px; flex-wrap: wrap; margin-bottom: 22px; }
+  .site-footer__ack-row .site-footer__ack { margin-bottom: 0; }
+  .site-footer__partners { display: grid; gap: 8px; justify-items: end; }
+  .site-footer__partners-label { margin: 0; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: #555; }
+  .site-footer__partners img { height: 36px; width: auto; filter: grayscale(100%); opacity: 0.8; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .site-footer__partners img:hover { filter: none; opacity: 1; }
+  @media (max-width: 640px) {
+    .site-footer__partners { justify-items: start; }
+    .site-footer__partners img { height: 30px; }
+  }
+</style>

@@ -33,6 +33,8 @@ import batchDrops from '../../src/server/admin/batch-drops.js';
 import settings from '../../src/server/admin/settings.js';
 import broadcast from '../../src/server/admin/broadcast.js';
 import reviews from '../../src/server/admin/reviews.js';
+import objects from '../../src/server/admin/objects.js';
+import workshops from '../../src/server/admin/workshops.js';
 
 const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   customers,
@@ -48,6 +50,8 @@ const ROUTES: Record<string, (req: any, res: any) => Promise<any> | any> = {
   settings,
   broadcast,
   reviews,
+  objects,
+  workshops,
 };
 
 export default async function handler(req: any, res: any): Promise<any> {

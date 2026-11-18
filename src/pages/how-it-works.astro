@@ -1,0 +1,674 @@
+---
+import { Image } from "astro:assets";
+import Layout from "../layouts/Layout.astro";
+import { objects, howItWorksSteps, howItWorksFaq, creditLine } from "../lib/constants/objects";
+
+const siteUrl = (Astro.site ? Astro.site.toString() : "https://www.unstitchx.com").replace(/\/+$/, "");
+const pageUrl = `${siteUrl}/how-it-works`;
+
+const title = "How Unstitch Works | Interlocking Textile Tiles & Object Catalogue";
+const description =
+  "Unstitch tiles are cut from rescued deadstock and join with tabs and slots, with no sewing or glue. See how it works and browse the objects built from them.";
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${pageUrl}#collection`,
+    url: pageUrl,
+    name: "Unstitch object catalogue",
+    description,
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    publisher: { "@id": `${siteUrl}/#organization` },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: objects.map((o, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "CreativeWork",
+          "@id": `${pageUrl}#${o.slug}`,
+          url: `${pageUrl}#${o.slug}`,
+          name: o.name,
+          description: o.summary,
+          ...(o.materials?.length ? { material: o.materials } : {}),
+          creator: o.designedBy.map((c) =>
+            c.name === "Unstitch"
+              ? { "@id": `${siteUrl}/#organization` }
+              : { "@type": "Thing", name: c.name, ...(c.url ? { url: c.url } : {}) }
+          ),
+        },
+      })),
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "How it works", item: pageUrl },
+    ],
+  },
+];
+
+// Card caption options (compare with ?caption=description):
+//   default     -> "14 tiles · by Unstitch"
+//   description -> the longer tagline
+const metaFor = (o: (typeof objects)[number]) =>
+  `${o.tiles ? `${o.tiles} tiles · ` : ""}by ${o.designedBy.map((c) => c.name).join(", ")}`;
+
+const factsFor = (o: (typeof objects)[number]) => [
+  ["Type", o.objectType],
+  ...(o.tiles ? [["Tiles", String(o.tiles)]] : []),
+  ...(o.materials?.length ? [["Materials", o.materials.join(", ")]] : []),
+  ...(o.buildTime ? [["Build time", o.buildTime]] : []),
+];
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords="how unstitch works, interlocking textile tiles, no sew textile objects, tab and slot fabric tiles, deadstock textile objects, unstitch catalogue"
+  image="/Hero.png"
+  imageAlt="Unstitch interlocking textile tiles built into objects"
+  jsonLd={jsonLd}
+  noindex={true}
+>
+  <main>
+    <!-- ============ HOW IT WORKS (blueprint) ============ -->
+    <section class="blueprint" aria-labelledby="hiw-title">
+      <div class="wrap blueprint__inner">
+        <p class="blueprint__eyebrow">How it works</p>
+        <h1 id="hiw-title" class="blueprint__title">One tile. Four steps. Endless objects.</h1>
+        <p class="blueprint__lede">
+          Unstitch is a set of interlocking textile tiles cut from rescued deadstock. Each tile has tabs and slots, so tiles join into 3D objects without sewing, stitching or glue, and come apart again to be made into something new.
+        </p>
+
+        <div class="bp-grid" data-hiw data-active="1">
+          <ol class="bp-steps">
+            {howItWorksSteps.map((s, i) => (
+              <li>
+                <button
+                  type="button"
+                  class:list={["bp-step", { "is-active": i === 0 }]}
+                  data-step={i + 1}
+                  aria-pressed={i === 0 ? "true" : "false"}
+                  aria-controls="bp-stage"
+                >
+                  <span class="bp-step__n">{s.n}</span>
+                  <span class="bp-step__text">
+                    <span class="bp-step__title">{s.title}</span>
+                    <span class="bp-step__body">{s.body}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+
+          <figure class="bp-stage" id="bp-stage">
+            <svg viewBox="0 0 480 340" role="img" aria-labelledby="bp-stage-title" class="bp-svg">
+              <title id="bp-stage-title">Blueprint diagram of the four steps: offcuts, a cut tile with a tab and slot, two tiles interlocking, and a row of tiles rebuilt into a new shape.</title>
+
+              <!-- 1 Source: irregular offcuts -->
+              <g class="bp-g bp-g1">
+                <polygon points="60,80 150,60 190,120 120,160 70,140" class="bp-dash" />
+                <polygon points="210,90 300,70 330,140 250,170" class="bp-dash" />
+                <polygon points="120,190 230,200 250,270 150,290 100,250" class="bp-dash" />
+                <polygon points="290,200 400,190 410,270 320,285" class="bp-dash" />
+                <polygon points="340,70 420,95 400,150 345,140" class="bp-dash" />
+                <text x="240" y="320" class="bp-label" text-anchor="middle">{howItWorksSteps[0].label}</text>
+              </g>
+
+              <!-- 2 Cut: one tile with tab (right) and slot (left) -->
+              <g class="bp-g bp-g2">
+                <rect x="150" y="90" width="150" height="150" class="bp-line" />
+                <rect x="300" y="145" width="26" height="40" class="bp-line bp-fill" />
+                <rect x="150" y="145" width="26" height="40" class="bp-dash" />
+                <line x1="150" y1="262" x2="300" y2="262" class="bp-dim" />
+                <line x1="150" y1="256" x2="150" y2="268" class="bp-dim" />
+                <line x1="300" y1="256" x2="300" y2="268" class="bp-dim" />
+                <text x="225" y="282" class="bp-label" text-anchor="middle">tile</text>
+                <text x="336" y="170" class="bp-label">tab</text>
+                <text x="116" y="170" class="bp-label" text-anchor="end">slot</text>
+                <text x="240" y="322" class="bp-label" text-anchor="middle">{howItWorksSteps[1].label}</text>
+              </g>
+
+              <!-- 3 Interlock: the right tile slides left so the tab enters the slot -->
+              <g class="bp-g bp-g3">
+                <rect x="60" y="100" width="130" height="130" class="bp-line" />
+                <g class="bp-slide">
+                  <rect x="215" y="100" width="130" height="130" class="bp-line" />
+                  <rect x="189" y="145" width="26" height="40" class="bp-line bp-fill" />
+                </g>
+                <rect x="190" y="145" width="26" height="40" class="bp-dash bp-slot3" />
+                <text x="240" y="322" class="bp-label" text-anchor="middle">{howItWorksSteps[2].label}</text>
+              </g>
+
+              <!-- 4 Re-make: a row becomes an L -->
+              <g class="bp-g bp-g4">
+                <g class="bp-line-g">
+                  <rect x="40" y="130" width="60" height="60" class="bp-line" />
+                  <rect x="100" y="130" width="60" height="60" class="bp-line" />
+                  <rect x="160" y="130" width="60" height="60" class="bp-line" />
+                  <rect x="220" y="130" width="60" height="60" class="bp-line" />
+                </g>
+                <path d="M300 160 H340" class="bp-dim" />
+                <path d="M334 154 L342 160 L334 166" class="bp-dim" />
+                <g class="bp-line-g">
+                  <rect x="360" y="90" width="60" height="60" class="bp-line" />
+                  <rect x="360" y="150" width="60" height="60" class="bp-line" />
+                  <rect x="360" y="210" width="60" height="60" class="bp-line" />
+                  <rect x="420" y="210" width="40" height="60" class="bp-line bp-fill" />
+                </g>
+                <text x="240" y="322" class="bp-label" text-anchor="middle">{howItWorksSteps[3].label}</text>
+              </g>
+            </svg>
+            <figcaption class="bp-caption" data-hiw-caption>{howItWorksSteps[0].body}</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OBJECT CATALOGUE ============ -->
+    <section class="wrap section catalogue" aria-labelledby="cat-title">
+      <p class="section__eyebrow">The objects</p>
+      <h2 id="cat-title" class="catalogue__title">Made from the same tiles</h2>
+      <p class="catalogue__lede">
+        Everything below is built from the same interlocking tiles. Open one to see what it's made of and who made it.
+      </p>
+
+      <ul class="cat-grid" data-cat-grid>
+        {objects.map((o, i) => (
+          <li class="cat-item" data-cat-item data-order={(i + 1) * 10}>
+            <button type="button" class="cat-card" data-open-object={o.slug} aria-haspopup="dialog" aria-label={`${o.name}: ${o.tagline}`}>
+              <span class="cat-card__media">
+                <Image
+                  src={o.image}
+                  alt={o.imageAlt}
+                  width={800}
+                  widths={[320, 480, 640, 800]}
+                  sizes="(min-width: 1000px) 280px, (min-width: 640px) 33vw, 50vw"
+                  loading="lazy"
+                  class="cat-card__img"
+                />
+              </span>
+              <span class="cat-card__label">
+                <span class="cat-card__name">{o.name}</span>
+                <span class="cat-card__meta cat-card__meta--short">{metaFor(o)}</span>
+                <span class="cat-card__meta cat-card__meta--desc">{o.tagline}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <div class="stitch" aria-hidden="true"></div>
+
+    <!-- ============ FAQ ============ -->
+    <section class="wrap section faq" aria-labelledby="faq-title">
+      <p class="section__eyebrow">Questions</p>
+      <h2 id="faq-title" class="faq__title">Quick answers</h2>
+      <div class="faq__list">
+        {howItWorksFaq.map((f) => (
+          <details class="faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <!-- ============ OBJECT POPUP (same pattern as the Material Archive) ============ -->
+    <div class="material-overlay" data-obj-overlay hidden></div>
+    <div class="material-shell obj-shell" data-obj-shell hidden role="dialog" aria-modal="true" aria-label="Object detail">
+      <div class="modal-ctrls">
+        <button type="button" class="modal-ctrl" data-obj-prev aria-label="Previous object">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="modal-ctrl" data-obj-next aria-label="Next object">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="modal-ctrl" data-obj-close aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="material-scroll" data-obj-scroll>
+        <div data-obj-panels>
+          {objects.map((o, i) => (
+            <article class="obj-panel" data-obj-panel={o.slug} data-order={(i + 1) * 10} hidden>
+              <div class="obj-panel__media">
+                <Image src={o.image} alt={o.imageAlt} width={1000} widths={[500, 800, 1000]} sizes="(min-width: 860px) 460px, 90vw" loading="lazy" class="obj-panel__img" />
+              </div>
+              <div class="obj-panel__info">
+                <p class="section__eyebrow">{o.objectType}</p>
+                <h2 class="obj-panel__title">{o.name}</h2>
+                <p class="obj-panel__summary">{o.summary}</p>
+                <dl class="obj-facts">
+                  {factsFor(o).map(([k, v]) => (
+                    <div class="obj-facts__row"><dt>{k}</dt><dd>{v}</dd></div>
+                  ))}
+                  <div class="obj-facts__row">
+                    <dt>Made by</dt>
+                    <dd>
+                      {o.designedBy.map((c, i) => (
+                        <>
+                          {i > 0 && ", "}
+                          {c.url ? <a href={c.url} target="_blank" rel="noopener">{c.name}</a> : c.name}
+                          {c.role && o.designedBy.length > 1 ? ` (${c.role})` : ""}
+                        </>
+                      ))}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style is:global>
+  /* ---------- blueprint ---------- */
+  .blueprint {
+    --bp-line: rgba(255, 255, 255, 0.9);
+    --bp-faint: rgba(255, 255, 255, 0.14);
+    --bp-faint-major: rgba(255, 255, 255, 0.26);
+    background-color: var(--accent);
+    background-image:
+      linear-gradient(var(--bp-faint-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bp-faint-major) 1px, transparent 1px),
+      linear-gradient(var(--bp-faint) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bp-faint) 1px, transparent 1px);
+    background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+    color: #fff;
+    padding: 56px 0 64px;
+  }
+  .blueprint__eyebrow {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.78rem;
+    margin: 0 0 12px;
+    opacity: 0.9;
+  }
+  .blueprint__title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.08;
+    margin: 0 0 16px;
+    max-width: 18ch;
+  }
+  .blueprint__lede { max-width: 62ch; font-size: 1.05rem; line-height: 1.55; margin: 0 0 36px; }
+
+  .bp-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 32px; align-items: start; }
+  .bp-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .bp-step {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .bp-step:hover { border-color: #fff; }
+  .bp-step:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .bp-step.is-active { background: #fff; color: var(--ink); border-color: #fff; }
+  .bp-step__n { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; min-width: 2ch; }
+  .bp-step__text { display: grid; gap: 4px; }
+  .bp-step__title { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+  .bp-step__body { font-size: 0.95rem; line-height: 1.45; }
+
+  .bp-stage {
+    margin: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius);
+    background: rgba(0, 0, 0, 0.14);
+    padding: 12px;
+  }
+  .bp-svg { display: block; width: 100%; height: auto; }
+  .bp-caption { margin: 8px 4px 2px; font-size: 0.92rem; line-height: 1.45; min-height: 2.8em; }
+
+  .bp-svg .bp-line { fill: none; stroke: var(--bp-line); stroke-width: 2; }
+  .bp-svg .bp-fill { fill: rgba(255, 255, 255, 0.28); }
+  .bp-svg .bp-dash { fill: none; stroke: var(--bp-line); stroke-width: 1.6; stroke-dasharray: 6 5; }
+  .bp-svg .bp-dim { fill: none; stroke: var(--bp-line); stroke-width: 1.2; }
+  .bp-svg .bp-label { fill: #fff; font-family: var(--font-display); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* Only the active step's drawing shows. Without JS data-active stays 1. */
+  .bp-g { opacity: 0; visibility: hidden; transition: opacity 0.35s ease; }
+  .bp-grid[data-active="1"] .bp-g1,
+  .bp-grid[data-active="2"] .bp-g2,
+  .bp-grid[data-active="3"] .bp-g3,
+  .bp-grid[data-active="4"] .bp-g4 { opacity: 1; visibility: visible; }
+
+  /* Step 3: the right-hand tile slides in so the tab enters the slot. */
+  .bp-slide { transform: translateX(26px); }
+  .bp-grid[data-active="3"] .bp-slide { animation: bp-slide 2.4s ease-in-out infinite alternate; }
+  @keyframes bp-slide { from { transform: translateX(26px); } to { transform: translateX(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .bp-grid[data-active="3"] .bp-slide { animation: none; transform: translateX(0); }
+    .bp-g { transition: none; }
+  }
+
+  /* ---------- catalogue ---------- */
+  .catalogue__title { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0 0 10px; }
+  .catalogue__lede { max-width: 60ch; margin: 0 0 28px; line-height: 1.55; }
+  .cat-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: start; }
+  .cat-item { margin: 0; }
+
+  /* Square photo (white behind it, whole photo always visible) with the
+     name and caption in a strip underneath. */
+  .cat-card {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .cat-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .cat-card__media { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; background: #fff; }
+  .cat-card__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: transform 0.4s ease; }
+  .cat-card:hover .cat-card__img, .cat-card:focus-visible .cat-card__img { transform: scale(1.03); }
+  .cat-card__label { display: grid; gap: 2px; padding: 9px 12px 10px; border-top: 1.5px solid var(--ink); background: var(--paper); }
+  .cat-card__name { font-family: var(--font-display); font-weight: 600; font-size: 0.98rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-card__meta { font-size: 0.78rem; color: #555; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-card__meta--desc { display: none; }
+  [data-caption="description"] .cat-card__meta--short { display: none; }
+  [data-caption="description"] .cat-card__meta--desc { display: block; }
+
+  /* ---------- popup ---------- */
+  .material-overlay {
+    position: fixed; inset: 0; background: rgba(17, 17, 17, 0.6); backdrop-filter: blur(4px);
+    z-index: 100; opacity: 0; transition: opacity 0.25s ease;
+  }
+  .material-overlay.is-open { opacity: 1; }
+  .material-shell {
+    position: fixed; inset: 32px; background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius);
+    z-index: 110; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 48px rgba(0,0,0,0.25);
+    opacity: 0; transform: scale(0.96); transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .material-shell.is-open { opacity: 1; transform: scale(1); }
+  .material-scroll { overflow-y: auto; height: 100%; padding: 36px; display: flex; justify-content: center; }
+
+  /* Compact, centred card that sizes to its content. */
+  .obj-shell { inset: 0; margin: auto; width: min(820px, calc(100vw - 32px)); height: fit-content; max-height: calc(100vh - 48px); }
+  .obj-shell .material-scroll { height: auto; padding: 28px; }
+  .obj-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; width: 100%; margin: 0; padding-top: 20px; }
+  .obj-panel[hidden] { display: none; }
+  .obj-panel__media { border: 1.5px solid var(--ink); border-radius: var(--radius); overflow: hidden; background: #fff; aspect-ratio: 1 / 1; }
+  .obj-panel__img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .obj-panel__title { font-family: var(--font-display); font-size: clamp(1.6rem, 3.4vw, 2.1rem); line-height: 1.1; margin: 0 0 12px; padding-right: 0; }
+  .obj-panel__summary { font-size: 1rem; line-height: 1.55; margin: 0 0 18px; }
+  .obj-facts { margin: 0; border-top: 1.5px solid var(--ink); }
+  .obj-facts__row { display: grid; grid-template-columns: 7.5rem 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid #ddd; }
+  .obj-facts dt { font-weight: 600; font-size: 0.88rem; }
+  .obj-facts dd { margin: 0; font-size: 0.92rem; }
+  .obj-facts a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ---------- faq ---------- */
+  .faq__title { font-family: var(--font-display); font-size: clamp(1.5rem, 3.5vw, 2rem); margin: 0 0 18px; }
+  .faq__list { display: grid; gap: 10px; max-width: 760px; }
+  .faq__item { border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 0 16px; }
+  .faq__item summary { cursor: pointer; padding: 14px 0; font-weight: 600; }
+  .faq__item p { margin: 0 0 14px; line-height: 1.55; }
+
+  @media (max-width: 1000px) { .cat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 860px) {
+    .bp-grid { grid-template-columns: 1fr; }
+    .bp-stage { order: -1; }
+    .obj-panel { grid-template-columns: 1fr; gap: 20px; }
+  }
+  @media (max-width: 640px) {
+    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .blueprint { padding: 40px 0 48px; }
+    .obj-shell { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
+    .obj-shell .material-scroll { padding: 18px; }
+    .obj-panel { padding-top: 52px; }
+    .obj-facts__row { grid-template-columns: 6.5rem 1fr; }
+  }
+</style>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-hiw]");
+  if (root) {
+    const buttons = root.querySelectorAll<HTMLButtonElement>(".bp-step");
+    const caption = root.querySelector<HTMLElement>("[data-hiw-caption]");
+    const select = (btn: HTMLButtonElement) => {
+      root.dataset.active = btn.dataset.step || "1";
+      buttons.forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+      const body = btn.querySelector(".bp-step__body");
+      if (caption && body) caption.textContent = body.textContent;
+    };
+    buttons.forEach((b) => {
+      b.addEventListener("click", () => select(b));
+      b.addEventListener("mouseenter", () => select(b));
+    });
+  }
+</script>
+
+<script>
+  type LiveObject = {
+    slug: string; name: string; tagline: string; summary: string; objectType: string;
+    tiles: number | null; materials: string[]; buildTime: string | null;
+    credits: Array<{ name: string; role?: string; url?: string }>;
+    imageAlt: string; imageUrl: string | null; sortOrder: number;
+  };
+
+  const esc = (v: unknown) =>
+    String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+
+  const safeUrl = (u?: string) => (u && /^https?:\/\//i.test(u) ? u : "");
+
+  const liveBy = (o: LiveObject) => (o.credits || []).map((c) => c.name).join(", ") || "Unstitch";
+
+  function liveCardHtml(o: LiveObject) {
+    const img = o.imageUrl
+      ? `<img class="cat-card__img" src="${esc(o.imageUrl)}" alt="${esc(o.imageAlt)}" loading="lazy" />`
+      : "";
+    const by = liveBy(o);
+    const short = `${o.tiles ? o.tiles + " tiles · " : ""}by ${by}`;
+    return `<button type="button" class="cat-card" data-open-object="${esc(o.slug)}" aria-haspopup="dialog" aria-label="${esc(o.name + ": " + o.tagline)}">
+      <span class="cat-card__media">${img}</span>
+      <span class="cat-card__label"><span class="cat-card__name">${esc(o.name)}</span><span class="cat-card__meta cat-card__meta--short">${esc(short)}</span><span class="cat-card__meta cat-card__meta--desc">${esc(o.tagline)}</span></span>
+    </button>`;
+  }
+
+  function liveCredits(o: LiveObject) {
+    return o.credits
+      .map((c, i) => {
+        const url = safeUrl(c.url);
+        const name = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(c.name)}</a>` : esc(c.name);
+        const role = c.role && o.credits.length > 1 ? ` (${esc(c.role)})` : "";
+        return (i ? ", " : "") + name + role;
+      })
+      .join("");
+  }
+
+  function livePanelHtml(o: LiveObject) {
+    const rows: Array<[string, string]> = [["Type", esc(o.objectType)]];
+    if (o.tiles) rows.push(["Tiles", esc(o.tiles)]);
+    if (o.materials?.length) rows.push(["Materials", esc(o.materials.join(", "))]);
+    if (o.buildTime) rows.push(["Build time", esc(o.buildTime)]);
+    if (o.credits?.length) rows.push(["Made by", liveCredits(o)]);
+    const img = o.imageUrl
+      ? `<img class="obj-panel__img" src="${esc(o.imageUrl)}" alt="${esc(o.imageAlt)}" />`
+      : "";
+    return `<div class="obj-panel__media">${img}</div>
+      <div class="obj-panel__info">
+        <p class="section__eyebrow">${esc(o.objectType)}</p>
+        <h2 class="obj-panel__title">${esc(o.name)}</h2>
+        <p class="obj-panel__summary">${esc(o.summary)}</p>
+        <dl class="obj-facts">${rows.map(([k, v]) => `<div class="obj-facts__row"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+      </div>`;
+  }
+
+  // Place `el` among `container`'s children by data-order (ties keep existing items first),
+  // so the admin's "Display order" interleaves with the built-in objects.
+  function insertByOrder(container: HTMLElement, selector: string, el: HTMLElement) {
+    const mine = Number(el.dataset.order ?? 100);
+    const after = Array.from(container.querySelectorAll<HTMLElement>(`:scope > ${selector}`)).find(
+      (n) => Number(n.dataset.order ?? 0) > mine
+    );
+    container.insertBefore(el, after || null);
+  }
+
+  async function addLiveObjects() {
+    const grid = document.querySelector<HTMLElement>("[data-cat-grid]");
+    const panels = document.querySelector<HTMLElement>("[data-obj-panels]");
+    if (!grid || !panels) return;
+    try {
+      const res = await fetch("/api/objects", { headers: { Accept: "application/json" } });
+      if (!res.ok) return;
+      const { objects, hiddenSlugs } = (await res.json()) as { objects: LiveObject[]; hiddenSlugs?: string[] };
+      // Something edited, imported or hidden in Admin > Catalogue replaces the built-in object with the same slug.
+      const removeBuiltIn = (slug: string) => {
+        grid.querySelector(`[data-open-object="${CSS.escape(slug)}"]`)?.closest("[data-cat-item]")?.remove();
+        panels.querySelector(`[data-obj-panel="${CSS.escape(slug)}"]`)?.remove();
+      };
+      (hiddenSlugs || []).forEach(removeBuiltIn);
+      for (const o of objects || []) {
+        if (!o?.slug) continue;
+        removeBuiltIn(o.slug);
+        const li = document.createElement("li");
+        li.className = "cat-item";
+        li.setAttribute("data-cat-item", "");
+        li.dataset.order = String(o.sortOrder ?? 100);
+        li.innerHTML = liveCardHtml(o);
+        insertByOrder(grid, "[data-cat-item]", li);
+        const panel = document.createElement("article");
+        panel.className = "obj-panel";
+        panel.setAttribute("data-obj-panel", o.slug);
+        panel.dataset.order = String(o.sortOrder ?? 100);
+        panel.hidden = true;
+        panel.innerHTML = livePanelHtml(o);
+        insertByOrder(panels, "[data-obj-panel]", panel);
+      }
+    } catch {
+      /* built-in objects still show */
+    }
+  }
+
+  function initObjectPopup() {
+    const overlay = document.querySelector<HTMLElement>("[data-obj-overlay]");
+    const shell = document.querySelector<HTMLElement>("[data-obj-shell]");
+    const scroller = document.querySelector<HTMLElement>("[data-obj-scroll]");
+    const closeBtn = document.querySelector<HTMLElement>("[data-obj-close]");
+    const prevBtn = document.querySelector<HTMLButtonElement>("[data-obj-prev]");
+    const nextBtn = document.querySelector<HTMLButtonElement>("[data-obj-next]");
+    const grid = document.querySelector<HTMLElement>("[data-cat-grid]");
+    if (!shell || !grid) return;
+    // Preview for comparing card captions: /how-it-works?caption=description
+    if (new URLSearchParams(location.search).get("caption") === "description") grid.dataset.caption = "description";
+
+    // Always read the live DOM so objects appended from the database are included.
+    const panels = () => Array.from(document.querySelectorAll<HTMLElement>("[data-obj-panel]"));
+    let activeIndex = -1;
+    let lastTrigger: HTMLElement | null = null;
+
+    const show = (index: number) => {
+      const list = panels();
+      list.forEach((p, i) => { p.hidden = i !== index; });
+      activeIndex = index;
+      if (prevBtn) prevBtn.disabled = index <= 0;
+      if (nextBtn) nextBtn.disabled = index >= list.length - 1;
+      if (scroller) scroller.scrollTop = 0;
+      const slug = list[index]?.dataset.objPanel;
+      if (slug) history.replaceState(null, "", `#${slug}`);
+    };
+
+    const isOpen = () => !shell.hidden;
+
+    const open = (slug: string, trigger?: HTMLElement) => {
+      const index = panels().findIndex((p) => p.dataset.objPanel === slug);
+      if (index === -1) return;
+      lastTrigger = trigger || null;
+      show(index);
+      if (overlay) overlay.hidden = false;
+      shell.hidden = false;
+      requestAnimationFrame(() => {
+        overlay?.classList.add("is-open");
+        shell.classList.add("is-open");
+      });
+      document.body.style.overflow = "hidden";
+      document.querySelector(".mobile-nav")?.classList.add("is-hidden-for-modal");
+      document.querySelector(".mascot-btn")?.classList.add("is-hidden-for-modal");
+      closeBtn?.focus();
+    };
+
+    const close = () => {
+      if (!isOpen()) return;
+      overlay?.classList.remove("is-open");
+      shell.classList.remove("is-open");
+      document.body.style.overflow = "";
+      document.querySelector(".mobile-nav")?.classList.remove("is-hidden-for-modal");
+      document.querySelector(".mascot-btn")?.classList.remove("is-hidden-for-modal");
+      history.replaceState(null, "", location.pathname + location.search);
+      setTimeout(() => {
+        if (overlay) overlay.hidden = true;
+        shell.hidden = true;
+      }, 220);
+      lastTrigger?.focus();
+    };
+
+    const step = (dir: number) => {
+      const next = activeIndex + dir;
+      if (next < 0 || next >= panels().length) return;
+      show(next);
+    };
+
+    grid.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-open-object]");
+      if (btn) open(btn.dataset.openObject || "", btn);
+    });
+    closeBtn?.addEventListener("click", close);
+    overlay?.addEventListener("click", close);
+    prevBtn?.addEventListener("click", () => step(-1));
+    nextBtn?.addEventListener("click", () => step(1));
+    document.addEventListener("keydown", (e) => {
+      if (!isOpen()) return;
+      if (e.key === "Escape") close();
+      if (e.key === "ArrowLeft") step(-1);
+      if (e.key === "ArrowRight") step(1);
+    });
+
+    if (scroller) {
+      let sx = 0, sy = 0;
+      scroller.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+      scroller.addEventListener("touchend", (e) => {
+        const dx = e.changedTouches[0].clientX - sx;
+        const dy = e.changedTouches[0].clientY - sy;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+      }, { passive: true });
+    }
+
+    // Share links: /how-it-works#turtle opens that object. Objects added in the
+    // admin arrive a moment after load, so wait for them before opening.
+    const openFromHash = () => {
+      const slug = decodeURIComponent(location.hash.replace(/^#/, ""));
+      if (slug && panels().some((p) => p.dataset.objPanel === slug)) open(slug);
+    };
+    addLiveObjects().then(openFromHash);
+    window.addEventListener("hashchange", () => { if (!isOpen()) openFromHash(); });
+  }
+
+  initObjectPopup();
+</script>

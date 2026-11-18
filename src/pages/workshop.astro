@@ -1,0 +1,1239 @@
+---
+// Hidden workshop hub. Not linked from the site, not in the sitemap, and
+// disallowed in robots.txt + noindex. Students arrive from a QR code that
+// carries ?c=<code>; the code is checked against /api/workshop. The
+// Participants tab is the default; the Facilitator tab (#facilitator) has the
+// countdown and the projector view. Wording lives in lib/constants/workshop.ts.
+import Layout from "../layouts/Layout.astro";
+import { workshopMeta, phases, constraints, roles, readableTextOn, countWord } from "../lib/constants/workshop";
+import { deck } from "../lib/constants/workshopDeck";
+
+const phaseData = JSON.stringify(phases);
+const constraintData = JSON.stringify(constraints);
+const projectorChips = constraints;
+const deckData = JSON.stringify(deck);
+const constraintWord = countWord(constraints.length);
+const storytellerColor = roles.find((r) => r.id === "storyteller")?.color ?? "#F7D55C";
+// Each role colour comes with the text colour that reads on it (light colours get dark text).
+const roleStyle = (color: string) => {
+  const ink = readableTextOn(color);
+  const tint = ink === "#ffffff" ? "rgba(255,255,255,0.16)" : "rgba(56,47,61,0.10)";
+  return `--role:${color};--role-ink:${ink};--role-tint:${tint}`;
+};
+const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
+---
+
+<Layout
+  title="Workshop | Unstitch"
+  description="Unstitch workshop hub."
+  noindex={true}
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+  useCustomCursor={false}
+>
+  <main class="wk" data-wk>
+    <header class="wk-top">
+      <a class="wk-brand" href="/" aria-label="Unstitch home">Unstitch</a>
+      <div class="wk-top__meta" data-wk-meta hidden>
+        <span data-wk-school></span>
+        <span class="wk-chip" data-wk-code></span>
+      </div>
+    </header>
+
+    <!-- ===== Code gate ===== -->
+    <section class="wk-gate" data-wk-gate>
+      <div class="wk-gate__card">
+        <p class="wk-eyebrow">Workshop</p>
+        <h1 class="wk-gate__title">Enter your workshop code</h1>
+        <p class="wk-muted" data-wk-gate-msg>Scan the QR code your facilitator shows, or type the code that is printed under it.</p>
+        <form class="wk-gate__form" data-wk-gate-form autocomplete="off">
+          <label class="wk-visually-hidden" for="wk-code-input">Workshop code</label>
+          <input id="wk-code-input" class="wk-input" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" maxlength="16" placeholder="K7Q4MX" data-wk-code-input />
+          <button class="btn btn-filled" type="submit">Open workshop</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== Hub ===== -->
+    <div class="wk-hub" data-wk-hub hidden>
+      <div class="wk-tabs" role="tablist" aria-label="Workshop views" data-wk-tabs hidden>
+        <button class="wk-tab is-active" role="tab" id="tab-participants" aria-selected="true" aria-controls="panel-participants" data-wk-tab="participants">Participants</button>
+        <button class="wk-tab" role="tab" id="tab-facilitator" aria-selected="false" aria-controls="panel-facilitator" data-wk-tab="facilitator" tabindex="-1">Facilitator</button>
+      </div>
+
+      <!-- ===== PARTICIPANTS ===== -->
+      <section class="wk-panel" role="tabpanel" id="panel-participants" aria-labelledby="tab-participants" data-wk-panel="participants">
+        <div class="wk-wrap wk-wrap--wide">
+          <div class="wk-hero">
+            <p class="wk-eyebrow">Today's challenge</p>
+            <h1 class="wk-hero__title">{workshopMeta.title}</h1>
+            <p class="wk-hero__lead">{workshopMeta.challenge}</p>
+            <ul class="wk-facts">
+              <li><strong>{workshopMeta.totalMinutes}</strong> minutes</li>
+              <li>Teams of <strong>{workshopMeta.teamSize}</strong></li>
+              <li><strong>{workshopMeta.tilesPerTeam}</strong> tiles per team</li>
+            </ul>
+          </div>
+
+          <section class="wk-plan-band" aria-labelledby="wk-plan-h">
+            <h2 id="wk-plan-h" class="wk-h2">Plan for the session</h2>
+            <div class="wk-timeline" aria-hidden="true">
+              {phases.map((p, i) => <span style={`flex:${p.minutes}`} class={`wk-timeline__seg wk-timeline__seg--${i % 2}`}></span>)}
+            </div>
+            <ol class="wk-mini">
+              {phases.map((p, i) => (
+                <li style={`--min:${p.minutes}`} class={`wk-mini__item wk-mini__item--${i % 2}`}>
+                  <span class="wk-mini__num">{i + 1}</span>
+                  <span class="wk-mini__title">{p.title}</span>
+                  <span class="wk-mini__min">{p.minutes} min</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+
+        <div class="wk-build">
+          <div class="wk-wrap wk-wrap--wide wk-build__inner">
+            <p class="wk-build__tag">Build phase</p>
+          <div class="wk-cols">
+            <div class="wk-col wk-col--left">
+              <section class="wk-block" aria-labelledby="wk-con-h">
+                <h2 id="wk-con-h" class="wk-h2">Your {constraintWord} constraints</h2>
+                <p class="wk-muted">Your design has to meet all {constraintWord}. Tick them off as your team checks each one.</p>
+                <ul class="wk-checks">
+                  {constraints.map((c, i) => (
+                    <li>
+                      <label class="wk-check">
+                        <input type="checkbox" />
+                        <span class="wk-check__box" aria-hidden="true"></span>
+                        <span class="wk-check__body">
+                          <span class="wk-check__title">{i + 1}. {c.title}</span>
+                          <span class="wk-check__text">{c.detail}</span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+            </div>
+
+            <div class="wk-col wk-col--right">
+              <section class="wk-block" aria-labelledby="wk-roles-h">
+                <h2 id="wk-roles-h" class="wk-h2">Team roles</h2>
+                <p class="wk-muted">Each person takes one role card. Roles are responsibilities, not rules: everyone can build and everyone can have ideas.</p>
+                <div class="wk-roles">
+                  {roles.map((r) => (
+                    <article class="wk-role" style={roleStyle(r.color)}>
+                      {r.mascot && <img class="wk-role__mascot" src={r.mascot} alt="" loading="lazy" />}
+                      <h3 class="wk-role__name">{r.name}</h3>
+                      <p class="wk-role__mission">{r.mission}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section class="wk-block wk-play" aria-labelledby="wk-play-h">
+                <h2 id="wk-play-h" class="wk-h2">Explore in the playground</h2>
+                <p class="wk-muted">Try shapes on screen while your team builds with real tiles. The real build is what you share; the playground is for ideas.</p>
+                <a class="wk-play__shot" href={workshopMeta.playgroundHref} target="_blank" rel="noopener" aria-label="Open the playground in a new tab">
+                  <img src="/assets/workshop/playground-screenshot.webp" alt="A screenshot of the Unstitch playground: a 3D view of a textile shape built from tiles, with the tools around it for changing the shape." width="1280" height="720" loading="lazy" />
+                </a>
+                <p class="wk-play__cta"><a class="btn btn-filled" href={workshopMeta.playgroundHref} target="_blank" rel="noopener">Open the playground in a new tab</a></p>
+              </section>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <div class="wk-wrap wk-wrap--wide">
+          <section class="wk-share" aria-labelledby="wk-share-h" style={roleStyle(storytellerColor)}>
+            <h2 id="wk-share-h" class="wk-h2">Sharing your design</h2>
+            <p class="wk-share__lead">Every share has three parts.</p>
+            <ol class="wk-pitch wk-pitch--row">
+              {workshopMeta.pitch.map((p) => (
+                <li><strong>{p.label}</strong><span>{p.prompt}</span></li>
+              ))}
+            </ol>
+            <div class="wk-bid">
+              <p class="wk-bid__title">{workshopMeta.bidCard.title}</p>
+              <p>{workshopMeta.bidCard.text}</p>
+            </div>
+          </section>
+
+          <section class="wk-reflect" aria-labelledby="wk-ref-h">
+            <h2 id="wk-ref-h" class="wk-h2">To think about at the end</h2>
+            <ul class="wk-list wk-list--row">
+              {workshopMeta.reflection.map((q) => <li>{q}</li>)}
+            </ul>
+          </section>
+        </div>
+
+        <!-- ===== Student feedback (full-width charcoal band) ===== -->
+        <div class="wk-feedback" data-wk-feedback>
+          <div class="wk-wrap wk-wrap--wide wk-feedback__inner">
+            <h2 id="wk-fb-h" class="wk-h2">How was today?</h2>
+            <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
+            <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
+              <div class="wk-fb__col">
+                <p class="wk-fb__group">Your team</p>
+                <div class="wk-field">
+                  <label for="wk-fb-team">Which team are you?</label>
+                  <select id="wk-fb-team" class="wk-control" data-wk-fb-team required>
+                    <option value="">Choose your team</option>
+                  </select>
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-name">Team name <span class="wk-optional">(optional)</span></label>
+                  <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-made">What did your team make? <span class="wk-optional">(optional)</span></label>
+                  <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
+                </div>
+              </div>
+
+              <div class="wk-fb__col">
+                <p class="wk-fb__group">Your thoughts</p>
+                <fieldset class="wk-field wk-rating">
+                  <legend>"I learned that the same tiles can become different things."</legend>
+                  <div class="wk-rating__faces" role="radiogroup" aria-label="How much do you agree, from 1 to 5">
+                  {[
+                    { v: 1, label: "Not at all", mouth: "M9 22 Q16 14 23 22" },
+                    { v: 2, label: "A little", mouth: "M10 21 Q16 17 22 21" },
+                    { v: 3, label: "Maybe", mouth: "M10 20 L22 20" },
+                    { v: 4, label: "Yes", mouth: "M10 18 Q16 24 22 18" },
+                    { v: 5, label: "Yes, a lot", mouth: "M8 17 Q16 28 24 17" },
+                  ].map((f) => (
+                    <label class="wk-face">
+                      <input type="radio" name="rating" value={f.v} data-wk-fb-rating />
+                      <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true">
+                        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2" />
+                        <circle cx="11.5" cy="13" r="1.6" fill="currentColor" />
+                        <circle cx="20.5" cy="13" r="1.6" fill="currentColor" />
+                        <path d={f.mouth} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                      <span class="wk-face__label">{f.label}</span>
+                    </label>
+                  ))}
+                  </div>
+                </fieldset>
+                <div class="wk-field">
+                  <label for="wk-fb-word">One word for today</label>
+                  <input id="wk-fb-word" class="wk-control" type="text" maxlength="40" autocomplete="off" data-wk-fb-word />
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-change">What would you change? <span class="wk-optional">(optional)</span></label>
+                  <textarea id="wk-fb-change" class="wk-control" rows="2" maxlength="500" data-wk-fb-change></textarea>
+                </div>
+              </div>
+
+              <div class="wk-fb__foot">
+                <p class="wk-fb__error" role="alert" data-wk-fb-error hidden></p>
+                <button class="btn btn-filled wk-fb__send" type="submit" data-wk-fb-submit>Send feedback</button>
+              </div>
+            </form>
+            <div class="wk-fb__thanks" data-wk-fb-thanks hidden>
+              <h3>Thank you!</h3>
+              <p>Your feedback has been sent.</p>
+              <button type="button" class="wk-link" data-wk-fb-again>Send another response from this device</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== FACILITATOR ===== -->
+      <section class="wk-panel" role="tabpanel" id="panel-facilitator" aria-labelledby="tab-facilitator" data-wk-panel="facilitator" hidden>
+        <div class="wk-wrap wk-wrap--wide">
+          <div class="wk-fgrid">
+            <div class="wk-timer" data-wk-timer style="grid-area: timer;">
+              <p class="wk-eyebrow" data-wk-phase-count>Phase 1 of {phases.length}</p>
+              <h2 class="wk-timer__phase" data-wk-phase-title>{phases[0].title}</h2>
+              <p class="wk-timer__clock" data-wk-clock aria-live="off">{String(phases[0].minutes).padStart(2, "0")}:00</p>
+              <div class="wk-bar" aria-hidden="true"><span data-wk-total-bar></span></div>
+              <p class="wk-muted" data-wk-total-text></p>
+              <div class="wk-timer__controls">
+                <button class="btn btn-outline" data-wk-prev aria-label="Previous phase">&#8592; Back</button>
+                <button class="btn btn-filled wk-timer__start" data-wk-toggle>Start</button>
+                <button class="btn btn-outline" data-wk-next>Next &#8594;</button>
+              </div>
+              <div class="wk-timer__more">
+                <button class="wk-link" data-wk-minus>&minus;1 min</button>
+                <button class="wk-link" data-wk-plus>+1 min</button>
+                <button class="wk-link" data-wk-reset>Reset all</button>
+              </div>
+              <div class="wk-timer__present">
+                <button class="btn btn-filled" data-wk-popup>Open projector window</button>
+                <button class="wk-link wk-link--strong" data-wk-projector>Or present on this screen</button>
+              </div>
+              <p class="wk-muted wk-timer__hint">The countdown moves on by itself when a phase ends (with a bell), and when you reach the slide that starts the next phase. Space starts and pauses.</p>
+            </div>
+
+            <section class="wk-pres" aria-labelledby="wk-pres-h" style="grid-area: pres;">
+              <h2 id="wk-pres-h" class="wk-h2">Slides</h2>
+              <div class="wk-stage" data-wk-stage>
+                <img data-wk-stage-img alt="" />
+                <div class="wk-qr" data-wk-qr hidden>
+                  <img data-wk-qr-img alt="QR code that opens today's workshop page" hidden />
+                  <p class="wk-qr__fallback" data-wk-qr-fallback hidden></p>
+                </div>
+                <p class="wk-qr__line" data-wk-qr-line hidden></p>
+              </div>
+              <div class="wk-pres__nav">
+                <button class="btn btn-outline" data-wk-slide-prev aria-label="Previous slide">&#8592;</button>
+                <p class="wk-pres__where" data-wk-slide-where aria-live="polite"></p>
+                <button class="btn btn-outline" data-wk-slide-next aria-label="Next slide">&#8594;</button>
+              </div>
+              <div class="wk-pres__notes" data-wk-notes tabindex="0" aria-label="Facilitator notes for this slide"></div>
+              <p class="wk-muted wk-pres__next" data-wk-slide-next-title></p>
+              <p class="wk-muted wk-pres__keys">Open the projector window and drag it onto the projector screen, then press F there for full screen. Left and right arrows (or your clicker) change slides in either window. T shows the big clock.</p>
+            </section>
+
+            <section class="wk-block" aria-labelledby="wk-run-h" style="grid-area: run;">
+              <h2 id="wk-run-h" class="wk-h2">Run of show</h2>
+              <ol class="wk-run" data-wk-run>
+                {phases.map((p, i) => (
+                  <li>
+                    <button class="wk-run__item" data-wk-jump={i}>
+                      <span class="wk-plan__num">{i + 1}</span>
+                      <span class="wk-run__body">
+                        <span class="wk-plan__title">{p.title} <span class="wk-plan__min">{p.minutes} min</span></span>
+                        <span class="wk-plan__text">{p.summary}</span>
+                        <span class="wk-run__say">Say: &ldquo;{p.say}&rdquo;</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section class="wk-block" aria-labelledby="wk-kit-h" style="grid-area: kit;">
+              <h2 id="wk-kit-h" class="wk-h2">Kit check</h2>
+              <p class="wk-muted" data-wk-kit>Tiles, role cards and bid cards for your teams.</p>
+              <p class="wk-muted">Timings are for a group of this size. Full notes, room layout and the backup plan are in the facilitator guide.</p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== Projector overlay ===== -->
+    <div class="wk-proj" data-wk-proj hidden role="dialog" aria-modal="true" aria-label="Projector view">
+      <div class="wk-stage wk-stage--full" data-wk-stage data-wk-proj-slides>
+        <img data-wk-stage-img alt="" />
+        <div class="wk-qr" data-wk-qr hidden>
+          <img data-wk-qr-img alt="QR code that opens today's workshop page" hidden />
+          <p class="wk-qr__fallback" data-wk-qr-fallback hidden></p>
+        </div>
+        <p class="wk-qr__line" data-wk-qr-line hidden></p>
+        <div class="wk-pill" data-wk-pill aria-label="Countdown">
+          <span class="wk-pill__phase" data-wk-pill-phase></span>
+          <span class="wk-pill__clock" data-wk-pill-clock>00:00</span>
+          <span class="wk-pill__bar" aria-hidden="true"><span data-wk-pill-bar></span></span>
+        </div>
+      </div>
+
+      <div class="wk-proj__clockview" data-wk-clockview hidden>
+        <div class="wk-proj__inner">
+          <p class="wk-proj__count" data-wk-proj-count></p>
+          <h2 class="wk-proj__title" data-wk-proj-title></h2>
+          <p class="wk-proj__clock" data-wk-proj-clock>00:00</p>
+          <p class="wk-proj__say" data-wk-proj-say></p>
+          <p class="wk-proj__next" data-wk-proj-next></p>
+        </div>
+        <div class="wk-proj__bar" aria-hidden="true"><span data-wk-proj-bar></span></div>
+        <ul class="wk-proj__chips" aria-label="The constraints">
+          {projectorChips.map((c, i) => <li><span>{i + 1}</span>{c.title}</li>)}
+        </ul>
+      </div>
+
+      <p class="wk-proj__notice" data-wk-proj-notice role="status" hidden></p>
+      <p class="wk-proj__hint" data-wk-proj-hint>&#8592; &#8594; slides &nbsp;·&nbsp; Space start / pause &nbsp;·&nbsp; T big clock &nbsp;·&nbsp; F full screen &nbsp;·&nbsp; Esc close</p>
+      <button class="wk-proj__close" data-wk-proj-close aria-label="Leave projector view">Close</button>
+    </div>
+
+    <script type="application/json" id="wk-phases" set:html={phaseData}></script>
+    <script type="application/json" id="wk-constraints" set:html={constraintData}></script>
+    <script type="application/json" id="wk-deck" set:html={deckData}></script>
+  </main>
+</Layout>
+
+<style is:global>
+  .wk { --ink: #382F3D; --paper: #FAF7F2; min-height: 100vh;
+    background-color: var(--paper);
+    background-image: linear-gradient(rgba(56, 47, 61, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 47, 61, 0.07) 1px, transparent 1px);
+    background-size: 28px 28px; color: var(--ink); font-family: var(--font-body); }
+  .wk-wrap { width: min(760px, 100% - 2 * var(--gutter)); margin: 0 auto; padding: 8px 0 72px; }
+  .wk-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .wk-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px var(--gutter); border-bottom: 1.5px solid var(--ink); }
+  .wk-brand { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+  .wk-top__meta { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; text-align: right; min-width: 0; }
+  .wk-top__meta span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wk-chip { font-family: var(--font-display); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; background: var(--accent-pale); color: var(--accent-text-on-pale); padding: 4px 10px; border-radius: 999px; }
+  .wk-eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .wk-muted { color: #555; font-size: 0.95rem; line-height: 1.5; margin: 0 0 14px; }
+  .wk-h2 { font-family: var(--font-display); font-size: 1.35rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+
+  /* gate */
+  .wk-gate { display: grid; place-items: center; min-height: calc(100vh - 62px); padding: 24px var(--gutter); }
+  .wk-gate__card { width: min(440px, 100%); border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 28px 24px; background: #fff; }
+  .wk-gate__title { font-family: var(--font-display); font-size: 1.6rem; margin: 0 0 8px; line-height: 1.15; }
+  .wk-gate__form { display: grid; gap: 12px; margin-top: 8px; }
+  .wk-input { font: inherit; font-size: 1.4rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; }
+  .wk-input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-gate__msg-error { color: #9b1c1c; }
+  .wk button.btn { cursor: pointer; font-size: 0.95rem; }
+  .wk .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .wk-gate__form .btn { width: 100%; padding: 14px 22px; }
+  .wk-timer__controls .btn { min-height: 48px; }
+
+  /* tabs */
+  .wk-tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--ink); padding: 0 var(--gutter); position: sticky; top: 0; background: var(--paper); z-index: 5; }
+  .wk-tab { appearance: none; background: none; border: 0; border-bottom: 4px solid transparent; font-family: var(--font-display); font-weight: 600; font-size: 1rem; padding: 14px 18px 10px; cursor: pointer; color: #555; }
+  .wk-tab.is-active { color: var(--ink); border-bottom-color: var(--accent); }
+  .wk-tab:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+  /* participants */
+  .wk-hero { padding: 28px 0 4px; }
+  .wk-hero__title { font-family: var(--font-display); font-size: clamp(2.1rem, 7vw, 3.6rem); line-height: 1.04; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .wk-hero__lead { font-size: 1.2rem; line-height: 1.4; margin: 0 0 14px; max-width: 60ch; }
+  .wk-facts { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; }
+  .wk-facts li { background: var(--accent-pale); color: var(--accent-text-on-pale); border-radius: 999px; padding: 6px 14px; font-size: 0.92rem; }
+  @media (min-width: 900px) { .wk-hero { padding: 36px 0 8px; } }
+  .wk-block { padding: 28px 0 0; }
+  .wk-plan, .wk-run, .wk-pitch { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .wk-plan-band { padding: 24px 0 4px; }
+  .wk-timeline { display: flex; gap: 3px; height: 10px; margin: 0 0 12px; }
+  .wk-timeline__seg { border-radius: 999px; background: var(--ink); }
+  .wk-timeline__seg--1 { background: #B784A7; }
+  .wk-mini { list-style: none; margin: 0; padding: 0; display: grid; }
+  .wk-mini li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 9px 2px; border-top: 1px solid #e4e0da; }
+  .wk-mini li:first-child { border-top: 0; }
+  .wk-mini__num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 0.82rem; }
+  .wk-mini__title { font-weight: 600; }
+  .wk-mini__min { font-size: 0.88rem; color: var(--accent-text-on-pale); font-variant-numeric: tabular-nums; }
+  @media (min-width: 760px) {
+    /* one row, each step as wide as its minutes, so the page shows the shape of the session */
+    .wk-timeline { display: none; }
+    .wk-mini { display: flex; gap: 3px; }
+    .wk-mini li { flex: var(--min) 1 0; min-width: 0; grid-template-columns: 1fr; grid-template-rows: auto; gap: 2px; justify-items: start; border-top: 10px solid var(--ink); border-radius: 5px 5px 0 0; padding: 10px 6px 0 0; }
+    .wk-mini li:first-child { border-top: 10px solid var(--ink); }
+    .wk-mini__item--1 { border-top-color: #B784A7 !important; }
+    .wk-mini__num { width: 24px; height: 24px; }
+    .wk-mini__title { font-size: 0.95rem; line-height: 1.2; }
+  }
+  .wk-plan__item { display: flex; gap: 14px; align-items: flex-start; border: 1.5px solid #e4e0da; border-radius: var(--radius); padding: 12px 14px; }
+  .wk-plan__num { flex: 0 0 auto; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; }
+  .wk-plan__title { display: block; font-weight: 700; margin: 0 0 2px; }
+  .wk-plan__min { font-weight: 500; font-size: 0.82rem; color: var(--accent); margin-left: 6px; }
+  .wk-plan__text { display: block; margin: 0; font-size: 0.95rem; line-height: 1.45; color: #333; }
+
+  .wk-checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .wk-check { position: relative; display: flex; gap: 14px; align-items: flex-start; border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 14px; cursor: pointer; background: #fff; }
+  .wk-check input { position: absolute; opacity: 0; pointer-events: none; }
+  .wk-check__box { flex: 0 0 auto; width: 26px; height: 26px; border: 2px solid var(--ink); border-radius: 4px; margin-top: 1px; display: grid; place-items: center; background: #fff; }
+  .wk-check input:checked + .wk-check__box { background: var(--accent); border-color: var(--accent); }
+  .wk-check input:checked + .wk-check__box::after { content: ""; width: 7px; height: 13px; border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-1px, -1px); }
+  .wk-check input:focus-visible + .wk-check__box { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-check__body { display: grid; gap: 2px; }
+  .wk-check__title { font-weight: 700; font-size: 1.05rem; }
+  .wk-check__text { font-size: 0.92rem; color: #444; line-height: 1.4; }
+
+  /* build phase: one shared background for constraints, roles and playground */
+  .wk-build { margin-top: 28px; background-color: #EBDDE6;
+    background-image: linear-gradient(rgba(183, 132, 167, 0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(183, 132, 167, 0.28) 1px, transparent 1px);
+    background-size: 28px 28px; border-block: 2px solid #B784A7; color: var(--ink); }
+  .wk-build__inner { padding-top: 24px; padding-bottom: 36px; }
+  .wk-build__tag { display: inline-block; margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; background: #B784A7; color: var(--ink); padding: 6px 12px; border-radius: 999px; }
+  .wk-build .wk-muted { color: var(--ink); }
+  .wk-build .wk-block { padding-top: 20px; }
+  .wk-build .wk-play__shot { background: #fff; }
+  .wk-build .wk-role { box-shadow: 0 0 0 1.5px var(--ink); }
+  .wk-reflect { padding: 28px 0 0; }
+  @media (min-width: 760px) { .wk-list.wk-list--row { list-style: none; padding: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } .wk-list--row li { list-style: none; background: #fff; border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 14px 16px; } }
+  .wk-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .wk-role { background: var(--role); color: var(--role-ink); border-radius: var(--radius); padding: 14px 12px 14px; display: grid; align-content: start; gap: 6px; }
+  .wk-role__mascot { display: block; width: 100%; max-width: 110px; height: auto; margin: 0 auto 4px; }
+  .wk-role__name { font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; margin: 0; line-height: 1.15; }
+  .wk-role__mission { margin: 0; font-size: 0.85rem; line-height: 1.35; }
+  @media (min-width: 640px) { .wk-roles { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; } }
+  .wk-wrap--wide { width: min(1200px, 100% - 2 * var(--gutter)); }
+  .wk-cols { display: block; }
+  @media (min-width: 1000px) {
+    .wk-cols { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 0 48px; align-items: start; }
+  }
+  .wk-play__cta { margin: 0; text-align: center; }
+  .wk-play__shot { display: block; margin: 0 0 16px; border: 2px solid var(--ink); border-radius: var(--radius); overflow: hidden; background: #f4f4f4; }
+  .wk-play__shot img { display: block; width: 100%; height: auto; }
+  .wk-share { margin-top: 40px; background: var(--role); color: var(--role-ink); border-radius: var(--radius); padding: 24px 20px 22px; }
+  .wk-share .wk-h2 { color: inherit; }
+  .wk-share__lead { margin: 0 0 14px; font-size: 0.98rem; line-height: 1.5; }
+  .wk-pitch li { display: grid; gap: 2px; border-left: 5px solid currentColor; padding: 4px 0 4px 14px; }
+  .wk-pitch strong { font-family: var(--font-display); font-size: 1.05rem; }
+  .wk-pitch span { font-size: 0.95rem; line-height: 1.4; }
+  @media (min-width: 760px) { .wk-pitch--row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } .wk-share { padding: 28px 32px 26px; } }
+  .wk-bid { margin-top: 18px; border: 2.5px dashed currentColor; border-radius: var(--radius); padding: 14px 16px; background: var(--role-tint); }
+  .wk-bid p { margin: 0; line-height: 1.45; }
+  .wk-bid__title { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; margin-bottom: 4px !important; }
+  .wk-list { list-style: disc; margin: 0; padding-left: 20px; display: grid; gap: 8px; line-height: 1.45; }
+
+  /* feedback */
+  .wk-feedback { margin-top: 40px; background: var(--ink); color: #FAF7F2; }
+  .wk-feedback__inner { padding-top: 32px; padding-bottom: 40px; }
+  .wk-feedback .wk-h2 { font-size: 1.5rem; margin: 0 0 4px; color: #FAF7F2; }
+  .wk-feedback__lead { margin: 0 0 20px; font-size: 0.95rem; color: #d9d2dd; }
+  .wk-fb { display: grid; gap: 22px 40px; }
+  .wk-fb__col { display: grid; gap: 14px; align-content: start; }
+  .wk-fb__group { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: #F7D55C; }
+  .wk-fb__foot { display: grid; justify-items: center; gap: 10px; }
+  @media (min-width: 860px) { .wk-fb { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wk-fb__foot { grid-column: 1 / -1; } }
+  .wk-field { display: grid; gap: 5px; align-content: start; border: 0; padding: 0; margin: 0; min-width: 0; }
+  .wk-field label, .wk-field legend { font-weight: 600; font-size: 0.92rem; padding: 0; }
+  .wk-optional { font-weight: 400; color: #bdb4c2; }
+  .wk-control { font: inherit; font-size: 1rem; padding: 9px 11px; border: 1.5px solid #FAF7F2; border-radius: var(--radius); background: #fff; color: var(--ink); width: 100%; }
+  .wk-control:focus-visible { outline: 3px solid #F7D55C; outline-offset: 2px; }
+  textarea.wk-control { resize: vertical; min-height: 0; }
+  .wk-rating__faces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .wk-face { position: relative; display: grid; justify-items: center; gap: 3px; width: 72px; padding: 8px 2px 6px; border: 1.5px solid transparent; border-radius: var(--radius); cursor: pointer; color: var(--ink); text-align: center; background: #fff; }
+  .wk-face svg { width: 34px; height: 34px; }
+  .wk-face input { position: absolute; opacity: 0; pointer-events: none; }
+  .wk-face__label { font-size: 0.72rem; line-height: 1.15; }
+  .wk-face:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 3px #FAF7F2; }
+  .wk-face:has(input:focus-visible) { outline: 3px solid #F7D55C; outline-offset: 3px; }
+  .wk-fb__error { margin: 0; color: #ffb4a6; font-weight: 600; }
+  .wk-fb__thanks { text-align: center; padding: 14px 0 4px; }
+  .wk-fb__thanks .wk-link { color: #F7D55C; }
+  .wk-fb__send { min-width: 220px; }
+  .wk-feedback .btn-filled { background: #F7D55C; color: var(--ink); border-color: #F7D55C; }
+  .wk-fb__thanks h3 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 4px; }
+  .wk-fb__thanks p { margin: 0 0 10px; }
+
+  /* facilitator */
+  .wk-timer { margin-top: 24px; border: 2px solid var(--ink); border-radius: var(--radius); padding: 22px 20px; text-align: center; background: #fff; }
+  .wk-timer__phase { font-family: var(--font-display); font-size: clamp(1.4rem, 5vw, 2rem); margin: 0; line-height: 1.1; }
+  .wk-timer__clock { font-family: var(--font-display); font-weight: 700; font-size: clamp(4rem, 20vw, 7.5rem); line-height: 1; letter-spacing: -0.03em; margin: 10px 0 14px; font-variant-numeric: tabular-nums; }
+  .wk-timer__clock.is-low { color: #b45309; }
+  .wk-timer__clock.is-done { color: #9b1c1c; animation: wk-flash 0.9s steps(2, jump-none) 6; }
+  @keyframes wk-flash { 50% { opacity: 0.25; } }
+  .wk-bar { height: 10px; background: #eee; border-radius: 999px; overflow: hidden; }
+  .wk-bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.4s linear; }
+  .wk-timer__controls { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; margin-top: 16px; }
+  .wk-timer__controls .btn { padding-left: 10px; padding-right: 10px; }
+  .wk-timer__more { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-top: 14px; }
+  .wk-link { appearance: none; background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 0.92rem; color: var(--accent-text-on-pale); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .wk-link--strong { font-weight: 700; }
+  .wk-timer__hint { font-size: 0.82rem; margin: 10px 0 0; }
+  .wk-run__item { width: 100%; appearance: none; text-align: left; display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1.5px solid #e4e0da; border-radius: var(--radius); padding: 12px 14px; cursor: pointer; font: inherit; color: inherit; }
+  .wk-run__item.is-current { border-color: var(--accent); box-shadow: inset 5px 0 0 var(--accent); }
+  .wk-run__item.is-done .wk-plan__num { background: #9a9a9a; }
+  .wk-run__item:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-run__body { display: grid; gap: 2px; }
+  .wk-run__say { font-size: 0.9rem; font-style: italic; color: var(--accent-text-on-pale); margin-top: 4px; }
+
+  /* projector */
+  /* facilitator: timer, slides and notes side by side on a wide screen */
+  .wk-fgrid { display: grid; gap: 0 36px; grid-template-areas: "timer" "pres" "run" "kit"; }
+  @media (min-width: 1000px) {
+    .wk-fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-areas: "timer pres" "run pres" "kit pres"; grid-template-rows: auto auto 1fr; align-items: start; }
+    .wk-pres { position: sticky; top: 64px; }
+  }
+  .wk-timer__present { display: grid; justify-items: center; gap: 4px; margin-top: 14px; }
+  .wk-pres { padding-top: 24px; }
+  .wk-stage { position: relative; aspect-ratio: 16 / 9; container-type: inline-size; background: #382F3D; overflow: hidden; border-radius: var(--radius); border: 2px solid var(--ink); }
+  .wk-stage img[data-wk-stage-img] { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .wk-pres__nav { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin: 12px 0 10px; }
+  .wk-pres__nav .btn { min-height: 44px; min-width: 56px; }
+  .wk-pres__where { margin: 0; text-align: center; font-weight: 600; font-size: 0.95rem; }
+  .wk-pres__notes { background: #fff; border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 14px 16px; line-height: 1.55; white-space: pre-wrap; min-height: 6.5em; font-size: 1rem; }
+  .wk-pres__notes:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-pres__next { margin: 10px 0 0; font-size: 0.88rem; }
+  .wk-pres__keys { margin: 4px 0 0; font-size: 0.85rem; }
+
+  /* slide: QR placed into the empty box on the "Begin the challenge" slide */
+  .wk-qr { position: absolute; display: grid; place-items: center; background: #fff; border-radius: 1.2cqw; padding: 1.1cqw; box-sizing: border-box; }
+  .wk-qr img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+  .wk-qr[hidden], .wk-qr img[hidden], .wk-qr__fallback[hidden], .wk-qr__line[hidden] { display: none; }
+  .wk-qr__fallback { margin: 0; text-align: center; color: #382F3D; font-size: 1.5cqw; line-height: 1.4; font-weight: 600; }
+  .wk-qr__fallback strong { display: block; font-family: var(--font-display); font-size: 3.4cqw; letter-spacing: 0.08em; margin-top: 0.6cqw; }
+  .wk-qr__line { position: absolute; margin: 0; text-align: center; color: #FAF7F2; font-size: 1.45cqw; line-height: 1.3; }
+  .wk-qr__line strong { color: #F7D55C; letter-spacing: 0.08em; }
+
+  /* projector overlay: the slide fills the screen, the countdown sits in the slide's reserved top-right corner */
+  .wk-proj { position: fixed; inset: 0; z-index: 100; background: #1a151d; color: #FAF7F2; display: grid; place-items: center; }
+  .wk-proj[hidden] { display: none; }
+  .wk-stage--full { width: min(100vw, 177.7778vh); height: auto; border: 0; border-radius: 0; background: #382F3D; }
+  .wk-pill { position: absolute; top: 1.2cqw; right: 1.6cqw; width: 19cqw; box-sizing: border-box; padding: 0.9cqw 1.4cqw 1cqw; border-radius: 1.6cqw; background: #382F3D; border: 0.25cqw solid #B784A7; color: #FAF7F2; display: grid; gap: 0.3cqw; text-align: center; box-shadow: 0 0.4cqw 1.2cqw rgba(0, 0, 0, 0.25); }
+  .wk-pill__phase { font-family: var(--font-display); font-weight: 600; font-size: 1.35cqw; letter-spacing: 0.06em; text-transform: uppercase; color: #B784A7; line-height: 1.2; }
+  .wk-pill__clock { font-family: var(--font-display); font-weight: 700; font-size: 4.3cqw; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .wk-pill__bar { display: block; height: 0.5cqw; background: rgba(250, 247, 242, 0.2); border-radius: 999px; overflow: hidden; }
+  .wk-pill__bar span { display: block; height: 100%; width: 0; background: #F7D55C; transition: width 0.4s linear; }
+  .wk-pill.is-low .wk-pill__clock { color: #F7D55C; }
+  .wk-pill.is-done .wk-pill__clock { color: #E8654A; animation: wk-flash 0.9s steps(2, jump-none) 6; }
+  .wk-proj__clockview { position: absolute; inset: 0; background: #382F3D; display: flex; flex-direction: column; padding: clamp(16px, 3vw, 40px) clamp(16px, 3vw, 40px) 64px; }
+  .wk-proj__clockview[hidden] { display: none; }
+  .wk-proj__close { position: absolute; top: 10px; left: 10px; appearance: none; background: rgba(26, 21, 29, 0.7); color: #d9d2dd; border: 1.5px solid #6b5f72; border-radius: var(--radius); padding: 8px 14px; font: inherit; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+  .wk-proj:hover .wk-proj__close, .wk-proj__close:focus-visible { opacity: 0.9; }
+  .wk-proj__hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: rgba(26, 21, 29, 0.82); color: #d9d2dd; font-size: 0.9rem; transition: opacity 0.5s; white-space: nowrap; }
+  .wk-proj__hint.is-faded { opacity: 0; pointer-events: none; }
+  .wk-proj__notice { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 999px; background: #F7D55C; color: #382F3D; font-weight: 600; z-index: 2; }
+  .wk-proj__notice[hidden] { display: none; }
+  .wk-proj__inner { flex: 1; display: grid; align-content: center; justify-items: center; text-align: center; gap: clamp(6px, 1.4vh, 16px); }
+  .wk-proj__count { font-family: var(--font-display); font-size: clamp(1rem, 2.2vw, 1.6rem); letter-spacing: 0.12em; text-transform: uppercase; color: #B784A7; margin: 0; }
+  .wk-proj__title { font-family: var(--font-display); font-size: clamp(2rem, 5.5vw, 4.5rem); margin: 0; line-height: 1.05; }
+  .wk-proj__clock { font-family: var(--font-display); font-weight: 700; font-size: clamp(6rem, 28vw, 22rem); line-height: 0.95; letter-spacing: -0.03em; margin: 0; font-variant-numeric: tabular-nums; }
+  .wk-proj__clock.is-low { color: #F7D55C; }
+  .wk-proj__clock.is-done { color: #E8654A; animation: wk-flash 0.9s steps(2, jump-none) 6; }
+  .wk-proj__say { font-size: clamp(1.1rem, 2.6vw, 2.2rem); max-width: 28ch; margin: 0; line-height: 1.25; }
+  .wk-proj__next { font-size: clamp(0.9rem, 1.6vw, 1.3rem); color: #aaa; margin: 0; }
+  .wk-proj__bar { height: 8px; background: rgba(250, 247, 242, 0.2); border-radius: 999px; overflow: hidden; margin: 10px 0 14px; }
+  .wk-proj__bar span { display: block; height: 100%; width: 0; background: #F7D55C; transition: width 0.4s linear; }
+  .wk-proj__chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; }
+  .wk-proj__chips li { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #B784A7; border-radius: 999px; padding: 6px 14px 6px 6px; font-size: clamp(0.8rem, 1.5vw, 1.15rem); }
+  .wk-proj__chips li span { display: inline-grid; place-items: center; width: 1.7em; height: 1.7em; border-radius: 50%; background: #F7D55C; color: #382F3D; font-weight: 700; }
+
+  @media (max-width: 520px) {
+    .wk-tab { padding: 12px 14px 8px; }
+    .wk-top__meta { font-size: 0.78rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wk-timer__clock.is-done, .wk-proj__clock.is-done, .wk-pill.is-done .wk-pill__clock { animation: none; }
+    .wk-bar span, .wk-proj__bar span, .wk-pill__bar span { transition: none; }
+  }
+</style>
+
+<script>
+  import { loadQrCodeModule, resetQrCodeModule } from "../lib/qrCodeLoader";
+
+  type Phase = { id: string; title: string; short?: string; minutes: number; summary: string; say: string };
+  type Workshop = { code: string; schoolName: string; workshopDate: string | null; teams: number };
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  const $$ = <T extends HTMLElement>(sel: string) => Array.from(document.querySelectorAll(sel)) as T[];
+
+  const phases: Phase[] = JSON.parse($("#wk-phases").textContent || "[]");
+  const TOTAL_MS = phases.reduce((n, p) => n + p.minutes * 60000, 0);
+
+  // ---------------------------------------------------------------- gate
+  const gate = $("[data-wk-gate]");
+  const hub = $("[data-wk-hub]");
+  const gateMsg = $("[data-wk-gate-msg]");
+  const gateForm = $<HTMLFormElement>("[data-wk-gate-form]");
+  const codeInput = $<HTMLInputElement>("[data-wk-code-input]");
+
+  function showGateMessage(text: string, isError = true) {
+    gateMsg.textContent = text;
+    gateMsg.classList.toggle("wk-gate__msg-error", isError);
+  }
+
+  function formatDate(iso: string | null): string {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-").map(Number);
+    try {
+      return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    } catch { return iso; }
+  }
+
+  let isFacilitator = false;
+  let currentWorkshop: Workshop | null = null;
+
+  function openHub(w: Workshop, role: "student" | "facilitator") {
+    isFacilitator = role === "facilitator";
+    currentWorkshop = w;
+    gate.hidden = true;
+    hub.hidden = false;
+    $("[data-wk-meta]").hidden = false;
+    const date = formatDate(w.workshopDate);
+    $("[data-wk-school]").textContent = date ? `${w.schoolName} · ${date}` : w.schoolName;
+    $("[data-wk-code]").textContent = w.code;
+    const kit = $("[data-wk-kit]");
+    if (kit) {
+      kit.textContent = `${w.teams} teams: ${w.teams} kits of 24 tiles (plus a few spare), ${w.teams} sets of 5 role cards and ${w.teams} bid cards.`;
+    }
+    const wantProjector = location.hash === "#projector";
+    // Only a facilitator link shows the tab bar and the facilitator view. Students see the participant page alone.
+    $("[data-wk-tabs]").hidden = !isFacilitator;
+    selectTab(isFacilitator && location.hash === "#facilitator" ? "facilitator" : "participants", false);
+    buildTeamOptions(w.teams);
+    showFeedbackFormIfNeeded();
+    if (isFacilitator) onFacilitatorReady(wantProjector);
+  }
+
+  async function lookup(kind: "code" | "key", raw: string, keepUrl = false) {
+    const value = raw.trim();
+    if (!value) { showGateMessage("Type your workshop code to continue."); return; }
+    showGateMessage(kind === "key" ? "Checking your facilitator link…" : "Checking your code…", false);
+    const param = kind === "key" ? "key" : "code";
+    const sent = kind === "key" ? value : value.toUpperCase();
+    try {
+      const res = await fetch(`/api/workshop?${param}=${encodeURIComponent(sent)}`, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data = (await res.json()) as { role: "student" | "facilitator"; workshop: Workshop };
+        // Keep whichever link opened the page, so a refresh lands in the same place.
+        // A typed /workshop-NAME link already says everything, so its address is left alone.
+        if (!keepUrl) {
+          const url = new URL(location.href);
+          if (kind === "key") { url.searchParams.set("f", sent); url.searchParams.delete("c"); }
+          else { url.searchParams.set("c", data.workshop.code); url.searchParams.delete("f"); }
+          history.replaceState(null, "", url.toString());
+        }
+        openHub(data.workshop, data.role === "facilitator" ? "facilitator" : "student");
+        return;
+      }
+      if (res.status === 404) showGateMessage(kind === "key" ? "That facilitator link isn't valid. Check you copied all of it." : "We can't find that code. Check it and try again.");
+      else if (res.status === 410) showGateMessage("That workshop code has finished. Ask your facilitator for help.");
+      else if (res.status === 429) showGateMessage("Too many tries. Wait a minute and try again.");
+      else showGateMessage("We couldn't check the code just now. Check your connection and try again.");
+    } catch {
+      showGateMessage("We couldn't check the code just now. Check your connection and try again.");
+    }
+  }
+  const checkCode = (raw: string) => lookup("code", raw);
+
+  gateForm.addEventListener("submit", (e) => { e.preventDefault(); checkCode(codeInput.value); });
+  const qs = new URLSearchParams(location.search);
+  const pathKey = location.pathname.match(/^\/workshop-([A-Za-z0-9]{5,24})\/?$/)?.[1] ?? null;
+  const initialKey = pathKey || qs.get("f");
+  const initialCode = qs.get("c");
+  if (initialKey) lookup("key", initialKey, !!pathKey);
+  else if (initialCode) { codeInput.value = initialCode.toUpperCase(); checkCode(initialCode); }
+
+  // ---------------------------------------------------------------- tabs
+  const tabs = $$<HTMLButtonElement>("[data-wk-tab]");
+  function selectTab(name: string, focus = true) {
+    if (name === "facilitator" && !isFacilitator) name = "participants";
+    tabs.forEach((t) => {
+      const on = t.dataset.wkTab === name;
+      t.classList.toggle("is-active", on);
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      if (on && focus) t.focus();
+    });
+    $$("[data-wk-panel]").forEach((p) => { p.hidden = p.dataset.wkPanel !== name; });
+    const hash = name === "facilitator" && isFacilitator ? "#facilitator" : "";
+    if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
+  }
+  tabs.forEach((t) => t.addEventListener("click", () => selectTab(t.dataset.wkTab as string, false)));
+  $("[role=tablist]").addEventListener("keydown", (e) => {
+    const ev = e as KeyboardEvent;
+    if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+    if (isFacilitator && !($("[data-wk-panel=facilitator]") as HTMLElement).hidden) return; // arrows change slides there
+    const i = tabs.findIndex((t) => t.classList.contains("is-active"));
+    selectTab(tabs[(i + (ev.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].dataset.wkTab as string);
+  });
+
+  // ------------------------------------------------------------ feedback
+  const fbForm = $<HTMLFormElement>("[data-wk-fb-form]");
+  const fbThanks = $("[data-wk-fb-thanks]");
+  const fbError = $("[data-wk-fb-error]");
+  const fbSubmit = $<HTMLButtonElement>("[data-wk-fb-submit]");
+  const fbTeam = $<HTMLSelectElement>("[data-wk-fb-team]");
+  const fbKey = () => `wk-fb-${currentWorkshop?.code ?? ""}`;
+
+  function buildTeamOptions(n: number) {
+    fbTeam.querySelectorAll("option:not([value=''])").forEach((o) => o.remove());
+    for (let i = 1; i <= n; i++) {
+      const o = document.createElement("option");
+      o.value = String(i); o.textContent = `Team ${i}`;
+      fbTeam.appendChild(o);
+    }
+  }
+
+  function remembered(): boolean {
+    try { return localStorage.getItem(fbKey()) === "sent"; } catch { return false; }
+  }
+  function showFeedbackFormIfNeeded() {
+    const sent = remembered();
+    fbForm.hidden = sent;
+    fbThanks.hidden = !sent;
+  }
+
+  function newSubmissionId(): string {
+    try { if (crypto.randomUUID) return crypto.randomUUID(); } catch { /* fall through */ }
+    return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  }
+  // One id per attempt, reused on retry, so a double tap or a repeat after a bad connection can't count twice.
+  let submissionId = newSubmissionId();
+
+  function fbMessage(text: string) { fbError.textContent = text; fbError.hidden = !text; }
+
+  fbForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    fbMessage("");
+    if (!currentWorkshop) return;
+    const team = fbTeam.value;
+    const rating = (fbForm.querySelector("[data-wk-fb-rating]:checked") as HTMLInputElement | null)?.value;
+    if (!team) { fbMessage("Choose your team."); fbTeam.focus(); return; }
+    if (!rating) { fbMessage("Choose a face to show how much you agree."); return; }
+    const val = (sel: string) => ($(sel) as HTMLInputElement).value.trim();
+    fbSubmit.disabled = true;
+    fbSubmit.textContent = "Sending…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          code: currentWorkshop.code,
+          submissionId,
+          teamNumber: Number(team),
+          rating: Number(rating),
+          oneWord: val("[data-wk-fb-word]"),
+          whatWeMade: val("[data-wk-fb-made]"),
+          teamName: val("[data-wk-fb-name]"),
+          wouldChange: val("[data-wk-fb-change]"),
+        }),
+      });
+      if (res.ok) {
+        try { localStorage.setItem(fbKey(), "sent"); } catch { /* fine without it */ }
+        fbForm.hidden = true;
+        fbThanks.hidden = false;
+        fbThanks.querySelector("h3")?.setAttribute("tabindex", "-1");
+        (fbThanks.querySelector("h3") as HTMLElement | null)?.focus();
+        return;
+      }
+      if (res.status === 410) fbMessage("This workshop has finished, so feedback is closed.");
+      else if (res.status === 429) fbMessage("Lots of people are sending at once. Wait a moment and try again.");
+      else if (res.status === 400) fbMessage("Something is missing. Check your team and your face, then try again.");
+      else fbMessage("We couldn't send that. Check your connection and try again.");
+    } catch {
+      fbMessage("We couldn't send that. Check your connection and try again.");
+    } finally {
+      fbSubmit.disabled = false;
+      fbSubmit.textContent = "Send feedback";
+    }
+  });
+
+  // Several students can share one device, so a repeat is allowed. It gets a fresh submission id.
+  $("[data-wk-fb-again]").addEventListener("click", () => {
+    try { localStorage.removeItem(fbKey()); } catch { /* ignore */ }
+    fbForm.reset();
+    submissionId = newSubmissionId();
+    showFeedbackFormIfNeeded();
+  });
+
+  // --------------------------------------------------------------- deck + timer
+  // One controller window owns the countdown and the slide number. A projector window (opened from
+  // the controller, same browser) only shows them and sends key presses back, so there is never
+  // more than one clock. If the projector window can't find a controller it runs on its own.
+  type DeckCfg = {
+    count: number; base: string; notesUrl: string; anchors: Record<string, number>; qrSlide: number;
+    qrBox: { x: number; y: number; w: number; h: number }; qrLine: { x: number; y: number; w: number; h: number };
+  };
+  type SlideNote = { n: number; section: string; title: string; notes: string };
+  type Snapshot = { idx: number; running: boolean; endAt: number; remaining: number; finished: boolean; slide: number };
+
+  const deckCfg: DeckCfg = JSON.parse($("#wk-deck").textContent || "{}");
+  let slideNotes: SlideNote[] = [];
+  let slide = 1;
+
+  let idx = 0;
+  let running = false;
+  let endAt = 0;
+  let remaining = phases[0].minutes * 60000;
+  let finished = false; // the last phase ran out
+  let mode: "controller" | "follower" = "controller";
+  let audio: AudioContext | null = null;
+  let wakeLock: { release: () => Promise<void> } | null = null;
+
+  const clockEl = $("[data-wk-clock]");
+  const projClock = $("[data-wk-proj-clock]");
+  const toggleBtn = $<HTMLButtonElement>("[data-wk-toggle]");
+  const runItems = $$<HTMLButtonElement>("[data-wk-jump]");
+  const proj = $("[data-wk-proj]");
+  const clockView = $("[data-wk-clockview]");
+  const stages = $$("[data-wk-stage]");
+  const pill = $("[data-wk-pill]");
+
+  const fmt = (ms: number) => {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  };
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const slideSrc = (n: number) => `${deckCfg.base}${pad2(n)}.webp`;
+
+  function beep() {
+    if (!audio) return;
+    try {
+      [0, 0.35, 0.7].forEach((offset) => {
+        const o = audio!.createOscillator();
+        const g = audio!.createGain();
+        o.type = "sine"; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, audio!.currentTime + offset);
+        g.gain.exponentialRampToValueAtTime(0.35, audio!.currentTime + offset + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, audio!.currentTime + offset + 0.28);
+        o.connect(g); g.connect(audio!.destination);
+        o.start(audio!.currentTime + offset); o.stop(audio!.currentTime + offset + 0.3);
+      });
+    } catch { /* sound is a nice-to-have */ }
+  }
+
+  async function holdScreenAwake() {
+    try {
+      const nav = navigator as any;
+      if (nav.wakeLock && !wakeLock) {
+        wakeLock = await nav.wakeLock.request("screen");
+        (wakeLock as any).addEventListener?.("release", () => { wakeLock = null; });
+      }
+    } catch { /* not supported or refused */ }
+  }
+  function letScreenSleep() { wakeLock?.release().catch(() => {}); wakeLock = null; }
+  function primeAudio() {
+    if (!audio) { try { audio = new (window.AudioContext || (window as any).webkitAudioContext)(); } catch { audio = null; } }
+    audio?.resume?.().catch(() => {});
+  }
+
+  // ----- sync between the controller window and a projector window
+  const chan: BroadcastChannel | null = "BroadcastChannel" in window ? new BroadcastChannel("unstitch-workshop") : null;
+  let lastSig = "";
+  const snapshot = (): Snapshot => ({ idx, running, endAt, remaining, finished, slide });
+  const signature = (s: Snapshot) => `${s.idx}|${s.running}|${s.running ? s.endAt : s.remaining}|${s.finished}|${s.slide}`;
+  function broadcast(force = false) {
+    if (!chan || mode !== "controller" || !currentWorkshop) return;
+    const snap = snapshot();
+    const sig = signature(snap);
+    if (!force && sig === lastSig) return;
+    lastSig = sig;
+    chan.postMessage({ t: "state", w: currentWorkshop.code, s: snap });
+  }
+  function applySnapshot(s: Snapshot) {
+    idx = s.idx; running = s.running; endAt = s.endAt; remaining = s.remaining; finished = s.finished; slide = s.slide;
+    if (running) holdScreenAwake(); else letScreenSleep();
+    render();
+  }
+
+  // ----- commands (run here, or sent to the controller when this is a projector window)
+  type Cmd = "toggle" | "next" | "prev" | "first" | "last" | "phase-next" | "phase-prev";
+  function command(c: Cmd) {
+    if (mode === "follower") { chan?.postMessage({ t: "cmd", w: currentWorkshop?.code, c }); return; }
+    if (c === "toggle") { running ? pause() : start(); }
+    else if (c === "next") setSlide(slide + 1);
+    else if (c === "prev") setSlide(slide - 1);
+    else if (c === "first") setSlide(1);
+    else if (c === "last") setSlide(deckCfg.count);
+    else if (c === "phase-next") goTo(idx + 1, true);
+    else if (c === "phase-prev") goTo(idx - 1, false);
+  }
+
+  if (chan) {
+    chan.onmessage = (e: MessageEvent) => {
+      const m = e.data as { t: string; w?: string; s?: Snapshot; c?: Cmd };
+      if (!m || !currentWorkshop || m.w !== currentWorkshop.code) return;
+      if (m.t === "state" && mode === "follower" && m.s) applySnapshot(m.s);
+      else if (m.t === "hello" && mode === "controller" && isFacilitator) broadcast(true);
+      else if (m.t === "cmd" && mode === "controller" && isFacilitator && m.c) command(m.c);
+    };
+  }
+
+  // ----- the countdown (controller)
+  function rollOn(now: number) {
+    // Carry on from the exact moment a phase ended, so a late tick never loses time.
+    while (running && endAt <= now) {
+      beep();
+      if (idx < phases.length - 1) { idx += 1; endAt += phases[idx].minutes * 60000; }
+      else { running = false; finished = true; remaining = 0; letScreenSleep(); break; }
+    }
+    if (running) remaining = Math.max(0, endAt - now);
+  }
+
+  function start() {
+    if (finished || running) return;
+    primeAudio();
+    endAt = Date.now() + remaining;
+    running = true;
+    holdScreenAwake();
+    render();
+  }
+  function pause() { if (!running) return; remaining = Math.max(0, endAt - Date.now()); running = false; letScreenSleep(); render(); }
+  function goTo(i: number, autoStart: boolean) {
+    idx = Math.min(phases.length - 1, Math.max(0, i));
+    remaining = phases[idx].minutes * 60000;
+    finished = false;
+    running = false;
+    if (autoStart) start(); else { letScreenSleep(); render(); }
+  }
+  function adjust(deltaMs: number) {
+    if (finished) { finished = false; }
+    const cap = 60 * 60000;
+    if (running) { endAt = Math.max(Date.now() + 1000, Math.min(Date.now() + cap, endAt + deltaMs)); remaining = endAt - Date.now(); }
+    else { remaining = Math.max(1000, Math.min(cap, remaining + deltaMs)); }
+    render();
+  }
+
+  // ----- slides
+  function setSlide(n: number) {
+    const next = Math.min(deckCfg.count, Math.max(1, n));
+    if (next === slide) return;
+    slide = next;
+    // Reaching the slide that starts a phase moves the countdown forward. It never moves back, and it
+    // keeps running or paused exactly as it was, so arriving late or early changes nothing else.
+    const target = deckCfg.anchors[String(slide)];
+    if (target && target - 1 > idx) {
+      const wasRunning = running;
+      idx = target - 1;
+      remaining = phases[idx].minutes * 60000;
+      finished = false;
+      if (wasRunning) endAt = Date.now() + remaining;
+      running = wasRunning;
+    }
+    render();
+  }
+
+  // ----- the QR code that goes into slide 18
+  let qrUrl: string | null = null;
+  let qrFailed = false;
+  const studentLink = () => `${location.origin}/workshop?c=${encodeURIComponent(currentWorkshop?.code ?? "")}`;
+  async function buildQr() {
+    if (!currentWorkshop || qrUrl) return;
+    const link = studentLink();
+    const cacheKey = `wk-qr:${link}`;
+    // A copy saved on an earlier visit still works if the school network blocks the QR library.
+    try { const c = localStorage.getItem(cacheKey); if (c) { qrUrl = c; render(); } } catch { /* ignore */ }
+    try {
+      const mod = await loadQrCodeModule();
+      const toDataURL: (t: string, o: any) => Promise<string> = mod.toDataURL || mod.default?.toDataURL;
+      const url = await toDataURL(link, { width: 720, margin: 1, errorCorrectionLevel: "M" });
+      qrUrl = url;
+      try { localStorage.setItem(cacheKey, url); } catch { /* ignore */ }
+    } catch {
+      resetQrCodeModule();
+      if (!qrUrl) qrFailed = true;
+    }
+    render();
+  }
+
+  function placeBox(el: HTMLElement, b: { x: number; y: number; w: number; h: number }) {
+    el.style.left = `${b.x * 100}%`; el.style.top = `${b.y * 100}%`;
+    el.style.width = `${b.w * 100}%`; el.style.height = `${b.h * 100}%`;
+  }
+  stages.forEach((st) => {
+    placeBox(st.querySelector<HTMLElement>("[data-wk-qr]")!, deckCfg.qrBox);
+    placeBox(st.querySelector<HTMLElement>("[data-wk-qr-line]")!, deckCfg.qrLine);
+  });
+
+  let deckBroken = false;
+  function paintStage(st: HTMLElement) {
+    const img = st.querySelector<HTMLImageElement>("[data-wk-stage-img]")!;
+    const src = slideSrc(slide);
+    if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    const onQr = slide === deckCfg.qrSlide;
+    const box = st.querySelector<HTMLElement>("[data-wk-qr]")!;
+    const qrImg = box.querySelector<HTMLImageElement>("[data-wk-qr-img]")!;
+    const fb = box.querySelector<HTMLElement>("[data-wk-qr-fallback]")!;
+    const line = st.querySelector<HTMLElement>("[data-wk-qr-line]")!;
+    const code = currentWorkshop?.code ?? "";
+    const host = location.host;
+    box.hidden = !onQr;
+    line.hidden = !onQr;
+    if (!onQr) return;
+    if (qrUrl) { qrImg.src = qrUrl; qrImg.hidden = false; fb.hidden = true; }
+    else if (qrFailed) { qrImg.hidden = true; fb.hidden = false; fb.innerHTML = ""; fb.append(`Go to ${host}/workshop and type`); const st2 = document.createElement("strong"); st2.textContent = code; fb.append(st2); }
+    else { qrImg.hidden = true; fb.hidden = true; }
+    line.innerHTML = "";
+    line.append(`Or go to ${host}/workshop and type `);
+    const strong = document.createElement("strong"); strong.textContent = code; line.append(strong);
+  }
+
+  async function loadNotes() {
+    if (slideNotes.length) return;
+    try {
+      const res = await fetch(deckCfg.notesUrl);
+      if (res.ok) slideNotes = ((await res.json()) as { slides: SlideNote[] }).slides;
+    } catch { /* notes are a nice-to-have */ }
+    render();
+  }
+  function preloadSlides() {
+    // Fetch every slide once, quietly, so a slow school connection can't stall a slide mid-lesson.
+    let n = 1;
+    const next = () => {
+      if (n > deckCfg.count) return;
+      const im = new Image();
+      (im as any).fetchPriority = "low";
+      im.onload = im.onerror = () => { n += 1; next(); };
+      im.src = slideSrc(n);
+    };
+    next();
+  }
+  function onFacilitatorReady(wantProjector: boolean) {
+    if (!isFacilitator || deckReady) return;
+    deckReady = true;
+    loadNotes();
+    buildQr();
+    preloadSlides();
+    if (wantProjector) enterProjectorWindow();
+  }
+  let deckReady = false;
+
+  // ----- drawing everything
+  function render() {
+    const p = phases[idx];
+    const before = phases.slice(0, idx).reduce((n, x) => n + x.minutes * 60000, 0);
+    const elapsedInPhase = p.minutes * 60000 - remaining;
+    const elapsedTotal = Math.min(TOTAL_MS, before + Math.max(0, elapsedInPhase));
+    const pct = (elapsedTotal / TOTAL_MS) * 100;
+    const phasePct = Math.min(100, Math.max(0, (elapsedInPhase / (p.minutes * 60000)) * 100));
+    const low = remaining > 0 && remaining <= 60000 && running;
+    const nextP = phases[idx + 1];
+
+    clockEl.textContent = fmt(remaining);
+    clockEl.classList.toggle("is-low", low);
+    clockEl.classList.toggle("is-done", finished);
+    $("[data-wk-phase-count]").textContent = `Phase ${idx + 1} of ${phases.length}`;
+    $("[data-wk-phase-title]").textContent = p.title;
+    ($("[data-wk-total-bar]") as HTMLElement).style.width = `${pct}%`;
+    const leftMin = Math.ceil((TOTAL_MS - elapsedTotal) / 60000);
+    $("[data-wk-total-text]").textContent = `${leftMin} min left in the session (${TOTAL_MS / 60000} min in total)`;
+    toggleBtn.textContent = running ? "Pause" : finished ? "Time's up" : remaining < p.minutes * 60000 ? "Resume" : "Start";
+    toggleBtn.disabled = finished;
+    ($("[data-wk-prev]") as HTMLButtonElement).disabled = idx === 0;
+    ($("[data-wk-next]") as HTMLButtonElement).disabled = idx === phases.length - 1;
+    runItems.forEach((b, i) => {
+      b.classList.toggle("is-current", i === idx);
+      b.classList.toggle("is-done", i < idx);
+      if (i === idx) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    });
+
+    // the corner countdown on the slide
+    $("[data-wk-pill-phase]").textContent = finished ? "Time's up" : p.short || p.title;
+    $("[data-wk-pill-clock]").textContent = fmt(remaining);
+    ($("[data-wk-pill-bar]") as HTMLElement).style.width = `${phasePct}%`;
+    pill.classList.toggle("is-low", low);
+    pill.classList.toggle("is-done", finished);
+
+    // the big clock view
+    projClock.textContent = fmt(remaining);
+    projClock.classList.toggle("is-low", low);
+    projClock.classList.toggle("is-done", finished);
+    $("[data-wk-proj-count]").textContent = `Phase ${idx + 1} of ${phases.length}`;
+    $("[data-wk-proj-title]").textContent = p.title;
+    $("[data-wk-proj-say]").textContent = p.say;
+    $("[data-wk-proj-next]").textContent = nextP ? `Next: ${nextP.title} (${nextP.minutes} min)` : "Last phase";
+    ($("[data-wk-proj-bar]") as HTMLElement).style.width = `${pct}%`;
+
+    // slides, notes and the facilitator's slide controls
+    if (deckReady) stages.forEach(paintStage); // students never fetch a slide
+    const meta = slideNotes[slide - 1];
+    $("[data-wk-slide-where]").textContent = `Slide ${slide} of ${deckCfg.count}${meta?.title ? ` · ${meta.title}` : ""}`;
+    $("[data-wk-notes]").textContent = meta ? meta.notes || "No notes for this slide." : slideNotes.length ? "" : "Loading notes…";
+    const following = slideNotes[slide];
+    $("[data-wk-slide-next-title]").textContent = following ? `Next: slide ${slide + 1}, ${following.title}` : slide >= deckCfg.count ? "Last slide" : "";
+    ($("[data-wk-slide-prev]") as HTMLButtonElement).disabled = slide <= 1;
+    ($("[data-wk-slide-next]") as HTMLButtonElement).disabled = slide >= deckCfg.count;
+
+    document.title = running || finished ? `${fmt(remaining)} · ${p.title} | Unstitch` : "Workshop | Unstitch";
+    broadcast();
+  }
+
+  function tick() {
+    if (mode === "controller") {
+      if (running) rollOn(Date.now());
+    } else if (running) {
+      remaining = Math.max(0, endAt - Date.now());
+    }
+    render();
+  }
+
+  toggleBtn.addEventListener("click", () => command("toggle"));
+  $("[data-wk-next]").addEventListener("click", () => command("phase-next"));
+  $("[data-wk-prev]").addEventListener("click", () => command("phase-prev"));
+  $("[data-wk-slide-next]").addEventListener("click", () => command("next"));
+  $("[data-wk-slide-prev]").addEventListener("click", () => command("prev"));
+  $("[data-wk-minus]").addEventListener("click", () => adjust(-60000));
+  $("[data-wk-plus]").addEventListener("click", () => adjust(60000));
+  $("[data-wk-reset]").addEventListener("click", () => {
+    if (idx === 0 && !running && remaining === phases[0].minutes * 60000 && slide === 1 || window.confirm("Reset the countdown and the slides to the start?")) { goTo(0, false); slide = 1; render(); }
+  });
+  runItems.forEach((b) => b.addEventListener("click", () => goTo(Number(b.dataset.wkJump), false)));
+  setInterval(tick, 250);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { tick(); if (running) holdScreenAwake(); } });
+  render();
+
+  // ----------------------------------------------------------- projector
+  const notice = $("[data-wk-proj-notice]");
+  const hint = $("[data-wk-proj-hint]");
+  let hintTimer = 0;
+  function showHint() {
+    hint.classList.remove("is-faded");
+    window.clearTimeout(hintTimer);
+    hintTimer = window.setTimeout(() => hint.classList.add("is-faded"), 5000);
+  }
+  function say(text: string) { notice.textContent = text; notice.hidden = !text; }
+  function setClockView(on: boolean) { clockView.hidden = !on; }
+
+  function openProjector(fullscreen = true) {
+    proj.hidden = false;
+    document.body.style.overflow = "hidden";
+    primeAudio();
+    if (fullscreen) (proj.requestFullscreen?.() as Promise<void> | undefined)?.catch?.(() => {});
+    $<HTMLButtonElement>("[data-wk-proj-close]").focus({ preventScroll: true });
+    showHint();
+    render();
+  }
+  function closeProjector() {
+    if (mode === "follower") { window.close(); }
+    proj.hidden = true;
+    document.body.style.overflow = "";
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  }
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else (proj.requestFullscreen?.() as Promise<void> | undefined)?.catch?.(() => {});
+  }
+
+  // The slides are pictures. If they can't load, fall back to the big countdown rather than a blank screen.
+  stages.forEach((st) => st.querySelector("[data-wk-stage-img]")!.addEventListener("error", () => {
+    if (deckBroken) return;
+    deckBroken = true;
+    setClockView(true);
+    say("The slides couldn't load, so this is the countdown only.");
+  }));
+
+  // A second window for the projector, so the facilitator keeps the notes on their own screen.
+  function enterProjectorWindow() {
+    openProjector(false);
+    if (!chan) { say(""); return; }
+    mode = "follower";
+    chan.postMessage({ t: "hello", w: currentWorkshop?.code });
+    window.setTimeout(() => {
+      // Nobody answered: this window is on its own, so it runs the show itself.
+      if (mode === "follower" && !heardController) { mode = "controller"; say(""); }
+    }, 1200);
+  }
+  let heardController = false;
+  if (chan) {
+    const prev = chan.onmessage;
+    chan.onmessage = (e: MessageEvent) => {
+      if (mode === "follower" && (e.data as any)?.t === "state" && (e.data as any)?.w === currentWorkshop?.code) heardController = true;
+      prev?.call(chan, e);
+    };
+  }
+  $("[data-wk-popup]").addEventListener("click", () => {
+    const w = window.open(`${location.pathname}${location.search}#projector`, "unstitch-projector", "popup=yes,width=1280,height=720");
+    if (!w) openProjector(); // pop-ups are blocked: present on this screen instead
+  });
+  $("[data-wk-projector]").addEventListener("click", () => openProjector());
+  $("[data-wk-proj-close]").addEventListener("click", closeProjector);
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && !proj.hidden && mode === "controller") closeProjector(); });
+  proj.addEventListener("mousemove", showHint);
+
+  document.addEventListener("keydown", (e) => {
+    if (!isFacilitator || e.metaKey || e.ctrlKey || e.altKey) return;
+    const projOpen = !proj.hidden;
+    const onFacilitatorTab = !($("[data-wk-panel=facilitator]") as HTMLElement).hidden;
+    if (!projOpen && !onFacilitatorTab) return;
+    const t = e.target as HTMLElement | null;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    const k = e.key;
+    if (k === "Escape") { if (projOpen) { e.preventDefault(); closeProjector(); } return; }
+    if (k === " " || k === "Spacebar") {
+      if (t?.tagName === "BUTTON" && !projOpen) return; // let a focused button use its own Space
+      e.preventDefault(); command("toggle"); return;
+    }
+    if (k === "ArrowRight" || k === "PageDown" || (projOpen && k === "ArrowDown")) { e.preventDefault(); command("next"); }
+    else if (k === "ArrowLeft" || k === "PageUp" || (projOpen && k === "ArrowUp")) { e.preventDefault(); command("prev"); }
+    else if (k === "Home") { e.preventDefault(); command("first"); }
+    else if (k === "End") { e.preventDefault(); command("last"); }
+    else if ((k === "t" || k === "T") && projOpen) { setClockView(clockView.hidden === true); }
+    else if ((k === "f" || k === "F") && projOpen) { toggleFullscreen(); }
+    if (projOpen) showHint();
+  });
+</script>

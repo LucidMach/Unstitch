@@ -28,6 +28,7 @@ const DETAIL_LABELS: Record<string, string> = {
   budget: 'Budget',
   tracks: 'Theme / track',
   hearAbout: 'Heard about Unstitch via',
+  accessibilityNeeds: 'Accessibility needs',
 };
 
 const detailLabel = (key: string) =>
@@ -52,7 +53,7 @@ function generateNotificationHtml({ name, email, phone, subject, message, market
   const subjectTitle = (subjectLabels as Record<string, string>)[subject] || subject;
   
   const detailRows = Object.entries(details || {})
-    .map(([key, val]) => `<tr><td style="padding: 6px 12px; font-weight: 600; color: #555; vertical-align: top;">${escapeHtml(detailLabel(key))}:</td><td style="padding: 6px 12px; color: #111;">${escapeHtml(detailValue(val))}</td></tr>`)
+    .map(([key, val]) => `<tr><td style="padding: 6px 12px; font-weight: 600; color: #555; vertical-align: top;">${escapeHtml(detailLabel(key))}:</td><td style="padding: 6px 12px; color: #111; white-space: pre-wrap;">${escapeHtml(detailValue(val))}</td></tr>`)
     .join('');
 
   return `

@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/workshop-:key",
+      "destination": "/workshop"
+    },
+    {
       "source": "/passport/:serial",
       "destination": "/passport?serial=:serial"
     },

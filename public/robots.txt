@@ -4,6 +4,8 @@ Allow: /
 
 # Disallow internal API endpoints from being indexed
 Disallow: /api/
+Disallow: /workshop
+Disallow: /how-it-works
 
 # Sitemap location
 Sitemap: https://www.unstitchx.com/sitemap.xml
