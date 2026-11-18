@@ -1232,7 +1232,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     else if (k === "ArrowLeft" || k === "PageUp" || (projOpen && k === "ArrowUp")) { e.preventDefault(); command("prev"); }
     else if (k === "Home") { e.preventDefault(); command("first"); }
     else if (k === "End") { e.preventDefault(); command("last"); }
-    else if ((k === "t" || k === "T") && projOpen) { setClockView(clockView.hidden); }
+    else if ((k === "t" || k === "T") && projOpen) { setClockView(clockView.hidden === true); }
     else if ((k === "f" || k === "F") && projOpen) { toggleFullscreen(); }
     if (projOpen) showHint();
   });
