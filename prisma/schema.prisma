@@ -982,6 +982,7 @@ model Workshop {
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
   feedback     WorkshopFeedback[]
   teacherFeedback     WorkshopTeacherFeedback[]
+  schoolFeedback      WorkshopSchoolFeedback[]
   facilitatorFeedback WorkshopFacilitatorFeedback[]
 
   @@index([active, expiresAt])
@@ -1078,4 +1079,20 @@ model WorkshopSlideNote {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("workshop_slide_notes")
+}
+
+// The longer evaluation from the teacher liaison and other school staff (/workshop/school?c=CODE).
+// `answers` holds the answers keyed by question (q1 to q15, plus q3_other); see schoolForm in
+// src/lib/constants/workshopFeedback.ts.
+model WorkshopSchoolFeedback {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workshopId   String   @map("workshop_id") @db.Uuid
+  workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  submissionId String   @unique @map("submission_id") @db.VarChar(64)
+  answers      Json
+  hidden       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workshopId])
+  @@map("workshop_school_feedback")
 }

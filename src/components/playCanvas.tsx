@@ -12,13 +12,13 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube, Html } from "@react-three/drei";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, FolderOpen, Share2, ArrowLeft, Compass, Eye } from "lucide-react";
+import { Save, FolderOpen, Share2, ArrowLeft, Compass, Eye, Camera } from "lucide-react";
 
 import { usePlayCanvas } from "../hooks/use-play-canvas";
 import { ITEM_SCALE } from "../constants/layout";
 import { getLayoutConstants } from "../constants/layout";
 import TileNode from "./scene/TileNode";
-import { SaveDialog, LoadDialog, ShareDialog, ConfirmDialog } from "./ui/Dialogs";
+import { SaveDialog, LoadDialog, ShareDialog, ConfirmDialog, SnapShareDialog } from "./ui/Dialogs";
 import { HelpGuide } from "./ui/HelpGuide";
 import { AngleSlider } from "./ui/AngleSlider";
 import { Button } from "./ui/button";
@@ -74,12 +74,39 @@ function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | n
   }
 }
 
+// Full-resolution PNG of what is on screen, on the soft brand background. Made on demand in the browser and
+// downloaded straight to the device: nothing is stored in the browser, on the server or in the database.
+function canvasToPngBlob(canvasEl: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const { width, height } = canvasEl;
+      if (!width || !height) return resolve(null);
+      // Keep very large retina canvases to a sensible size (longest edge 2400px).
+      const maxDim = 2400;
+      const scale = Math.min(1, maxDim / Math.max(width, height));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(width * scale));
+      out.height = Math.max(1, Math.round(height * scale));
+      const ctx = out.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.fillStyle = '#faf9f6';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvasEl, 0, 0, out.width, out.height);
+      out.toBlob((blob) => resolve(blob), 'image/png');
+    } catch (err) {
+      console.warn('Could not capture image:', err);
+      resolve(null);
+    }
+  });
+}
+
 const PlayCanvas: React.FC = () => {
   const pc = usePlayCanvas();
   const { OFFSET_MAJOR } = getLayoutConstants(pc.overlap);
   const controlsRef = useRef<any>(null);
   const modelGroupRef = useRef<THREE.Group>(null);
   const [previewSnapshot, setPreviewSnapshot] = useState<string | null>(null);
+  const [showSnapShare, setShowSnapShare] = useState(false);
 
   const handleOpenShare = () => {
     try {
@@ -94,6 +121,22 @@ const PlayCanvas: React.FC = () => {
       console.warn('Could not capture canvas snapshot:', err);
     }
     pc.setShowShareDialog(true);
+  };
+
+  const handleSaveImage = async () => {
+    const canvasEl = document.querySelector('.playground-root canvas') as HTMLCanvasElement | null;
+    const blob = canvasEl ? await canvasToPngBlob(canvasEl) : null;
+    if (!blob) { pc.showToast("Couldn't save an image. Try again."); return; }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = (pc.projectName || 'unstitch-design').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'unstitch-design';
+    link.href = url;
+    link.download = `${safeName}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    setShowSnapShare(true);
   };
 
   const selectedTile = pc.tiles.find(t => t.id === pc.selectedTileId);
@@ -238,6 +281,17 @@ const PlayCanvas: React.FC = () => {
 
           <Button 
             variant="ghost" 
+            title="Save a picture of your design"
+            aria-label="Save as image"
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
+            onClick={handleSaveImage}
+          >
+            <Camera size={15} />
+            <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Image</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
             className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
             onClick={() => pc.setShowLoadDialog(true)}
           >
@@ -322,6 +376,7 @@ const PlayCanvas: React.FC = () => {
         projects={pc.projects}
         onExportJSON={pc.exportJSON}
         onExportGLTF={() => pc.exportGLTF(modelGroupRef.current)}
+        onExportImage={handleSaveImage}
       />
       
       <LoadDialog 
@@ -344,6 +399,8 @@ const PlayCanvas: React.FC = () => {
       />
 
       <ConfirmDialog show={!!pc.deleteConfirmId} title="delete tile?" message={pc.deleteConfirmId && Object.keys(pc.tiles.find(t => t.id === pc.deleteConfirmId)?.children || {}).length > 0 ? "This tile has others attached. Deleting it will remove the entire branch." : "Are you sure you want to delete this tile?"} confirmLabel="delete" onConfirm={() => { pc.deleteTile(pc.deleteConfirmId!); pc.setDeleteConfirmId(null); }} onCancel={() => pc.setDeleteConfirmId(null)} />
+
+      <SnapShareDialog show={showSnapShare} onClose={() => setShowSnapShare(false)} />
 
       <ConfirmDialog show={pc.showResetConfirm} title="Reset Canvas?" message="This will remove all tiles and clear your entire undo/redo history. This action cannot be undone." confirmLabel="Reset" confirmVariant="destructive" onConfirm={pc.handleReset} onCancel={() => pc.setShowResetConfirm(false)} icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>} />
     </div>

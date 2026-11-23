@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Plus, FolderOpen, Trash2, Box, FileCode, Upload, AlertCircle, Share2, Mail, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Camera, Save, Plus, FolderOpen, Trash2, Box, FileCode, Upload, AlertCircle, Share2, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from './button';
 
 interface DialogProps {
@@ -40,7 +40,8 @@ export const SaveDialog: React.FC<{
   projects: any[];
   onExportJSON?: () => void;
   onExportGLTF?: () => void;
-}> = ({ show, onClose, projectName, setProjectName, onSave, currentProjectId, projects, onExportJSON, onExportGLTF }) => (
+  onExportImage?: () => void;
+}> = ({ show, onClose, projectName, setProjectName, onSave, currentProjectId, projects, onExportJSON, onExportGLTF, onExportImage }) => (
   <Dialog show={show} onClose={onClose}>
     <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[85vh]">
       <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
@@ -140,6 +141,27 @@ export const SaveDialog: React.FC<{
             </div>
             <p className="text-[11px] text-neutral-500 leading-relaxed">
               Export 3D mesh model ready for Blender, 3D printing, CAD, and rendering.
+            </p>
+          </div>
+        )}
+
+        {/* Option 4: Save as Image */}
+        {onExportImage && (
+          <div 
+            onClick={() => { onExportImage(); onClose(); }}
+            className="group p-3.5 bg-neutral-50/80 hover:bg-neutral-100 rounded-xl border border-neutral-200/80 hover:border-neutral-400 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-white border border-neutral-200 flex items-center justify-center text-neutral-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <Camera size={13} />
+                </div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900">4. Save as Image</h4>
+              </div>
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-neutral-200/80 text-neutral-700 font-bold">.PNG</span>
+            </div>
+            <p className="text-[11px] text-neutral-500 leading-relaxed">
+              Download a picture of your design as it looks right now. Great for sharing or showing your team.
             </p>
           </div>
         )}
@@ -509,6 +531,39 @@ export const ExportDialog: React.FC<{
           </div>
         </button>
       </div>
+    </div>
+  </Dialog>
+);
+
+export const SnapShareDialog: React.FC<{ show: boolean; onClose: () => void }> = ({ show, onClose }) => (
+  <Dialog show={show} onClose={onClose}>
+    <div className="p-6 sm:p-7 text-center space-y-4">
+      <div className="mx-auto w-11 h-11 rounded-2xl bg-[#eedfe9] text-[#A36E93] flex items-center justify-center">
+        <Camera size={20} />
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Image saved</p>
+        <h3 className="text-lg font-bold text-neutral-900 leading-tight">Snap &amp; Share</h3>
+        <p className="text-sm text-neutral-700">Share your build!</p>
+      </div>
+      <div className="space-y-1.5 py-3 border-y border-neutral-200">
+        <a
+          href="https://www.instagram.com/unstitchxfactory/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-sm font-bold text-neutral-900 hover:text-[#A36E93] transition-colors"
+        >
+          @unstitchxfactory
+        </a>
+        <p className="text-sm font-bold text-[#A36E93] break-words">#unstitchxmade</p>
+      </div>
+      <Button
+        variant="secondary"
+        className="w-full h-10 rounded-xl text-xs font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-black text-white border-none transition-all"
+        onClick={onClose}
+      >
+        Done
+      </Button>
     </div>
   </Dialog>
 );

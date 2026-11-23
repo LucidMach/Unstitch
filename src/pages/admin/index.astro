@@ -793,6 +793,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
               <button type="button" id="wk-feedback-refresh" class="btn-ghost btn-ghost--small">Refresh</button>
               <button type="button" id="wk-feedback-csv" class="btn-ghost btn-ghost--small" disabled>Students CSV</button>
               <button type="button" id="wk-teacher-csv" class="btn-ghost btn-ghost--small" disabled>Teachers CSV</button>
+              <button type="button" id="wk-school-csv" class="btn-ghost btn-ghost--small" disabled>School staff CSV</button>
             </div>
           </div>
           <p class="admin-muted" id="wk-feedback-status" style="margin: 8px 0;">Loading…</p>
@@ -803,6 +804,9 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
 
           <h4 style="margin: 20px 0 6px; font-size: 0.9rem;">Teachers</h4>
           <div id="wk-teacher-list"></div>
+
+          <h4 style="margin: 20px 0 6px; font-size: 0.9rem;">School staff (teacher liaison and others)</h4>
+          <div id="wk-school-list"></div>
 
           <h4 style="margin: 20px 0 6px; font-size: 0.9rem;">Facilitator</h4>
           <div id="wk-facilitator-list"></div>
@@ -2705,7 +2709,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
 <script>
   import { loadQrCodeModule, resetQrCodeModule } from "../../lib/qrCodeLoader";
   import {
-    studentScale, studentStatements, teacherForm, facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen,
+    studentScale, studentStatements, teacherForm, schoolForm, schoolQuestions, facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen,
     facilitatorDeliveryChecks, facilitatorYesPartlyNo, facilitatorOpen, facilitatorObservations,
     facilitatorSections, labelFor,
   } from "../../lib/constants/workshopFeedback";
@@ -2874,12 +2878,14 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     whatWeMade: string | null; interesting: string | null; wouldChange: string | null; teamName: string | null;
     rating: number | null; oneWord: string | null; hidden: boolean; createdAt: string;
   };
+  type AdminSchoolFeedback = { id: string; answers: Record<string, string | string[]>; hidden: boolean; createdAt: string };
   type AdminTeacherFeedback = {
     id: string; engagement: string; observed: string[]; appropriate: string; valuable: string | null;
     improve: string | null; recommend: string; hidden: boolean; createdAt: string;
   };
   type AdminFacilitatorFeedback = { id: string; answers: Record<string, any>; createdAt: string };
   let teacherCache: AdminTeacherFeedback[] = [];
+  let schoolCache: AdminSchoolFeedback[] = [];
   let facilitatorCache: AdminFacilitatorFeedback[] = [];
   let feedbackCache: AdminFeedback[] = [];
   const workshopsCache = new Map<string, AdminWorkshop>();
@@ -2896,6 +2902,9 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
   }
   function facilitatorLink(key: string): string {
     return `${window.location.origin}/workshop-${encodeURIComponent(key)}`;
+  }
+  function schoolLink(code: string): string {
+    return `${window.location.origin}/workshop/school?c=${encodeURIComponent(code)}`;
   }
   function teacherLink(code: string): string {
     return `${window.location.origin}/workshop/teacher?c=${encodeURIComponent(code)}`;
@@ -2923,7 +2932,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
         return `<tr data-workshop-id="${esc(w.id)}" style="cursor: pointer;">
           <td><strong>${esc(w.code)}</strong></td><td>${esc(w.schoolName)}</td>
           <td>${esc(w.workshopDate || "-")}</td><td>${w.teams}</td><td>${esc(st.label)}</td>
-          <td style="white-space: nowrap;"><button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="student">Copy student link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="teacher">Copy teacher link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="facilitator">Copy facilitator link</button></td></tr>`;
+          <td style="white-space: nowrap;"><button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="student">Copy student link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="teacher">Copy teacher link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="school">Copy school link</button> <button type="button" class="btn-ghost btn-ghost--small" data-wk-copy="facilitator">Copy facilitator link</button></td></tr>`;
       }).join("");
     } catch {
       tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">Couldn't load workshops.</td></tr>`;
@@ -2976,9 +2985,10 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
   async function loadWorkshopFeedback(workshopId: string) {
     const status = wkEl("wk-feedback-status");
     status.textContent = "Loading…";
-    ["wk-feedback-summary", "wk-feedback-list", "wk-teacher-list", "wk-facilitator-list"].forEach((id) => { wkEl(id).innerHTML = ""; });
+    ["wk-feedback-summary", "wk-feedback-list", "wk-teacher-list", "wk-school-list", "wk-facilitator-list"].forEach((id) => { wkEl(id).innerHTML = ""; });
     wkEl<HTMLButtonElement>("wk-feedback-csv").disabled = true;
     wkEl<HTMLButtonElement>("wk-teacher-csv").disabled = true;
+    wkEl<HTMLButtonElement>("wk-school-csv").disabled = true;
     try {
       const res = await api(`/api/admin/workshops?feedback=${encodeURIComponent(workshopId)}`);
       if (!res.ok) {
@@ -2987,8 +2997,9 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
         status.textContent = `Couldn't load feedback. ${reason || "Run pnpm db:generate then pnpm db:push if you haven't since the update."}`;
         return;
       }
-      const data = (await res.json()) as { feedback: AdminFeedback[]; teacherFeedback?: AdminTeacherFeedback[]; facilitatorFeedback?: AdminFacilitatorFeedback[] };
+      const data = (await res.json()) as { feedback: AdminFeedback[]; teacherFeedback?: AdminTeacherFeedback[]; facilitatorFeedback?: AdminFacilitatorFeedback[]; schoolFeedback?: AdminSchoolFeedback[] };
       feedbackCache = data.feedback;
+      schoolCache = data.schoolFeedback || [];
       teacherCache = data.teacherFeedback || [];
       facilitatorCache = data.facilitatorFeedback || [];
       renderWorkshopFeedback();
@@ -3012,7 +3023,8 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     const shown = all.filter((f) => !f.hidden);
     wkEl<HTMLButtonElement>("wk-feedback-csv").disabled = all.length === 0;
     wkEl<HTMLButtonElement>("wk-teacher-csv").disabled = teacherCache.length === 0;
-    status.textContent = `${shown.length} student response${shown.length === 1 ? "" : "s"} shown (${all.length - shown.length} hidden) · ${teacherCache.length} teacher · ${facilitatorCache.length} facilitator. Scores are 1 (Not at all) to 5 (Yes, confidently).`;
+    wkEl<HTMLButtonElement>("wk-school-csv").disabled = schoolCache.length === 0;
+    status.textContent = `${shown.length} student response${shown.length === 1 ? "" : "s"} shown (${all.length - shown.length} hidden) · ${teacherCache.length} teacher · ${schoolCache.length} school staff · ${facilitatorCache.length} facilitator. Scores are 1 (Not at all) to 5 (Yes, confidently).`;
 
     // ----- students
     if (!all.length) {
@@ -3069,6 +3081,38 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     }
 
     // ----- facilitator
+    // ----- school staff
+    if (!schoolCache.length) {
+      wkEl("wk-school-list").innerHTML = `<p class="admin-muted">No school staff feedback yet. Send the school link ("Copy school link" in the list above, or /workshop/school?c=CODE). It stays open for 21 days after the workshop date.</p>`;
+    } else {
+      const live = schoolCache.filter((x) => !x.hidden);
+      const answer = (x: AdminSchoolFeedback, key: string) => x.answers[key];
+      const tallies = schoolQuestions.filter((q) => q.kind === "single" || q.kind === "multi").map((q) => {
+        if (q.kind !== "single" && q.kind !== "multi") return "";
+        const counts: Record<string, number> = {};
+        live.forEach((x) => { const a = answer(x, q.key); (Array.isArray(a) ? a : a ? [a] : []).forEach((v) => { counts[v] = (counts[v] || 0) + 1; }); });
+        const others = live.filter((x) => typeof x.answers[`${q.key}_other`] === "string" && x.answers[`${q.key}_other`]).map((x) => esc(String(x.answers[`${q.key}_other`])));
+        return `<p style="margin: 0 0 4px;"><span class="admin-muted">${q.n}. ${esc(q.label)}</span><br>${q.choices.map((c) => `${esc(c.label)}: <strong>${counts[c.v] || 0}</strong>`).join(" · ")}${others.length ? ` · Other: ${others.join("; ")}` : ""}</p>`;
+      }).join("");
+      const q12 = schoolQuestions.find((q) => q.key === "q12");
+      const textRow = (x: AdminSchoolFeedback, key: string, title: string) => {
+        const v = answer(x, key);
+        return typeof v === "string" && v ? `<br><span class="admin-muted">${esc(title)}:</span> ${esc(v)}` : "";
+      };
+      wkEl("wk-school-list").innerHTML = `${tallies}
+        ${schoolCache.map((x) => {
+          const perm = q12 && q12.kind === "single" && typeof x.answers.q12 === "string" ? labelFor(q12.choices, x.answers.q12) : "";
+          const who = [x.answers.q13, x.answers.q14, x.answers.q15].filter((v) => typeof v === "string" && v).map((v) => esc(String(v))).join(" · ");
+          return `<div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid #e8e5df; ${x.hidden ? "opacity: 0.5;" : ""}">
+            <div>${who ? `<strong>${who}</strong>` : `<span class="admin-muted">Anonymous</span>`}
+              ${textRow(x, "q7", "Most valuable / to improve")}${textRow(x, "q9", "Other places it could fit")}${textRow(x, "q10", "What would bring them back")}
+              ${typeof x.answers.q11 === "string" && x.answers.q11 ? `<br><span class="admin-muted">Testimonial${perm ? ` (${esc(perm)})` : ""}:</span> ${esc(x.answers.q11)}` : ""}
+            </div>
+            ${hideBtn(x.id, x.hidden, "school")}
+          </div>`;
+        }).join("")}`;
+    }
+
     if (!facilitatorCache.length) {
       wkEl("wk-facilitator-list").innerHTML = `<p class="admin-muted">No facilitator notes yet. They are sent from the bottom of the Facilitator tab.</p>`;
     } else {
@@ -3096,7 +3140,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
   }
 
   async function toggleFeedbackHidden(id: string, kind: string) {
-    const list: { id: string; hidden: boolean }[] = kind === "teacher" ? teacherCache : feedbackCache;
+    const list: { id: string; hidden: boolean }[] = kind === "teacher" ? teacherCache : kind === "school" ? schoolCache : feedbackCache;
     const f = list.find((x) => x.id === id);
     if (!f) return;
     const res = await api("/api/admin/workshops", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feedbackId: id, hidden: !f.hidden, kind }) });
@@ -3120,6 +3164,24 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
       "student-feedback",
       [...studentStatements.map((s) => s.text), "Team name", "What we made", "Interesting or surprising", "Difficult / would change", "Old rating", "Old one word", "Hidden", "Submitted"],
       feedbackCache.map((f) => [...studentScores(f), f.teamName, f.whatWeMade, f.interesting, f.wouldChange, f.rating, f.oneWord, f.hidden ? "yes" : "no", f.createdAt]),
+    );
+  }
+
+  function exportSchoolCsv() {
+    const cellText = (x: AdminSchoolFeedback, q: (typeof schoolQuestions)[number]) => {
+      const v = x.answers[q.key];
+      if (q.kind === "single") return typeof v === "string" ? labelFor(q.choices, v) : "";
+      if (q.kind === "multi") {
+        const picked = (Array.isArray(v) ? v : []).map((c) => labelFor(q.choices, c));
+        const other = x.answers[`${q.key}_other`];
+        return [...picked, ...(typeof other === "string" && other ? [`Other: ${other}`] : [])].join("; ");
+      }
+      return typeof v === "string" ? v : "";
+    };
+    downloadCsv(
+      "school-feedback",
+      [...schoolQuestions.map((q) => `${q.n}. ${q.label}`), "Hidden", "Submitted"],
+      schoolCache.map((x) => [...schoolQuestions.map((q) => cellText(x, q)), x.hidden ? "yes" : "no", x.createdAt]),
     );
   }
 
@@ -3234,11 +3296,13 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
   wkEl("wk-feedback-refresh").addEventListener("click", () => { if (editingWorkshopId) loadWorkshopFeedback(editingWorkshopId); });
   wkEl("wk-feedback-csv").addEventListener("click", exportFeedbackCsv);
   wkEl("wk-teacher-csv").addEventListener("click", exportTeacherCsv);
+  wkEl("wk-school-csv").addEventListener("click", exportSchoolCsv);
   const onFeedbackToggle = (e: Event) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-feedback-toggle]");
     if (btn) toggleFeedbackHidden(btn.dataset.feedbackToggle as string, btn.dataset.feedbackKind || "student");
   };
   wkEl("wk-teacher-list").addEventListener("click", onFeedbackToggle);
+  wkEl("wk-school-list").addEventListener("click", onFeedbackToggle);
   wkEl("wk-feedback-list").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-feedback-toggle]");
     if (btn) toggleFeedbackHidden(btn.dataset.feedbackToggle as string, btn.dataset.feedbackKind || "student");
@@ -3253,9 +3317,9 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
       const which = copyBtn.dataset.wkCopy;
       const isFac = which === "facilitator";
       if (isFac && !w.facilitatorKey) { copyBtn.textContent = "No key yet: open and save"; return; }
-      const label = isFac ? "Copy facilitator link" : which === "teacher" ? "Copy teacher link" : "Copy student link";
+      const label = isFac ? "Copy facilitator link" : which === "teacher" ? "Copy teacher link" : which === "school" ? "Copy school link" : "Copy student link";
       try {
-        await navigator.clipboard.writeText(isFac ? facilitatorLink(w.facilitatorKey as string) : which === "teacher" ? teacherLink(w.code) : workshopLink(w.code));
+        await navigator.clipboard.writeText(isFac ? facilitatorLink(w.facilitatorKey as string) : which === "teacher" ? teacherLink(w.code) : which === "school" ? schoolLink(w.code) : workshopLink(w.code));
         copyBtn.textContent = "Copied";
       } catch { copyBtn.textContent = "Copy failed"; }
       setTimeout(() => { copyBtn.textContent = label; }, 1500);
