@@ -2705,7 +2705,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
 <script>
   import { loadQrCodeModule, resetQrCodeModule } from "../../lib/qrCodeLoader";
   import {
-    studentStatements, teacherForm, facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen,
+    studentScale, studentStatements, teacherForm, facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen,
     facilitatorDeliveryChecks, facilitatorYesPartlyNo, facilitatorOpen, facilitatorObservations,
     facilitatorSections, labelFor,
   } from "../../lib/constants/workshopFeedback";
@@ -2868,7 +2868,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     notes: string | null; active: boolean; expiresAt: string | null; facilitatorKey: string | null;
   };
   type AdminFeedback = {
-    id: string; teamNumber: number;
+    id: string; teamNumber: number | null;
     scoreReuse: number | null; scoreConnect: number | null; scoreSpatial: number | null;
     scoreDiscover: number | null; scoreTeam: number | null;
     whatWeMade: string | null; interesting: string | null; wouldChange: string | null; teamName: string | null;
@@ -3019,26 +3019,21 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
       wkEl("wk-feedback-summary").innerHTML = `<p class="admin-muted">No student feedback yet. It appears here as students submit it.</p>`;
       wkEl("wk-feedback-list").innerHTML = "";
     } else {
-      const head = studentStatements.map((st) => `<th title="${esc(st.text)}">${esc(st.outcome)}</th>`).join("");
-      const teams = new Map<number, AdminFeedback[]>();
-      shown.forEach((f) => teams.set(f.teamNumber, [...(teams.get(f.teamNumber) || []), f]));
+      const dist = (i: number) => {
+        const v = shown.map((f) => studentScores(f)[i]).filter((x): x is number => typeof x === "number");
+        return studentScale.map((o) => `${v.filter((x) => x === o.v).length}`).join(" / ");
+      };
+      const rows = studentStatements.map((st, i) => `<tr><td>${esc(st.text)}</td><td><strong>${mean(shown.map((f) => studentScores(f)[i]))}</strong></td><td class="admin-muted">${dist(i)}</td></tr>`).join("");
       const uniq = (items: (string | null)[]) => [...new Set(items.map((x) => (x || "").trim()).filter(Boolean))];
-      const rows = [...teams.entries()].sort((a, b) => a[0] - b[0]).map(([team, items]) => {
-        const cols = studentStatements.map((_, i) => `<td>${mean(items.map((f) => studentScores(f)[i]))}</td>`).join("");
-        return `<tr><td><strong>${team}</strong></td><td>${items.length}</td>${cols}
-          <td>${esc(uniq(items.map((f) => f.teamName)).join(", ") || "-")}</td>
-          <td>${esc(uniq(items.map((f) => f.whatWeMade)).join(" / ") || "-")}</td></tr>`;
-      });
-      const allCols = studentStatements.map((_, i) => `<td><strong>${mean(shown.map((f) => studentScores(f)[i]))}</strong></td>`).join("");
-      wkEl("wk-feedback-summary").innerHTML = `<table class="admin-table"><thead><tr><th>Team</th><th>Replies</th>${head}<th>Team name</th><th>What they made</th></tr></thead><tbody>${rows.join("")}
-        <tr><td><strong>All</strong></td><td>${shown.length}</td>${allCols}<td></td><td></td></tr></tbody></table>
-        <p class="admin-muted" style="margin: 6px 0 0;">${studentStatements.map((st) => `${esc(st.outcome)}: "${esc(st.text)}"`).join(" · ")}</p>`;
+      const made = shown.filter((f) => (f.whatWeMade || "").trim());
+      wkEl("wk-feedback-summary").innerHTML = `<table class="admin-table"><thead><tr><th>Statement</th><th>Average (1-5)</th><th>${studentScale.map((o) => esc(o.label)).join(" / ")}</th></tr></thead><tbody>${rows}</tbody></table>
+        ${made.length ? `<p class="admin-muted" style="margin: 8px 0 0;"><strong>What teams made:</strong> ${esc(uniq(made.map((f) => (f.teamName ? f.teamName + ": " : "") + f.whatWeMade)).join(" · "))}</p>` : ""}`;
 
       const comments = all.filter((f) => (f.interesting || f.wouldChange || "").trim());
       wkEl("wk-feedback-list").innerHTML = comments.length
         ? comments.map((f) => `
           <div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid #e8e5df; ${f.hidden ? "opacity: 0.5;" : ""}">
-            <div><strong>Team ${f.teamNumber}</strong>${f.oneWord ? ` <span class="admin-muted">· "${esc(f.oneWord)}"</span>` : ""}
+            <div>${f.teamName ? `<strong>${esc(f.teamName)}</strong>` : f.teamNumber ? `<strong>Team ${f.teamNumber}</strong>` : `<span class="admin-muted">Student</span>`}${f.oneWord ? ` <span class="admin-muted">· "${esc(f.oneWord)}"</span>` : ""}
               ${f.interesting ? `<br><span class="admin-muted">Interesting or surprising:</span> ${esc(f.interesting)}` : ""}
               ${f.wouldChange ? `<br><span class="admin-muted">Difficult / would change:</span> ${esc(f.wouldChange)}` : ""}</div>
             ${hideBtn(f.id, f.hidden, "student")}
@@ -3123,8 +3118,8 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
   function exportFeedbackCsv() {
     downloadCsv(
       "student-feedback",
-      ["Team", ...studentStatements.map((s) => s.text), "Team name", "What we made", "Interesting or surprising", "Difficult / would change", "Old rating", "Old one word", "Hidden", "Submitted"],
-      feedbackCache.map((f) => [f.teamNumber, ...studentScores(f), f.teamName, f.whatWeMade, f.interesting, f.wouldChange, f.rating, f.oneWord, f.hidden ? "yes" : "no", f.createdAt]),
+      [...studentStatements.map((s) => s.text), "Team name", "What we made", "Interesting or surprising", "Difficult / would change", "Old rating", "Old one word", "Hidden", "Submitted"],
+      feedbackCache.map((f) => [...studentScores(f), f.teamName, f.whatWeMade, f.interesting, f.wouldChange, f.rating, f.oneWord, f.hidden ? "yes" : "no", f.createdAt]),
     );
   }
 

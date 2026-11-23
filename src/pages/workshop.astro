@@ -177,43 +177,42 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
 
         <!-- ===== Student feedback (full-width charcoal band) ===== -->
         <div class="wk-feedback" id="wk-feedback" data-wk-feedback>
-          <div class="wk-wrap wk-wrap--wide wk-feedback__inner">
+          <div class="wk-wrap wk-feedback__inner">
             <h2 id="wk-fb-h" class="wk-h2">How was today?</h2>
             <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
             <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
-              <div class="wk-fb__col">
-                <p class="wk-fb__group">What you learned</p>
-                <p class="wk-fb__hint">How true is each one for you?</p>
-                {studentStatements.map((st, i) => (
-                  <fieldset class="wk-field wk-scale">
-                    <legend>{i + 1}. {st.text}</legend>
-                    <div class="wk-scale__row" role="radiogroup" aria-label={st.text}>
+              <div class="wk-fb__block">
+                <p class="wk-fb__step"><span>1</span> How true is each one for you?</p>
+                <div class="wk-matrix__key" aria-hidden="true">
+                  {studentScale.map((o) => <span>{o.label}</span>)}
+                </div>
+                {studentStatements.map((st) => (
+                  <div class="wk-row" role="group" aria-labelledby={`wk-q-${st.key}`}>
+                    <p class="wk-row__q" id={`wk-q-${st.key}`}>{st.text}</p>
+                    <div class="wk-row__dots" role="radiogroup" aria-label={st.text}>
                       {studentScale.map((o) => (
-                        <label class="wk-opt">
-                          <input type="radio" name={`score-${st.key}`} value={o.v} data-wk-fb-score={st.key} />
-                          <span>{o.label}</span>
+                        <label class="wk-dot">
+                          <input type="radio" name={`score-${st.key}`} value={o.v} aria-label={o.label} data-wk-fb-score={st.key} />
+                          <span class="wk-dot__mark" aria-hidden="true"></span>
                         </label>
                       ))}
                     </div>
-                  </fieldset>
+                    <p class="wk-row__ends" aria-hidden="true"><span>{studentScale[0].label}</span><span>{studentScale[4].label}</span></p>
+                  </div>
                 ))}
               </div>
 
-              <div class="wk-fb__col">
-                <p class="wk-fb__group">Reflection and experience</p>
-                <div class="wk-field">
-                  <label for="wk-fb-team">Which team are you?</label>
-                  <select id="wk-fb-team" class="wk-control" data-wk-fb-team required>
-                    <option value="">Choose your team</option>
-                  </select>
-                </div>
-                <div class="wk-field">
-                  <label for="wk-fb-name">Team name <span class="wk-optional">(optional)</span></label>
-                  <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
-                </div>
-                <div class="wk-field">
-                  <label for="wk-fb-made">{studentReflection.whatMade}</label>
-                  <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
+              <div class="wk-fb__block">
+                <p class="wk-fb__step"><span>2</span> Tell us more <em>(optional)</em></p>
+                <div class="wk-fb__pair">
+                  <div class="wk-field">
+                    <label for="wk-fb-name">{studentReflection.teamName}</label>
+                    <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
+                  </div>
+                  <div class="wk-field">
+                    <label for="wk-fb-made">{studentReflection.whatMade}</label>
+                    <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
+                  </div>
                 </div>
                 <div class="wk-field">
                   <label for="wk-fb-interesting">{studentReflection.interesting}</label>
@@ -556,24 +555,39 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-feedback__inner { padding-top: 32px; padding-bottom: 40px; }
   .wk-feedback .wk-h2 { font-size: 1.5rem; margin: 0 0 4px; color: #FAF7F2; }
   .wk-feedback__lead { margin: 0 0 20px; font-size: 0.95rem; color: #d9d2dd; }
-  .wk-fb { display: grid; gap: 22px 40px; }
-  .wk-fb__col { display: grid; gap: 14px; align-content: start; }
-  .wk-fb__group { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: #F7D55C; }
+  .wk-fb { display: grid; gap: 28px; max-width: 720px; margin: 0 auto; }
+  .wk-feedback__inner > .wk-h2, .wk-feedback__lead { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .wk-fb__block { display: grid; gap: 14px; align-content: start; }
+  .wk-fb__step { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: #FAF7F2; }
+  .wk-fb__step span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #F7D55C; color: var(--ink); font-size: 0.85rem; }
+  .wk-fb__step em { font-style: normal; font-weight: 400; font-size: 0.9rem; color: #bdb4c2; }
+  .wk-fb__pair { display: grid; gap: 14px; }
+  @media (min-width: 640px) { .wk-fb__pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
   .wk-fb__foot { display: grid; justify-items: center; gap: 10px; }
-  @media (min-width: 860px) { .wk-fb { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wk-fb__foot { grid-column: 1 / -1; } }
+  /* The five answers as a row of dots per statement, with the labels once at the top. */
+  .wk-matrix__key { display: none; }
+  @media (min-width: 640px) {
+    .wk-matrix__key { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 360px; margin-left: auto; text-align: center; font-size: 0.72rem; line-height: 1.15; color: #d9d2dd; gap: 4px; }
+  }
+  .wk-row { border: 0; margin: 0; padding: 12px 0 10px; min-width: 0; border-top: 1px solid rgba(250, 247, 242, 0.16); display: grid; gap: 8px; }
+  .wk-row__q { margin: 0; font-size: 1rem; line-height: 1.35; font-weight: 600; }
+  @media (min-width: 640px) {
+    .wk-row { grid-template-columns: minmax(0, 1fr) 360px; align-items: center; gap: 16px; }
+    .wk-row .wk-row__ends { display: none; }
+  }
+  .wk-row__ends { display: flex; justify-content: space-between; margin: 0; font-size: 0.75rem; color: #bdb4c2; }
+  .wk-row__dots { display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; }
+  .wk-dot { position: relative; display: grid; place-items: center; width: 100%; height: 44px; cursor: pointer; }
+  .wk-dot input { position: absolute; opacity: 0; pointer-events: none; }
+  .wk-dot__mark { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #FAF7F2; background: transparent; transition: background 0.12s ease, transform 0.12s ease; }
+  .wk-dot:hover .wk-dot__mark { background: rgba(250, 247, 242, 0.25); }
+  .wk-dot:has(input:checked) .wk-dot__mark { background: #F7D55C; border-color: #F7D55C; box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #F7D55C; transform: scale(0.9); }
+  .wk-dot:has(input:focus-visible) .wk-dot__mark { outline: 3px solid #F7D55C; outline-offset: 4px; }
   .wk-field { display: grid; gap: 5px; align-content: start; border: 0; padding: 0; margin: 0; min-width: 0; }
   .wk-field label, .wk-field legend { font-weight: 600; font-size: 0.92rem; padding: 0; }
-  .wk-optional { font-weight: 400; color: #bdb4c2; }
   .wk-control { font: inherit; font-size: 1rem; padding: 9px 11px; border: 1.5px solid #FAF7F2; border-radius: var(--radius); background: #fff; color: var(--ink); width: 100%; }
   .wk-control:focus-visible { outline: 3px solid #F7D55C; outline-offset: 2px; }
   textarea.wk-control { resize: vertical; min-height: 0; }
-  .wk-fb__hint { margin: -6px 0 0; font-size: 0.9rem; color: #d9d2dd; }
-  .wk-scale__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
-  @media (min-width: 560px) { .wk-scale__row { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-  .wk-opt { position: relative; display: grid; place-items: center; min-height: 44px; padding: 6px 4px; border: 1.5px solid #FAF7F2; border-radius: var(--radius); cursor: pointer; background: #fff; color: var(--ink); text-align: center; font-size: 0.8rem; line-height: 1.15; font-weight: 600; }
-  .wk-opt input { position: absolute; opacity: 0; pointer-events: none; }
-  .wk-opt:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 3px #FAF7F2; }
-  .wk-opt:has(input:focus-visible) { outline: 3px solid #F7D55C; outline-offset: 3px; }
   .wk-fb__error { margin: 0; color: #ffb4a6; font-weight: 600; }
   .wk-fb__thanks { text-align: center; padding: 14px 0 4px; }
   .wk-fb__thanks .wk-link { color: #F7D55C; }
@@ -760,7 +774,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     // Only a facilitator link shows the tab bar and the facilitator view. Students see the participant page alone.
     $("[data-wk-tabs]").hidden = !isFacilitator;
     selectTab(isFacilitator && location.hash === "#facilitator" ? "facilitator" : "participants", false);
-    buildTeamOptions(w.teams);
     showFeedbackFormIfNeeded();
     if (isFacilitator) { onFacilitatorReady(wantProjector); ffbShow(); }
     // The QR code on the last slide opens /workshop?c=CODE#feedback: land on the form.
@@ -836,17 +849,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   const fbThanks = $("[data-wk-fb-thanks]");
   const fbError = $("[data-wk-fb-error]");
   const fbSubmit = $<HTMLButtonElement>("[data-wk-fb-submit]");
-  const fbTeam = $<HTMLSelectElement>("[data-wk-fb-team]");
   const fbKey = () => `wk-fb-${currentWorkshop?.code ?? ""}`;
-
-  function buildTeamOptions(n: number) {
-    fbTeam.querySelectorAll("option:not([value=''])").forEach((o) => o.remove());
-    for (let i = 1; i <= n; i++) {
-      const o = document.createElement("option");
-      o.value = String(i); o.textContent = `Team ${i}`;
-      fbTeam.appendChild(o);
-    }
-  }
 
   function remembered(): boolean {
     try { return localStorage.getItem(fbKey()) === "sent"; } catch { return false; }
@@ -871,14 +874,12 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     e.preventDefault();
     fbMessage("");
     if (!currentWorkshop) return;
-    const team = fbTeam.value;
     const scores: Record<string, number> = {};
     for (const key of ["reuse", "connect", "spatial", "discover", "team"]) {
       const picked = fbForm.querySelector(`[data-wk-fb-score="${key}"]:checked`) as HTMLInputElement | null;
       if (picked) scores[key] = Number(picked.value);
     }
-    if (!team) { fbMessage("Choose your team."); fbTeam.focus(); return; }
-    if (Object.keys(scores).length < 5) { fbMessage("Choose an answer for all five statements."); return; }
+    if (Object.keys(scores).length < 5) { fbMessage("Please answer all five statements."); return; }
     const val = (sel: string) => ($(sel) as HTMLInputElement).value.trim();
     fbSubmit.disabled = true;
     fbSubmit.textContent = "Sending…";
@@ -890,7 +891,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
           code: currentWorkshop.code,
           submissionId,
           kind: "student",
-          teamNumber: Number(team),
           scores,
           teamName: val("[data-wk-fb-name]"),
           whatWeMade: val("[data-wk-fb-made]"),
@@ -908,7 +908,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       }
       if (res.status === 410) fbMessage("This workshop has finished, so feedback is closed.");
       else if (res.status === 429) fbMessage("Lots of people are sending at once. Wait a moment and try again.");
-      else if (res.status === 400) fbMessage("Something is missing. Check your team and your five answers, then try again.");
+      else if (res.status === 400) fbMessage("Something is missing. Check that all five statements have an answer, then try again.");
       else fbMessage("We couldn't send that. Check your connection and try again.");
     } catch {
       fbMessage("We couldn't send that. Check your connection and try again.");

@@ -10,7 +10,7 @@
 //
 // POST /api/workshop               (feedback; `kind` says whose)
 //   kind "student" (the default; sent with `code`):
-//     { code, submissionId, teamNumber, scores: { reuse, connect, spatial, discover, team },
+//     { code, submissionId, scores: { reuse, connect, spatial, discover, team },
 //       teamName?, whatWeMade?, interesting?, wouldChange? }
 //   kind "teacher" (sent with `code`):
 //     { code, submissionId, engagement, observed[], appropriate, valuable?, improve?, recommend }
@@ -62,7 +62,6 @@ const score = z.coerce.number().int().min(1, 'Answer every statement').max(5, 'A
 const StudentSchema = z.object({
   code: codeField,
   submissionId: submissionField,
-  teamNumber: z.coerce.number().int().min(1).max(40),
   scores: z.object({
     reuse: score,
     connect: score,
@@ -176,14 +175,10 @@ export default async function handler(req: any, res: any): Promise<any> {
 
       try {
         if (kind === 'student') {
-          if (data.teamNumber > workshop.teams) {
-            return sendJson(res, 400, { error: 'Choose your team from the list.', fieldErrors: { teamNumber: ['Choose your team from the list.'] } });
-          }
           await prisma.workshopFeedback.create({
             data: {
               workshopId: workshop.id,
               submissionId: data.submissionId,
-              teamNumber: data.teamNumber,
               scoreReuse: data.scores.reuse,
               scoreConnect: data.scores.connect,
               scoreSpatial: data.scores.spatial,

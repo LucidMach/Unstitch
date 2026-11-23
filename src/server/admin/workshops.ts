@@ -270,7 +270,7 @@ export default async function handler(req: any, res: any): Promise<any> {
       const [feedback, teacherFeedback, facilitatorFeedback] = await Promise.all([
         prisma.workshopFeedback.findMany({
           where: { workshopId: feedbackFor },
-          orderBy: [{ teamNumber: 'asc' }, { createdAt: 'desc' }],
+          orderBy: { createdAt: 'desc' },
           take: 2000,
           select: FEEDBACK_SELECT,
         }),

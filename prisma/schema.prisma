@@ -1001,7 +1001,8 @@ model WorkshopFeedback {
   workshopId   String   @map("workshop_id") @db.Uuid
   workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
   submissionId String   @unique @map("submission_id") @db.VarChar(64)
-  teamNumber   Int      @map("team_number")
+  // No longer asked. Rows from the earlier form still have it.
+  teamNumber   Int?     @map("team_number")
   // Five statements, each answered 1 (Not at all) to 5 (Yes, confidently).
   // See studentStatements in src/lib/constants/workshopFeedback.ts.
   scoreReuse    Int?    @map("score_reuse")

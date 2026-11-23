@@ -39,7 +39,7 @@ const LIVE = { id: 'w1', code: 'K7Q4MX', schoolName: 'Test School', workshopDate
 
 const SCORES = { reuse: 5, connect: 4, spatial: 3, discover: 5, team: 2 };
 const FEEDBACK = {
-  code: 'k7q4mx', submissionId: 'abc12345-def', teamNumber: 3, scores: SCORES,
+  code: 'k7q4mx', submissionId: 'abc12345-def', scores: SCORES,
   interesting: 'Tiles fold', wouldChange: 'More time', whatWeMade: 'A bag', teamName: 'Tiles',
 };
 const TEACHER = {
@@ -136,7 +136,7 @@ describe('POST /api/workshop (feedback)', () => {
     expect(res.statusCode).toBe(200);
     expect(db.workshopFeedback.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        workshopId: 'w1', teamNumber: 3, submissionId: 'abc12345-def',
+        workshopId: 'w1', submissionId: 'abc12345-def',
         scoreReuse: 5, scoreConnect: 4, scoreSpatial: 3, scoreDiscover: 5, scoreTeam: 2,
         interesting: 'Tiles fold', wouldChange: 'More time', whatWeMade: 'A bag',
       }),
@@ -167,12 +167,13 @@ describe('POST /api/workshop (feedback)', () => {
     expect(db.workshopFeedback.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a team number higher than the workshop team count', async () => {
-    db.workshop.findUnique.mockResolvedValue({ ...LIVE, teams: 4 });
+  it('does not need or store a team number', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopFeedback.create.mockResolvedValue({});
     const res = createMockRes();
-    await handler(post({ ...FEEDBACK, teamNumber: 5 }), res);
-    expect(res.statusCode).toBe(400);
-    expect(db.workshopFeedback.create).not.toHaveBeenCalled();
+    await handler(post({ ...FEEDBACK, teamNumber: 3 }), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopFeedback.create.mock.calls[0][0].data).not.toHaveProperty('teamNumber');
   });
 
   it('rejects feedback for an unknown or expired workshop', async () => {

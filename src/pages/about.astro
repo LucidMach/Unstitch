@@ -38,14 +38,6 @@ import Layout from "../layouts/Layout.astro";
       <p class="about-section__note">Learn to build with Unstitch workshops and bring your custom vision alive.</p>
     </section>
 
-    <section class="about-links" aria-label="What we do">
-      <span class="about-link">Learn</span>
-      <span class="about-link">Custom</span>
-      <span class="about-link">Shop</span>
-    </section>
-
-    <div class="stitch" aria-hidden="true"></div>
-     
 
     <!-- ============ THE X-FACTORY ============ -->
     <section class="wrap section about-section">
@@ -105,32 +97,6 @@ import Layout from "../layouts/Layout.astro";
     color: #555;
     max-width: 54ch;
     line-height: 1.6;
-  }
-
-  .about-links {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-  }
-  .about-link {
-    padding: 40px 20px;
-    text-align: center;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    border-right: 1px solid var(--ink);
-    transition: background 0.2s ease, color 0.2s ease;
-  }
-  .about-links .about-link:last-child { border-right: none; }
-  .about-link:hover { background: #faf8f9; color: var(--accent); }
-
-  @media (max-width: 768px) {
-    .about-links { grid-template-columns: 1fr; }
-    .about-link { border-right: none; border-bottom: 1px solid var(--ink); }
-    .about-links .about-link:last-child { border-bottom: none; }
   }
 </style>
 
