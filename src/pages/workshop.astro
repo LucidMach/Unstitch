@@ -8,7 +8,7 @@ import Layout from "../layouts/Layout.astro";
 import { workshopMeta, phases, constraints, roles, readableTextOn, countWord } from "../lib/constants/workshop";
 import { deck } from "../lib/constants/workshopDeck";
 import {
-  studentScale, studentStatements, studentReflection,
+  studentScale, studentStatements,
   facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen, facilitatorYesPartlyNo, facilitatorDeliveryChecks,
   facilitatorOpen, facilitatorObservations, facilitatorSections,
 } from "../lib/constants/workshopFeedback";
@@ -182,7 +182,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
             <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
             <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
               <div class="wk-fb__block">
-                <p class="wk-fb__step"><span>1</span> How true is each one for you?</p>
+                <p class="wk-fb__step">How true is each one for you?</p>
                 <div class="wk-matrix__key" aria-hidden="true">
                   {studentScale.map((o) => <span>{o.label}</span>)}
                 </div>
@@ -200,28 +200,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                     <p class="wk-row__ends" aria-hidden="true"><span>{studentScale[0].label}</span><span>{studentScale[4].label}</span></p>
                   </div>
                 ))}
-              </div>
-
-              <div class="wk-fb__block">
-                <p class="wk-fb__step"><span>2</span> Tell us more <em>(optional)</em></p>
-                <div class="wk-fb__pair">
-                  <div class="wk-field">
-                    <label for="wk-fb-name">{studentReflection.teamName}</label>
-                    <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
-                  </div>
-                  <div class="wk-field">
-                    <label for="wk-fb-made">{studentReflection.whatMade}</label>
-                    <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
-                  </div>
-                </div>
-                <div class="wk-field">
-                  <label for="wk-fb-interesting">{studentReflection.interesting}</label>
-                  <textarea id="wk-fb-interesting" class="wk-control" rows="2" maxlength="500" data-wk-fb-interesting></textarea>
-                </div>
-                <div class="wk-field">
-                  <label for="wk-fb-change">{studentReflection.difficult}</label>
-                  <textarea id="wk-fb-change" class="wk-control" rows="2" maxlength="500" data-wk-fb-change></textarea>
-                </div>
               </div>
 
               <div class="wk-fb__foot">
@@ -880,7 +858,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       if (picked) scores[key] = Number(picked.value);
     }
     if (Object.keys(scores).length < 5) { fbMessage("Please answer all five statements."); return; }
-    const val = (sel: string) => ($(sel) as HTMLInputElement).value.trim();
     fbSubmit.disabled = true;
     fbSubmit.textContent = "Sending…";
     try {
@@ -892,10 +869,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
           submissionId,
           kind: "student",
           scores,
-          teamName: val("[data-wk-fb-name]"),
-          whatWeMade: val("[data-wk-fb-made]"),
-          interesting: val("[data-wk-fb-interesting]"),
-          wouldChange: val("[data-wk-fb-change]"),
         }),
       });
       if (res.ok) {
