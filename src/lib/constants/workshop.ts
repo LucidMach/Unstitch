@@ -23,7 +23,7 @@ export interface WorkshopPhase {
 
 export const workshopMeta = {
   title: "Rethink. Reuse. Recreate.",
-  challenge: "Design a fashion accessory that can be transformed, adapted or reconfigured into something else.",
+  challenge: "Design a fashion accessory that can be adapted into something else.",
   totalMinutes: 45,
   teamSize: 5,
   tilesPerTeam: 24,
@@ -36,7 +36,7 @@ export const workshopMeta = {
   ],
   bidCard: {
     title: "We want to share!",
-    text: "If your team is happy to present, stand up your bid card on your table. Two or three teams are chosen to share for one minute each.",
+    text: "If your team is happy to present, hold up your bid card. Two or three teams will be chosen to share for one minute each.",
   },
   reflection: [
     "What happens to a product when we no longer need it?",
@@ -100,7 +100,7 @@ export const phases: WorkshopPhase[] = [
 // Four constraints, matching slides 23 and 25 of the workshop deck. If one is added or removed
 // later, change it here and in the deck; the hub counts what is in this list.
 export const constraints: { title: string; detail: string }[] = [
-  { title: "Up to 24 tiles", detail: "Use no more than the 24 tiles in your kit. Fewer is fine." },
+  { title: "Up to 24 tiles", detail: "Use no more than the 24 tiles in your kit but fewer is fine." },
   { title: "A clear purpose and user", detail: "Know who it is for and what it does." },
   { title: "It can adapt", detail: "It can change into another configuration or use." },
   { title: "Beat the clock", detail: "You have 20 minutes to build and test." },
