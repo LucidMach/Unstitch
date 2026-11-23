@@ -33,6 +33,13 @@ export const deck = {
   anchors: { 1: 1, 16: 2, 25: 3, 26: 5, 27: 6 } as Record<number, number>,
 
   /**
+   * The countdown pill on the slides appears from this slide on (slide 16, "The challenge"). Before it,
+   * during the introduction, the slides show no clock. The facilitator window keeps its own timer, and
+   * T still opens the big clock.
+   */
+  clockFromSlide: 16,
+
+  /**
    * QR codes the hub draws onto the slides, over the empty white boxes in the deck. Each one is
    * made from the booking code of the workshop being run. Position and size are fractions of the
    * slide (left, top, width, height). `kind` says where it points:

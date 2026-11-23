@@ -8,7 +8,7 @@ import Layout from "../layouts/Layout.astro";
 import { workshopMeta, phases, constraints, roles, readableTextOn, countWord } from "../lib/constants/workshop";
 import { deck } from "../lib/constants/workshopDeck";
 import {
-  studentScale, studentStatements,
+  studentScale, studentStatements, studentReflection,
   facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen, facilitatorYesPartlyNo, facilitatorDeliveryChecks,
   facilitatorOpen, facilitatorObservations, facilitatorSections,
 } from "../lib/constants/workshopFeedback";
@@ -182,7 +182,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
             <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
             <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
               <div class="wk-fb__block">
-                <p class="wk-fb__step">How true is each one for you?</p>
+                <p class="wk-fb__step"><span>1</span> How true is each one for you?</p>
                 <div class="wk-matrix__key" aria-hidden="true">
                   {studentScale.map((o) => <span>{o.label}</span>)}
                 </div>
@@ -200,6 +200,28 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                     <p class="wk-row__ends" aria-hidden="true"><span>{studentScale[0].label}</span><span>{studentScale[4].label}</span></p>
                   </div>
                 ))}
+              </div>
+
+              <div class="wk-fb__block">
+                <p class="wk-fb__step"><span>2</span> Tell us more</p>
+                <div class="wk-fb__pair">
+                  <div class="wk-field">
+                    <label for="wk-fb-name">{studentReflection.teamName}</label>
+                    <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
+                  </div>
+                  <div class="wk-field">
+                    <label for="wk-fb-made">{studentReflection.whatMade}</label>
+                    <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
+                  </div>
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-interesting">{studentReflection.interesting}</label>
+                  <textarea id="wk-fb-interesting" class="wk-control" rows="2" maxlength="500" data-wk-fb-interesting></textarea>
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-change">{studentReflection.difficult}</label>
+                  <textarea id="wk-fb-change" class="wk-control" rows="2" maxlength="500" data-wk-fb-change></textarea>
+                </div>
               </div>
 
               <div class="wk-fb__foot">
@@ -659,6 +681,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-proj { position: fixed; inset: 0; z-index: 100; background: #1a151d; color: #FAF7F2; display: grid; place-items: center; }
   .wk-proj[hidden] { display: none; }
   .wk-stage--full { width: min(100vw, 177.7778vh); height: auto; border: 0; border-radius: 0; background: #382F3D; }
+  .wk-pill[hidden] { display: none; }
   .wk-pill { position: absolute; top: 1.2cqw; right: 1.6cqw; width: 19cqw; box-sizing: border-box; padding: 0.9cqw 1.4cqw 1cqw; border-radius: 1.6cqw; background: #382F3D; border: 0.25cqw solid #B784A7; color: #FAF7F2; display: grid; gap: 0.3cqw; text-align: center; box-shadow: 0 0.4cqw 1.2cqw rgba(0, 0, 0, 0.25); }
   .wk-pill__phase { font-family: var(--font-display); font-weight: 600; font-size: 1.35cqw; letter-spacing: 0.06em; text-transform: uppercase; color: #B784A7; line-height: 1.2; }
   .wk-pill__clock { font-family: var(--font-display); font-weight: 700; font-size: 4.3cqw; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -858,6 +881,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       if (picked) scores[key] = Number(picked.value);
     }
     if (Object.keys(scores).length < 5) { fbMessage("Please answer all five statements."); return; }
+    const val = (sel: string) => ($(sel) as HTMLInputElement).value.trim();
     fbSubmit.disabled = true;
     fbSubmit.textContent = "Sending…";
     try {
@@ -869,6 +893,10 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
           submissionId,
           kind: "student",
           scores,
+          teamName: val("[data-wk-fb-name]"),
+          whatWeMade: val("[data-wk-fb-made]"),
+          interesting: val("[data-wk-fb-interesting]"),
+          wouldChange: val("[data-wk-fb-change]"),
         }),
       });
       if (res.ok) {
@@ -993,7 +1021,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   // the controller, same browser) only shows them and sends key presses back, so there is never
   // more than one clock. If the projector window can't find a controller it runs on its own.
   type DeckCfg = {
-    count: number; base: string; notesUrl: string; anchors: Record<string, number>; qr: QrCfg[];
+    count: number; base: string; notesUrl: string; anchors: Record<string, number>; clockFromSlide: number; qr: QrCfg[];
   };
   type Box = { x: number; y: number; w: number; h: number };
   type QrKind = "student" | "feedback" | "teacher";
@@ -1317,6 +1345,8 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     $("[data-wk-pill-phase]").textContent = finished ? "Time's up" : p.short || p.title;
     $("[data-wk-pill-clock]").textContent = fmt(remaining);
     ($("[data-wk-pill-bar]") as HTMLElement).style.width = `${phasePct}%`;
+    // The countdown stays off the slides until the challenge starts, so the introduction is not rushed.
+    pill.hidden = slide < deckCfg.clockFromSlide;
     pill.classList.toggle("is-low", low);
     pill.classList.toggle("is-done", finished);
 
