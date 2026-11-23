@@ -18,7 +18,7 @@ import { usePlayCanvas } from "../hooks/use-play-canvas";
 import { ITEM_SCALE } from "../constants/layout";
 import { getLayoutConstants } from "../constants/layout";
 import TileNode from "./scene/TileNode";
-import { SaveDialog, LoadDialog, ShareDialog, ConfirmDialog } from "./ui/Dialogs";
+import { SaveDialog, LoadDialog, ShareDialog, ConfirmDialog, SnapShareDialog } from "./ui/Dialogs";
 import { HelpGuide } from "./ui/HelpGuide";
 import { AngleSlider } from "./ui/AngleSlider";
 import { Button } from "./ui/button";
@@ -106,6 +106,7 @@ const PlayCanvas: React.FC = () => {
   const controlsRef = useRef<any>(null);
   const modelGroupRef = useRef<THREE.Group>(null);
   const [previewSnapshot, setPreviewSnapshot] = useState<string | null>(null);
+  const [showSnapShare, setShowSnapShare] = useState(false);
 
   const handleOpenShare = () => {
     try {
@@ -135,7 +136,7 @@ const PlayCanvas: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    pc.showToast("Image saved (.png)");
+    setShowSnapShare(true);
   };
 
   const selectedTile = pc.tiles.find(t => t.id === pc.selectedTileId);
@@ -398,6 +399,8 @@ const PlayCanvas: React.FC = () => {
       />
 
       <ConfirmDialog show={!!pc.deleteConfirmId} title="delete tile?" message={pc.deleteConfirmId && Object.keys(pc.tiles.find(t => t.id === pc.deleteConfirmId)?.children || {}).length > 0 ? "This tile has others attached. Deleting it will remove the entire branch." : "Are you sure you want to delete this tile?"} confirmLabel="delete" onConfirm={() => { pc.deleteTile(pc.deleteConfirmId!); pc.setDeleteConfirmId(null); }} onCancel={() => pc.setDeleteConfirmId(null)} />
+
+      <SnapShareDialog show={showSnapShare} onClose={() => setShowSnapShare(false)} />
 
       <ConfirmDialog show={pc.showResetConfirm} title="Reset Canvas?" message="This will remove all tiles and clear your entire undo/redo history. This action cannot be undone." confirmLabel="Reset" confirmVariant="destructive" onConfirm={pc.handleReset} onCancel={() => pc.setShowResetConfirm(false)} icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>} />
     </div>

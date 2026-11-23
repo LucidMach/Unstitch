@@ -535,6 +535,39 @@ export const ExportDialog: React.FC<{
   </Dialog>
 );
 
+export const SnapShareDialog: React.FC<{ show: boolean; onClose: () => void }> = ({ show, onClose }) => (
+  <Dialog show={show} onClose={onClose}>
+    <div className="p-6 sm:p-7 text-center space-y-4">
+      <div className="mx-auto w-11 h-11 rounded-2xl bg-[#eedfe9] text-[#A36E93] flex items-center justify-center">
+        <Camera size={20} />
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Image saved</p>
+        <h3 className="text-lg font-bold text-neutral-900 leading-tight">Snap &amp; Share</h3>
+        <p className="text-sm text-neutral-700">Share your build!</p>
+      </div>
+      <div className="space-y-1.5 py-3 border-y border-neutral-200">
+        <a
+          href="https://www.instagram.com/unstitchxfactory/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-sm font-bold text-neutral-900 hover:text-[#A36E93] transition-colors"
+        >
+          @unstitchxfactory
+        </a>
+        <p className="text-sm font-bold text-[#A36E93] break-words">#unstitchxmade</p>
+      </div>
+      <Button
+        variant="secondary"
+        className="w-full h-10 rounded-xl text-xs font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-black text-white border-none transition-all"
+        onClick={onClose}
+      >
+        Done
+      </Button>
+    </div>
+  </Dialog>
+);
+
 export const ConfirmDialog: React.FC<{
   show: boolean;
   title: string;
