@@ -889,6 +889,11 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   // One id per attempt, reused on retry, so a double tap or a repeat after a bad connection can't count twice.
   let submissionId = newSubmissionId();
 
+  // On a developer's machine the server says what is wrong (see src/server/workshop.ts); otherwise this is null.
+  async function devDetail(res: Response): Promise<string | null> {
+    try { const j = await res.json(); return j && j.dev && typeof j.error === "string" ? j.error : null; } catch { return null; }
+  }
+
   function fbMessage(text: string) { fbError.textContent = text; fbError.hidden = !text; }
 
   fbForm.addEventListener("change", () => fbMessage(""));
@@ -931,7 +936,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       if (res.status === 410) fbMessage("This workshop has finished, so feedback is closed.");
       else if (res.status === 429) fbMessage("Lots of people are sending at once. Wait a moment and try again.");
       else if (res.status === 400) fbMessage("Something is missing. Check that all five statements have an answer, then try again.");
-      else fbMessage("We couldn't send that. Check your connection and try again.");
+      else fbMessage((await devDetail(res)) || "We couldn't send that. Check your connection and try again.");
     } catch {
       fbMessage("We couldn't send that. Check your connection and try again.");
     } finally {
@@ -1022,7 +1027,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       }
       if (res.status === 410) ffbMessage("This workshop has finished, so feedback is closed.");
       else if (res.status === 429) ffbMessage("Too many tries. Wait a moment and try again.");
-      else ffbMessage("We couldn't send that. Your answers are still here: check your connection and try again.");
+      else ffbMessage((await devDetail(res)) || "We couldn't send that. Your answers are still here: check your connection and try again.");
     } catch {
       ffbMessage("We couldn't send that. Your answers are still here: check your connection and try again.");
     } finally {
@@ -1352,7 +1357,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ kind: "notes", key: facilitatorKey, slide: slideNo, notes: text }),
       });
-      if (!res.ok) { notesMsg.textContent = res.status === 410 ? "This workshop has finished, so notes can't be changed." : "Couldn't save. Check your connection and try again."; return false; }
+      if (!res.ok) { notesMsg.textContent = res.status === 410 ? "This workshop has finished, so notes can't be changed." : (await devDetail(res)) || "Couldn't save. Check your connection and try again."; return false; }
       const n = slideNotes[slideNo - 1];
       if (n) {
         if (text && text.trim() && text.trim() !== (n.base ?? "")) { n.notes = text.trim(); n.edited = true; }

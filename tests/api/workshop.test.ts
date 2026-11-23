@@ -363,6 +363,34 @@ describe('speaker notes edited on the page', () => {
   });
 });
 
+describe('POST /api/workshop when the save fails', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('says what is wrong outside production and stays generic in production', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopFeedback.create.mockRejectedValue(Object.assign(new Error('The column `score_reuse` does not exist'), { code: 'P2022' }));
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const prev = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'development';
+      let res = createMockRes();
+      await handler(post(FEEDBACK), res);
+      expect(res.statusCode).toBe(500);
+      expect(res.body.dev).toBe(true);
+      expect(res.body.error).toMatch(/pnpm db:push/);
+      process.env.NODE_ENV = 'production';
+      res = createMockRes();
+      await handler(post(FEEDBACK), res);
+      expect(res.statusCode).toBe(500);
+      expect(res.body.dev).toBeUndefined();
+      expect(res.body.error).not.toMatch(/db:push/);
+    } finally {
+      process.env.NODE_ENV = prev;
+      quiet.mockRestore();
+    }
+  });
+});
+
 describe('admin/workshops handler', () => {
   beforeEach(() => {
     vi.resetAllMocks();

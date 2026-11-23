@@ -179,7 +179,7 @@ function apiDevMiddleware(): any {
             if (!res.writableEnded) {
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: message }));
+              res.end(JSON.stringify({ error: `Dev: ${message}`, dev: true }));
             }
           }
         }

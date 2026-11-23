@@ -160,7 +160,11 @@ export default async function handler(req: any, res: any): Promise<any> {
   });
   if (!rate.success) return sendJson(res, 429, { error: 'Too many attempts. Wait a minute and try again.' });
 
-  if (!prisma) return sendJson(res, 503, { error: 'Not configured' });
+  if (!prisma) {
+    return sendJson(res, 503, process.env.NODE_ENV !== 'production'
+      ? { error: 'Dev: no database is configured. Set DATABASE_URL in .env and restart the dev server.', dev: true }
+      : { error: 'Not configured' });
+  }
 
   if (req.method === 'POST') {
     const body = parseRequestBody(req) as any;
@@ -245,6 +249,17 @@ export default async function handler(req: any, res: any): Promise<any> {
       return sendJson(res, 200, { ok: true });
     } catch (err) {
       console.error('[workshop] Feedback save failed:', err);
+      // On a developer's machine, say what is wrong (usually a database or Prisma client that is behind the
+      // schema). The page shows this only when `dev` is set; in production the message stays generic.
+      if (process.env.NODE_ENV !== 'production') {
+        const code = (err as any)?.code;
+        const msg = String((err as any)?.message || err);
+        const behind = code === 'P2021' || code === 'P2022' || /does not exist|Unknown (argument|field)|Invalid `prisma/i.test(msg);
+        const detail = behind
+          ? 'Dev: the database or the Prisma client is behind the schema. Run pnpm db:generate and pnpm db:push, then restart the dev server.'
+          : `Dev: ${msg.split('\n').filter(Boolean).pop()?.slice(0, 240) || 'save failed'}`;
+        return sendJson(res, 500, { error: detail, dev: true });
+      }
       return sendJson(res, 500, { error: 'We could not save your feedback. Please try again.' });
     }
   }
