@@ -1,0 +1,274 @@
+---
+// Teacher feedback form for the workshop hub. Teachers open it from the QR code on the last
+// slide (/workshop/teacher?c=<code>). Like /workshop it is unlisted, noindex and disallowed in
+// robots.txt (the /workshop prefix covers it). The questions live in
+// lib/constants/workshopFeedback.ts; answers are sent to POST /api/workshop with kind "teacher".
+import Layout from "../../layouts/Layout.astro";
+import { teacherForm } from "../../lib/constants/workshopFeedback";
+
+const f = teacherForm;
+---
+
+<Layout
+  title="Teacher feedback | Unstitch"
+  description="Unstitch workshop teacher feedback."
+  noindex={true}
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+  useCustomCursor={false}
+>
+  <main class="tf" data-tf>
+    <header class="tf-top">
+      <a class="tf-brand" href="/" aria-label="Unstitch home">Unstitch</a>
+      <span class="tf-school" data-tf-school hidden></span>
+    </header>
+
+    <!-- ===== Code gate (only when the link has no valid code) ===== -->
+    <section class="tf-gate" data-tf-gate hidden>
+      <div class="tf-card tf-card--narrow">
+        <p class="tf-eyebrow">Teacher feedback</p>
+        <h1 class="tf-title">Enter your workshop code</h1>
+        <p class="tf-muted" data-tf-gate-msg>Scan the teacher QR code on the last slide, or type the code printed under the first QR code.</p>
+        <form class="tf-gate__form" data-tf-gate-form autocomplete="off">
+          <label class="tf-visually-hidden" for="tf-code">Workshop code</label>
+          <input id="tf-code" class="tf-code" type="text" autocapitalize="characters" spellcheck="false" maxlength="16" placeholder="K7Q4MX" data-tf-code />
+          <button class="btn btn-filled" type="submit">Open the form</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== Form ===== -->
+    <div class="tf-wrap" data-tf-main hidden>
+      <p class="tf-eyebrow">Workshop feedback</p>
+      <h1 class="tf-title">{f.title}</h1>
+      <p class="tf-lead">{f.intro}</p>
+
+      <form class="tf-form" data-tf-form novalidate aria-label={f.title}>
+        <div class="tf-q" role="group" aria-labelledby="tf-q1">
+          <p class="tf-qlabel" id="tf-q1">1. {f.engagement.label}</p>
+          <div class="tf-choices">
+            {f.engagement.choices.map((c) => (
+              <label class="tf-choice"><input type="radio" name="engagement" value={c.v} /><span>{c.label}</span></label>
+            ))}
+          </div>
+        </div>
+
+        <div class="tf-q" role="group" aria-labelledby="tf-q2">
+          <p class="tf-qlabel" id="tf-q2">2. {f.observed.label} <span class="tf-hint">{f.observed.hint}</span></p>
+          <div class="tf-choices">
+            {f.observed.choices.map((c) => (
+              <label class="tf-choice tf-choice--check"><input type="checkbox" name="observed" value={c.v} /><span>{c.label}</span></label>
+            ))}
+          </div>
+        </div>
+
+        <div class="tf-q" role="group" aria-labelledby="tf-q3">
+          <p class="tf-qlabel" id="tf-q3">3. {f.appropriate.label}</p>
+          <div class="tf-choices">
+            {f.appropriate.choices.map((c) => (
+              <label class="tf-choice"><input type="radio" name="appropriate" value={c.v} /><span>{c.label}</span></label>
+            ))}
+          </div>
+        </div>
+
+        <div class="tf-q">
+          <label for="tf-valuable">4. {f.valuable.label}</label>
+          <textarea id="tf-valuable" name="valuable" rows="3" maxlength="1500" placeholder={f.valuable.placeholder}></textarea>
+        </div>
+
+        <div class="tf-q">
+          <label for="tf-improve">5. {f.improve.label}</label>
+          <textarea id="tf-improve" name="improve" rows="3" maxlength="1500" placeholder={f.improve.placeholder}></textarea>
+        </div>
+
+        <div class="tf-q" role="group" aria-labelledby="tf-q4">
+          <p class="tf-qlabel" id="tf-q4">6. {f.recommend.label}</p>
+          <div class="tf-choices tf-choices--row">
+            {f.recommend.choices.map((c) => (
+              <label class="tf-choice"><input type="radio" name="recommend" value={c.v} /><span>{c.label}</span></label>
+            ))}
+          </div>
+        </div>
+
+        <p class="tf-note">Anonymous. Please don't include student names.</p>
+        <p class="tf-error" role="alert" data-tf-error hidden></p>
+        <button class="btn btn-filled tf-send" type="submit" data-tf-submit>Send feedback</button>
+      </form>
+
+      <div class="tf-thanks" data-tf-thanks hidden>
+        <h2 tabindex="-1">Thank you!</h2>
+        <p>Your feedback has been sent. It helps us improve the workshop for the next school.</p>
+        <button type="button" class="tf-again" data-tf-again>Send another response from this device</button>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style is:global>
+  .tf { --ink: #382F3D; --paper: #FAF7F2; min-height: 100vh;
+    background-color: var(--paper);
+    background-image: linear-gradient(rgba(56, 47, 61, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 47, 61, 0.07) 1px, transparent 1px);
+    background-size: 28px 28px; color: var(--ink); font-family: var(--font-body); }
+  .tf-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px var(--gutter); border-bottom: 1.5px solid var(--ink); }
+  .tf-brand { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+  .tf-school { font-size: 0.85rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tf-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tf-eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .tf-title { font-family: var(--font-display); font-size: clamp(1.9rem, 6vw, 2.8rem); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .tf-lead { font-size: 1.1rem; line-height: 1.5; margin: 0 0 22px; max-width: 58ch; }
+  .tf-muted { color: #555; font-size: 0.95rem; line-height: 1.5; margin: 0 0 14px; }
+
+  .tf-wrap { width: min(720px, 100% - 2 * var(--gutter)); margin: 0 auto; padding: 32px 0 72px; }
+  .tf-form { display: grid; gap: 16px; }
+  .tf-q { border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 16px 18px 18px; margin: 0; min-width: 0; display: grid; gap: 10px; }
+  .tf-qlabel, .tf-q > label { margin: 0; font-weight: 700; font-size: 1.02rem; line-height: 1.35; padding: 0; }
+  .tf-hint { display: block; font-weight: 400; font-size: 0.9rem; color: #555; margin-top: 2px; }
+  .tf-choices { display: grid; gap: 8px; }
+  @media (min-width: 560px) { .tf-choices--row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .tf-choice { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 14px; border: 1.5px solid var(--ink); border-radius: var(--radius); cursor: pointer; background: #fff; font-size: 1rem; }
+  .tf-choice input { width: 20px; height: 20px; flex: none; accent-color: var(--ink); margin: 0; }
+  .tf-choice:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 2px var(--ink); }
+  .tf-choice:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tf-q textarea { font: inherit; font-size: 1rem; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; box-sizing: border-box; resize: vertical; }
+  .tf-q textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tf-note { margin: 0; font-size: 0.9rem; color: #555; }
+  .tf-error { margin: 0; color: #9b1c1c; font-weight: 600; }
+  .tf-send { justify-self: start; min-width: 220px; min-height: 48px; cursor: pointer; font-size: 1rem; }
+  .tf-send:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tf-thanks { border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 28px 22px; text-align: center; }
+  .tf-thanks h2 { font-family: var(--font-display); font-size: 1.8rem; margin: 0 0 6px; }
+  .tf-thanks p { margin: 0 0 12px; }
+  .tf-again { background: none; border: 0; padding: 8px; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; color: var(--ink); }
+
+  .tf-gate { display: grid; place-items: center; min-height: calc(100vh - 62px); padding: 24px var(--gutter); }
+  .tf-card { border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 28px 24px; background: #fff; }
+  .tf-card--narrow { width: min(440px, 100%); }
+  .tf-gate__form { display: grid; gap: 12px; margin-top: 8px; }
+  .tf-code { font: inherit; font-size: 1.4rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; box-sizing: border-box; }
+  .tf-code:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tf .btn { cursor: pointer; }
+  .tf [hidden] { display: none !important; }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  type Workshop = { code: string; schoolName: string; workshopDate: string | null; teams: number };
+
+  const gate = $("[data-tf-gate]");
+  const main = $("[data-tf-main]");
+  const form = $<HTMLFormElement>("[data-tf-form]");
+  const thanks = $("[data-tf-thanks]");
+  const errorEl = $("[data-tf-error]");
+  const submitBtn = $<HTMLButtonElement>("[data-tf-submit]");
+  let workshop: Workshop | null = null;
+
+  const sentKey = () => `wk-tf-${workshop?.code ?? ""}`;
+  const message = (text: string) => { errorEl.textContent = text; errorEl.hidden = !text; };
+  const gateMsg = (text: string, bad = true) => { const el = $("[data-tf-gate-msg]"); el.textContent = text; el.style.color = bad ? "#9b1c1c" : ""; };
+
+  function newId(): string {
+    try { if (crypto.randomUUID) return crypto.randomUUID(); } catch { /* fall through */ }
+    return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  }
+  // One id per attempt, reused on a retry, so a double tap cannot count twice.
+  let submissionId = newId();
+
+  function open(w: Workshop) {
+    workshop = w;
+    gate.hidden = true;
+    main.hidden = false;
+    const school = $("[data-tf-school]");
+    school.textContent = w.schoolName;
+    school.hidden = false;
+    let sent = false;
+    try { sent = localStorage.getItem(sentKey()) === "sent"; } catch { /* fine */ }
+    form.hidden = sent;
+    thanks.hidden = !sent;
+  }
+
+  async function lookup(raw: string) {
+    const code = raw.trim().toUpperCase();
+    if (!code) { gate.hidden = false; return; }
+    try {
+      const res = await fetch(`/api/workshop?code=${encodeURIComponent(code)}`, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data = (await res.json()) as { workshop: Workshop };
+        const url = new URL(location.href);
+        url.searchParams.set("c", data.workshop.code);
+        history.replaceState(null, "", url.toString());
+        open(data.workshop);
+        return;
+      }
+      gate.hidden = false;
+      if (res.status === 404) gateMsg("We can't find that code. Check it and try again.");
+      else if (res.status === 410) gateMsg("That workshop has finished, so feedback is closed.");
+      else if (res.status === 429) gateMsg("Too many tries. Wait a minute and try again.");
+      else gateMsg("We couldn't check the code just now. Check your connection and try again.");
+    } catch {
+      gate.hidden = false;
+      gateMsg("We couldn't check the code just now. Check your connection and try again.");
+    }
+  }
+
+  $<HTMLFormElement>("[data-tf-gate-form]").addEventListener("submit", (e) => {
+    e.preventDefault();
+    gateMsg("Checking your code…", false);
+    lookup($<HTMLInputElement>("[data-tf-code]").value);
+  });
+  const initial = new URLSearchParams(location.search).get("c");
+  if (initial) lookup(initial); else gate.hidden = false;
+
+  const radio = (name: string) => (form.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement | null)?.value ?? "";
+
+  form.addEventListener("input", () => message(""));
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    message("");
+    if (!workshop) return;
+    const engagement = radio("engagement");
+    const appropriate = radio("appropriate");
+    const recommend = radio("recommend");
+    if (!engagement) { message("Please answer question 1."); return; }
+    if (!appropriate) { message("Please answer question 3."); return; }
+    if (!recommend) { message("Please answer question 6."); return; }
+    const observed = [...form.querySelectorAll<HTMLInputElement>('input[name="observed"]:checked')].map((i) => i.value);
+    const val = (name: string) => (form.querySelector(`[name="${name}"]`) as HTMLTextAreaElement).value.trim();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          kind: "teacher", code: workshop.code, submissionId, engagement, observed, appropriate,
+          valuable: val("valuable"), improve: val("improve"), recommend,
+        }),
+      });
+      if (res.ok) {
+        try { localStorage.setItem(sentKey(), "sent"); } catch { /* fine without it */ }
+        form.hidden = true;
+        thanks.hidden = false;
+        thanks.querySelector<HTMLElement>("h2")?.focus();
+        return;
+      }
+      if (res.status === 410) message("This workshop has finished, so feedback is closed.");
+      else if (res.status === 429) message("Lots of people are sending at once. Wait a moment and try again.");
+      else if (res.status === 400) message("Something is missing. Check questions 1, 3 and 6, then try again.");
+      else message("We couldn't send that. Check your connection and try again.");
+    } catch {
+      message("We couldn't send that. Check your connection and try again.");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send feedback";
+    }
+  });
+
+  $("[data-tf-again]").addEventListener("click", () => {
+    try { localStorage.removeItem(sentKey()); } catch { /* ignore */ }
+    form.reset();
+    submissionId = newId();
+    form.hidden = false;
+    thanks.hidden = true;
+  });
+</script>

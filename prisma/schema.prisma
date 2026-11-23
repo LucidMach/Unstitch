@@ -981,6 +981,8 @@ model Workshop {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
   feedback     WorkshopFeedback[]
+  teacherFeedback     WorkshopTeacherFeedback[]
+  facilitatorFeedback WorkshopFacilitatorFeedback[]
 
   @@index([active, expiresAt])
   @@map("workshops")
@@ -1000,14 +1002,69 @@ model WorkshopFeedback {
   workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
   submissionId String   @unique @map("submission_id") @db.VarChar(64)
   teamNumber   Int      @map("team_number")
-  rating       Int
-  oneWord      String?  @map("one_word") @db.VarChar(40)
-  wouldChange  String?  @map("would_change") @db.VarChar(500)
+  // Five statements, each answered 1 (Not at all) to 5 (Yes, confidently).
+  // See studentStatements in src/lib/constants/workshopFeedback.ts.
+  scoreReuse    Int?    @map("score_reuse")
+  scoreConnect  Int?    @map("score_connect")
+  scoreSpatial  Int?    @map("score_spatial")
+  scoreDiscover Int?    @map("score_discover")
+  scoreTeam     Int?    @map("score_team")
+  // Reflection answers.
   whatWeMade   String?  @map("what_we_made") @db.VarChar(240)
+  interesting  String?  @db.VarChar(500)
+  // "What was difficult or frustrating? What would you change?"
+  wouldChange  String?  @map("would_change") @db.VarChar(500)
   teamName     String?  @map("team_name") @db.VarChar(80)
+  // Earlier version of the form (one smiley rating and one word). New rows leave these empty.
+  rating       Int?
+  oneWord      String?  @map("one_word") @db.VarChar(40)
   hidden       Boolean  @default(false)
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([workshopId, teamNumber])
   @@map("workshop_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// Anonymous teacher feedback (/workshop/teacher, opened from the QR code on the
+// last slide). One row per submission, append-only. No names or emails.
+// Choice values are listed in teacherForm in src/lib/constants/workshopFeedback.ts.
+// ---------------------------------------------------------------------------
+
+model WorkshopTeacherFeedback {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workshopId   String   @map("workshop_id") @db.Uuid
+  workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  submissionId String   @unique @map("submission_id") @db.VarChar(64)
+  engagement   String   @db.VarChar(20)
+  observed     String[]
+  appropriate  String   @db.VarChar(20)
+  valuable     String?  @db.VarChar(1500)
+  improve      String?  @db.VarChar(1500)
+  recommend    String   @db.VarChar(20)
+  hidden       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workshopId])
+  @@map("workshop_teacher_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// The facilitator's own notes after a workshop, sent from the bottom of the
+// Facilitator tab (so only someone with the facilitator link can send it).
+// `answers` holds the sections described by the facilitator* lists in
+// src/lib/constants/workshopFeedback.ts. A workshop can have more than one
+// (for example two facilitators), so it is a list, not a single row.
+// ---------------------------------------------------------------------------
+
+model WorkshopFacilitatorFeedback {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workshopId   String   @map("workshop_id") @db.Uuid
+  workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  submissionId String   @unique @map("submission_id") @db.VarChar(64)
+  answers      Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workshopId])
+  @@map("workshop_facilitator_feedback")
 }

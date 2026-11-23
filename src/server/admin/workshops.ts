@@ -3,9 +3,9 @@
 // api/admin/[...action].ts.
 //
 // GET    /api/admin/workshops                    -> every workshop, newest first (each has code + facilitatorKey)
-// GET    /api/admin/workshops?feedback=<id>      -> that workshop's student feedback, newest first
+// GET    /api/admin/workshops?feedback=<id>      -> that workshop's { feedback (students), teacherFeedback, facilitatorFeedback }
 // POST   /api/admin/workshops                    -> create (no id; code and facilitator key are generated) or update (id)
-// PATCH  /api/admin/workshops                    -> { feedbackId, hidden } hide or show one feedback entry
+// PATCH  /api/admin/workshops                    -> { feedbackId, hidden, kind? } hide or show one student (default) or teacher entry
 // DELETE /api/admin/workshops?id=<uuid>          -> permanently removes a workshop (and its feedback)
 
 import { randomInt } from 'node:crypto';
@@ -89,16 +89,36 @@ const SELECT = {
 const FEEDBACK_SELECT = {
   id: true,
   teamNumber: true,
+  scoreReuse: true,
+  scoreConnect: true,
+  scoreSpatial: true,
+  scoreDiscover: true,
+  scoreTeam: true,
+  whatWeMade: true,
+  interesting: true,
+  wouldChange: true,
+  teamName: true,
   rating: true,
   oneWord: true,
-  wouldChange: true,
-  whatWeMade: true,
-  teamName: true,
   hidden: true,
   createdAt: true,
 } as const;
 
-const HideSchema = z.object({ feedbackId: z.string().uuid(), hidden: z.boolean() });
+const TEACHER_SELECT = {
+  id: true,
+  engagement: true,
+  observed: true,
+  appropriate: true,
+  valuable: true,
+  improve: true,
+  recommend: true,
+  hidden: true,
+  createdAt: true,
+} as const;
+
+const FACILITATOR_SELECT = { id: true, answers: true, createdAt: true } as const;
+
+const HideSchema = z.object({ feedbackId: z.string().uuid(), hidden: z.boolean(), kind: z.enum(['student', 'teacher']).optional() });
 
 function setupHint(err: any): string | null {
   const msg = String(err?.message || '');
@@ -222,12 +242,13 @@ export default async function handler(req: any, res: any): Promise<any> {
       return sendJson(res, 400, { error: formatted.message });
     }
     try {
-      const existing = await prisma.workshopFeedback.findUnique({ where: { id: parsed.data.feedbackId }, select: { id: true } });
+      const model: any = parsed.data.kind === 'teacher' ? prisma.workshopTeacherFeedback : prisma.workshopFeedback;
+      const existing = await model.findUnique({ where: { id: parsed.data.feedbackId }, select: { id: true } });
       if (!existing) return sendJson(res, 404, { error: 'Feedback entry not found.' });
-      const feedback = await prisma.workshopFeedback.update({
+      const feedback = await model.update({
         where: { id: parsed.data.feedbackId },
         data: { hidden: parsed.data.hidden },
-        select: FEEDBACK_SELECT,
+        select: parsed.data.kind === 'teacher' ? TEACHER_SELECT : FEEDBACK_SELECT,
       });
       return sendJson(res, 200, { feedback });
     } catch (err) {
@@ -246,13 +267,27 @@ export default async function handler(req: any, res: any): Promise<any> {
 
   try {
     if (feedbackFor) {
-      const feedback = await prisma.workshopFeedback.findMany({
-        where: { workshopId: feedbackFor },
-        orderBy: [{ teamNumber: 'asc' }, { createdAt: 'desc' }],
-        take: 2000,
-        select: FEEDBACK_SELECT,
-      });
-      return sendJson(res, 200, { feedback });
+      const [feedback, teacherFeedback, facilitatorFeedback] = await Promise.all([
+        prisma.workshopFeedback.findMany({
+          where: { workshopId: feedbackFor },
+          orderBy: [{ teamNumber: 'asc' }, { createdAt: 'desc' }],
+          take: 2000,
+          select: FEEDBACK_SELECT,
+        }),
+        prisma.workshopTeacherFeedback.findMany({
+          where: { workshopId: feedbackFor },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+          select: TEACHER_SELECT,
+        }),
+        prisma.workshopFacilitatorFeedback.findMany({
+          where: { workshopId: feedbackFor },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: FACILITATOR_SELECT,
+        }),
+      ]);
+      return sendJson(res, 200, { feedback, teacherFeedback, facilitatorFeedback });
     }
 
     let workshops = await prisma.workshop.findMany({

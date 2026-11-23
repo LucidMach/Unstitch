@@ -45,25 +45,29 @@ export const workshopMeta = {
   ],
 } as const;
 
-// 45 minutes in total. The minutes here drive the facilitator countdown.
+// 45 minutes in total, matching the clock slide of the workshop deck (deck v9): a 5 minute welcome,
+// then Brief 5, Build 15, Test 5, Share 5, Unbuild & reflect 10. The minutes here drive the
+// facilitator countdown. Which slide starts which phase is in workshopDeck.ts.
 export const phases: WorkshopPhase[] = [
   {
     id: "introduce",
     title: "Introduce",
     minutes: 5,
-    summary: "Welcome, a quick look at Unstitch, and today's challenge.",
+    summary: "Welcome, a quick look at circular fashion and Unstitch.",
     say: "Today you will design something that can become something else.",
   },
   {
     id: "teams-brief",
     title: "Teams & brief",
+    short: "Brief",
     minutes: 5,
-    summary: "Get into teams, pick up a role card and a kit of 24 tiles, and make sure everyone understands the brief.",
-    say: "Choose your roles, take your tiles and read the three constraints.",
+    summary: "Meet the challenge, take a role card and a kit of 24 tiles, and make sure everyone understands the brief.",
+    say: "Choose your roles, take your tiles and read the four constraints.",
   },
   {
     id: "explore-build",
     title: "Explore & build",
+    short: "Build",
     minutes: 15,
     summary: "Build with the tiles. Use the playground to try other configurations while you build.",
     say: "Build it, then ask: what else could it become?",
@@ -71,26 +75,35 @@ export const phases: WorkshopPhase[] = [
   {
     id: "test-refine",
     title: "Test & refine",
-    minutes: 10,
-    summary: "Test it: does it change form, hold together and come apart cleanly? Improve it, and prepare to share.",
+    short: "Test",
+    minutes: 5,
+    summary: "Test it: does it change form, hold together and come apart cleanly? Improve it, and decide whether to share.",
     say: "Change it into its second form. Fix what does not work.",
   },
   {
-    id: "share-unbuild",
-    title: "Share, unbuild & reflect",
-    short: "Share & reflect",
+    id: "share",
+    title: "Share",
+    minutes: 5,
+    summary: "Show and tell: two or three teams share for one minute each.",
+    say: "Teams with a bid card up: tell us your idea, your innovation and your discovery.",
+  },
+  {
+    id: "unbuild-reflect",
+    title: "Unbuild & reflect",
+    short: "Unbuild & reflect",
     minutes: 10,
-    summary: "A few teams share, every team takes its design apart and returns the tiles, then we reflect together.",
-    say: "Share, take it apart, return every tile, then reflect.",
+    summary: "Every team takes its design apart, packs the tiles and returns the kit. Then everyone gives feedback on the website.",
+    say: "Take it apart, return every tile, then give us your feedback.",
   },
 ];
 
-// Three constraints, matching slides 16 and 18 of the workshop deck. If a fourth or fifth is
-// added later, add it here and in the deck; the hub counts what is in this list.
+// Four constraints, matching slides 23 and 25 of the workshop deck. If one is added or removed
+// later, change it here and in the deck; the hub counts what is in this list.
 export const constraints: { title: string; detail: string }[] = [
   { title: "Up to 24 tiles", detail: "Use no more than the 24 tiles in your kit. Fewer is fine." },
   { title: "A clear purpose and user", detail: "Know who it is for and what it does." },
   { title: "It can adapt", detail: "It can change into another configuration or use." },
+  { title: "Beat the clock", detail: "You have 20 minutes to build and test." },
 ];
 
 /** "three", "five": the page says "Your three constraints" and follows whatever the list holds. */
