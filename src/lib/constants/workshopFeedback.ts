@@ -85,6 +85,165 @@ export const teacherForm = {
   },
 } as const;
 
+// ------------------------------------------------------- school liaison and staff
+
+/**
+ * The longer evaluation for the teacher liaison and other school staff, at /workshop/school?c=CODE.
+ * `n` is the question number shown on the page; `key` is what is stored. Questions are required unless
+ * marked `optional`. The testimonial permission (q12) is only required when a testimonial was written.
+ */
+export type SchoolQuestion =
+  | { key: string; n: number; kind: "single"; label: string; choices: Choice[]; optional?: boolean }
+  | { key: string; n: number; kind: "multi"; label: string; hint: string; choices: Choice[]; otherLabel: string; optional?: boolean }
+  | { key: string; n: number; kind: "text"; label: string; placeholder?: string; prompts?: string[]; promptsLabel?: string; optional?: boolean }
+  | { key: string; n: number; kind: "short"; label: string; type: "text" | "email"; autocomplete: string; optional: true };
+
+export interface SchoolSection { id: string; title: string; intro?: string; questions: SchoolQuestion[] }
+
+const rating = (): Choice[] => [
+  { v: "excellent", label: "Excellent" },
+  { v: "very-good", label: "Very good" },
+  { v: "good", label: "Good" },
+  { v: "fair", label: "Fair" },
+  { v: "poor", label: "Poor" },
+];
+
+export const schoolForm = {
+  title: "Unstitch School Workshop Evaluation & Feedback",
+  /** `{school}` is replaced by the school name on the booking. */
+  thanksLine: "Thank you for having Unstitch at {school}!",
+  intro:
+    "We'd love to hear your thoughts on the workshop. Your feedback helps us improve our educational programmes and develop meaningful learning experiences for students.",
+  time: "Estimated completion time: 3–5 minutes",
+  sent: "Thank you for supporting Unstitch and helping us make creative, sustainable learning more accessible!",
+  sections: [
+    {
+      id: "educational-value",
+      title: "Educational value",
+      questions: [
+        { key: "q1", n: 1, kind: "single", label: "How would you rate the overall educational value of the workshop?", choices: rating() },
+        {
+          key: "q2", n: 2, kind: "single",
+          label: "To what extent do you feel the workshop aligned with your school's educational priorities?",
+          choices: [
+            { v: "very-well", label: "Very well" },
+            { v: "well", label: "Well" },
+            { v: "somewhat", label: "Somewhat" },
+            { v: "not-particularly", label: "Not particularly" },
+            { v: "not-sure", label: "Not sure" },
+          ],
+        },
+        {
+          key: "q3", n: 3, kind: "multi",
+          label: "Which aspects of the workshop do you feel were most valuable?",
+          hint: "Select all that apply.",
+          choices: [
+            { v: "sustainability", label: "Sustainability, material reuse and circular economy" },
+            { v: "design-thinking", label: "Design thinking and creative problem-solving" },
+            { v: "stem", label: "STEM and spatial reasoning" },
+            { v: "collaboration", label: "Collaborative learning and teamwork" },
+            { v: "hands-on", label: "Hands-on making and experimentation" },
+            { v: "textile-design", label: "Exploring alternative approaches to textile design" },
+          ],
+          otherLabel: "Other",
+        },
+        {
+          key: "q4", n: 4, kind: "single",
+          label: "Do you feel the workshop was appropriate for the intended student cohort in terms of age, abilities and learning needs?",
+          choices: [
+            { v: "very", label: "Very appropriate" },
+            { v: "appropriate", label: "Appropriate" },
+            { v: "somewhat", label: "Somewhat appropriate" },
+            { v: "not", label: "Not appropriate" },
+            { v: "not-sure", label: "Not sure" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "delivery",
+      title: "Delivery and organisation",
+      questions: [
+        { key: "q5", n: 5, kind: "single", label: "How would you rate the organisation and delivery of the workshop?", choices: rating() },
+        {
+          key: "q6", n: 6, kind: "single",
+          label: "Was the communication, coordination and preparation with Unstitch clear and effective?",
+          choices: [
+            { v: "completely", label: "Yes, completely" },
+            { v: "mostly", label: "Mostly" },
+            { v: "somewhat", label: "Somewhat" },
+            { v: "no", label: "No" },
+            { v: "na", label: "Not applicable" },
+          ],
+        },
+        {
+          key: "q7", n: 7, kind: "text",
+          label: "What did you find most valuable about the workshop, and is there anything you think could be improved?",
+        },
+      ],
+    },
+    {
+      id: "future",
+      title: "Future opportunities",
+      questions: [
+        {
+          key: "q8", n: 8, kind: "single",
+          label: "Would your school be interested in engaging Unstitch for future workshops or programmes?",
+          choices: [
+            { v: "yes", label: "Yes" },
+            { v: "possibly", label: "Possibly" },
+            { v: "not-now", label: "Not at this stage" },
+          ],
+        },
+        {
+          key: "q9", n: 9, kind: "text", optional: true,
+          label: "Are there other year levels, subjects or school initiatives where you could see Unstitch workshops being relevant?",
+        },
+        {
+          key: "q10", n: 10, kind: "text", optional: true,
+          label: "What would make our learn programme more valuable to your school or encourage you to engage Unstitch again?",
+        },
+      ],
+    },
+    {
+      id: "testimonial",
+      title: "Testimonial (optional)",
+      intro:
+        "We'd love to hear about your experience working with Unstitch. Your comments may help other schools understand the value of our workshops.",
+      questions: [
+        {
+          key: "q11", n: 11, kind: "text", optional: true,
+          label: "Would you be happy to share a short testimonial about your experience?",
+          promptsLabel: "Suggested prompts",
+          prompts: [
+            "What did you particularly value about the workshop?",
+            "What stood out about the students' experience?",
+            "What made the workshop different from other learning experiences?",
+            "Would you recommend Unstitch to other schools? Why?",
+          ],
+        },
+        {
+          key: "q12", n: 12, kind: "single", optional: true,
+          label: "How may we use your testimonial?",
+          choices: [
+            { v: "name-and-school", label: "With my name and school identified" },
+            { v: "school-only", label: "With the school identified, but without my name" },
+            { v: "anonymous", label: "Anonymously, without identifying me or the school" },
+            { v: "ask-first", label: "Please contact me to seek approval before using it" },
+            { v: "no-public-use", label: "I do not give permission for public use" },
+          ],
+        },
+        { key: "q13", n: 13, kind: "short", type: "text", autocomplete: "name", optional: true, label: "Your name and role (optional)" },
+        { key: "q14", n: 14, kind: "short", type: "text", autocomplete: "organization", optional: true, label: "School name (optional)" },
+        { key: "q15", n: 15, kind: "short", type: "email", autocomplete: "email", optional: true, label: "Email address (optional)" },
+      ],
+    },
+  ] as SchoolSection[],
+};
+
+/** Every school question in one list, in order. */
+export const schoolQuestions: SchoolQuestion[] = schoolForm.sections.flatMap((s) => s.questions);
+
 // --------------------------------------------------------------- facilitator
 
 /** A to-do list for the person running the workshop: what they saw, and what to fix. */

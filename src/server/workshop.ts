@@ -8,6 +8,7 @@
 //   404 -> unknown code or key
 //   410 -> exists but is switched off or has expired
 //
+// GET  /api/workshop?code=ABC234&for=school   (the school feedback page: stays open for 60 days after the workshop expires)
 // GET  /api/workshop?key=<key>&notes=1   (facilitator only)
 //   200 -> { notes: { "<slide>": "<edited notes>" } }   only the slides that were edited
 //
@@ -19,6 +20,8 @@
 //     { code, submissionId, engagement, observed[], appropriate, valuable?, improve?, recommend }
 //   kind "facilitator" (sent with the facilitator `key`, so students cannot send it):
 //     { key, submissionId, answers: { outcomes, delivery, checks, open, obs } }
+//   kind "school" (sent with `code`; the teacher liaison and other school staff):
+//     { code, submissionId, answers: { q1 ... q15, q3_other } }   see schoolForm in workshopFeedback.ts
 //   kind "notes" (sent with the facilitator `key`): { key, slide, notes }
 //     saves the edited speaker notes for a slide, for every workshop; empty or null notes put the deck's version back
 //   200 -> { ok: true }   (also when the same submissionId arrives twice)
@@ -38,6 +41,7 @@ import { sendJson, parseRequestBody, formatZodError } from '../lib/apiHelper.js'
 import { checkRateLimit } from '../lib/rateLimit.js';
 import prisma from '../lib/prisma.js';
 import {
+  schoolQuestions,
   studentStatements,
   teacherForm,
   facilitatorScale,
@@ -114,6 +118,36 @@ const NotesSchema = z.object({
   notes: z.string().max(4000).nullable(),
 });
 
+// The school evaluation: the answers object is built from the questions, so a new question only needs adding
+// to schoolForm. Required questions are checked afterwards (missingSchoolAnswer) so the message can name one.
+const schoolShape: Record<string, z.ZodTypeAny> = {};
+for (const q of schoolQuestions) {
+  if (q.kind === 'single') schoolShape[q.key] = oneOf(q.choices);
+  else if (q.kind === 'multi') {
+    schoolShape[q.key] = z.array(z.enum(values(q.choices))).max(12).optional();
+    schoolShape[`${q.key}_other`] = text(300);
+  } else if (q.kind === 'text') schoolShape[q.key] = text(3000);
+  else schoolShape[q.key] = q.type === 'email' ? z.union([z.literal(''), z.string().trim().max(200).email('Check the email address')]).optional() : text(200);
+}
+
+const SchoolSchema = z.object({
+  code: codeField,
+  submissionId: submissionField,
+  answers: z.object(schoolShape).default({}),
+});
+
+/** The first required school question that has no answer, or null. The testimonial permission is needed only when one was written. */
+function missingSchoolAnswer(a: Record<string, any>): { key: string; n: number } | null {
+  const filled = (v: unknown) => (Array.isArray(v) ? v.length > 0 : typeof v === 'string' ? v.trim().length > 0 : v != null);
+  for (const q of schoolQuestions) {
+    const needed = q.key === 'q12' ? filled(a.q11) : !q.optional;
+    if (!needed) continue;
+    const ok = q.kind === 'multi' ? filled(a[q.key]) || filled(a[`${q.key}_other`]) : filled(a[q.key]);
+    if (!ok) return { key: q.key, n: q.n };
+  }
+  return null;
+}
+
 const FacilitatorSchema = z.object({
   key: keyField,
   submissionId: submissionField,
@@ -130,6 +164,10 @@ function hasAnyAnswer(v: unknown): boolean {
 /** Drops empty strings and empty groups so the stored JSON only holds what was answered. */
 function prune(v: any): any {
   if (typeof v === 'string') return v.trim() || undefined;
+  if (Array.isArray(v)) {
+    const items = [...new Set(v.map(prune).filter((x) => x !== undefined))];
+    return items.length ? items : undefined;
+  }
   if (v && typeof v === 'object') {
     const out: Record<string, any> = {};
     for (const [k, x] of Object.entries(v)) {
@@ -143,6 +181,13 @@ function prune(v: any): any {
 
 function isLive(row: { active: boolean; expiresAt: Date | null }): boolean {
   return row.active && !(row.expiresAt && row.expiresAt.getTime() < Date.now());
+}
+
+// School staff often answer a few days after the workshop, so their form stays open for 60 days after the
+// code expires. Switching a workshop off (active = false) still closes it.
+const SCHOOL_GRACE_MS = 60 * 86_400_000;
+function isLiveForSchool(row: { active: boolean; expiresAt: Date | null }): boolean {
+  return row.active && !(row.expiresAt && row.expiresAt.getTime() + SCHOOL_GRACE_MS < Date.now());
 }
 
 export default async function handler(req: any, res: any): Promise<any> {
@@ -169,10 +214,10 @@ export default async function handler(req: any, res: any): Promise<any> {
   if (req.method === 'POST') {
     const body = parseRequestBody(req) as any;
     const kind = body && typeof body === 'object' && typeof body.kind === 'string' ? body.kind : 'student';
-    if (kind !== 'student' && kind !== 'teacher' && kind !== 'facilitator' && kind !== 'notes') {
+    if (kind !== 'student' && kind !== 'teacher' && kind !== 'facilitator' && kind !== 'notes' && kind !== 'school') {
       return sendJson(res, 400, { error: 'Unknown feedback type' });
     }
-    const schema = kind === 'teacher' ? TeacherSchema : kind === 'facilitator' ? FacilitatorSchema : kind === 'notes' ? NotesSchema : StudentSchema;
+    const schema = kind === 'teacher' ? TeacherSchema : kind === 'facilitator' ? FacilitatorSchema : kind === 'notes' ? NotesSchema : kind === 'school' ? SchoolSchema : StudentSchema;
     const parsed = (schema as z.ZodTypeAny).safeParse(body);
     if (!parsed.success) {
       const formatted = formatZodError(parsed.error);
@@ -186,7 +231,7 @@ export default async function handler(req: any, res: any): Promise<any> {
           ? await prisma.workshop.findFirst({ where: { facilitatorKey: { equals: data.key, mode: 'insensitive' } }, select })
           : await prisma.workshop.findUnique({ where: { code: data.code }, select });
       if (!workshop) return sendJson(res, 404, { error: kind === 'facilitator' || kind === 'notes' ? 'Facilitator link not found' : 'Code not found' });
-      if (!isLive(workshop)) return sendJson(res, 410, { error: 'This workshop code has expired' });
+      if (!(kind === 'school' ? isLiveForSchool(workshop) : isLive(workshop))) return sendJson(res, 410, { error: 'This workshop code has expired' });
 
       if (kind === 'notes') {
         const text = (data.notes ?? '').trim();
@@ -219,6 +264,14 @@ export default async function handler(req: any, res: any): Promise<any> {
               wouldChange: data.wouldChange,
               teamName: data.teamName,
             },
+          });
+        } else if (kind === 'school') {
+          const missing = missingSchoolAnswer(data.answers);
+          if (missing) {
+            return sendJson(res, 400, { error: `Please answer question ${missing.n}.`, fieldErrors: { [missing.key]: [`Please answer question ${missing.n}.`] } });
+          }
+          await prisma.workshopSchoolFeedback.create({
+            data: { workshopId: workshop.id, submissionId: data.submissionId, answers: prune(data.answers) ?? {} },
           });
         } else if (kind === 'teacher') {
           await prisma.workshopTeacherFeedback.create({
@@ -297,7 +350,8 @@ export default async function handler(req: any, res: any): Promise<any> {
       ? await prisma.workshop.findFirst({ where: { facilitatorKey: { equals: key, mode: 'insensitive' } }, select })
       : await prisma.workshop.findUnique({ where: { code }, select });
     if (!row) return sendJson(res, 404, { error: 'Code not found' });
-    if (!isLive(row)) return sendJson(res, 410, { error: 'This workshop code has expired' });
+    const forSchool = !bykey && searchParams.get('for') === 'school';
+    if (!(forSchool ? isLiveForSchool(row) : isLive(row))) return sendJson(res, 410, { error: 'This workshop code has expired' });
     res.setHeader('Cache-Control', 'no-store');
     return sendJson(res, 200, {
       role: bykey ? 'facilitator' : 'student',

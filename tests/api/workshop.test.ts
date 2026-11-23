@@ -7,6 +7,7 @@ const db = vi.hoisted(() => ({
   workshop: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   workshopFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   workshopTeacherFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  workshopSchoolFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   workshopFacilitatorFeedback: { create: vi.fn(), findMany: vi.fn() },
   workshopSlideNote: { upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
 }));
@@ -47,6 +48,11 @@ const TEACHER = {
   kind: 'teacher', code: 'k7q4mx', submissionId: 'teach1234-abc', engagement: 'very',
   observed: ['modular', 'spatial', 'modular'], appropriate: 'appropriate', valuable: 'Hands-on', improve: '', recommend: 'yes',
 };
+const SCHOOL_ANSWERS = {
+  q1: 'excellent', q2: 'well', q3: ['sustainability', 'stem', 'stem'], q4: 'appropriate',
+  q5: 'very-good', q6: 'mostly', q7: '  Students loved it  ', q8: 'yes',
+};
+const SCHOOL = { kind: 'school', code: 'k7q4mx', submissionId: 'school123-abc', answers: SCHOOL_ANSWERS };
 const FACILITATOR = {
   kind: 'facilitator', key: 'CGGSF', submissionId: 'fac123456-abc',
   answers: {
@@ -248,6 +254,116 @@ describe('POST /api/workshop (teacher feedback)', () => {
     db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: PAST });
     res = createMockRes();
     await handler(post(TEACHER), res);
+    expect(res.statusCode).toBe(410);
+  });
+});
+
+describe('POST /api/workshop (school feedback)', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('saves the answers, trims text and removes repeated choices', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopSchoolFeedback.create.mockResolvedValue({});
+    const res = createMockRes();
+    await handler(post({ ...SCHOOL, answers: { ...SCHOOL_ANSWERS, q9: '', bogus: 'x' } }), res);
+    expect(res.statusCode).toBe(200);
+    const data = db.workshopSchoolFeedback.create.mock.calls[0][0].data;
+    expect(data.workshopId).toBe('w1');
+    expect(data.submissionId).toBe('school123-abc');
+    expect(data.answers.q3).toEqual(['sustainability', 'stem']);
+    expect(data.answers.q7).toBe('Students loved it');
+    expect(data.answers).not.toHaveProperty('q9');
+    expect(data.answers).not.toHaveProperty('bogus');
+    expect(db.workshopFeedback.create).not.toHaveBeenCalled();
+    expect(db.workshopTeacherFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('names the first required question that is missing', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    const { q5: _q5, ...withoutQ5 } = SCHOOL_ANSWERS;
+    const res = createMockRes();
+    await handler(post({ ...SCHOOL, answers: withoutQ5 }), res);
+    expect(res.statusCode).toBe(400);
+    expect(JSON.stringify(res.body)).toContain('question 5');
+    expect(db.workshopSchoolFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('only accepts the listed choices', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    for (const bad of [{ q1: 'amazing' }, { q3: ['nonsense'] }, { q8: 'maybe' }]) {
+      const res = createMockRes();
+      await handler(post({ ...SCHOOL, answers: { ...SCHOOL_ANSWERS, ...bad } }), res);
+      expect(res.statusCode).toBe(400);
+    }
+    expect(db.workshopSchoolFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts "Other" alone for question 3', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopSchoolFeedback.create.mockResolvedValue({});
+    const res = createMockRes();
+    await handler(post({ ...SCHOOL, answers: { ...SCHOOL_ANSWERS, q3: [], q3_other: 'Upcycling' } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopSchoolFeedback.create.mock.calls[0][0].data.answers.q3_other).toBe('Upcycling');
+  });
+
+  it('asks how a testimonial may be used only when there is a testimonial', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopSchoolFeedback.create.mockResolvedValue({});
+    let res = createMockRes();
+    await handler(post({ ...SCHOOL, answers: { ...SCHOOL_ANSWERS, q11: 'Brilliant' } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(JSON.stringify(res.body)).toContain('question 12');
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, answers: { ...SCHOOL_ANSWERS, q11: 'Brilliant', q12: 'school-only', q13: 'A. Teacher, Liaison', q15: 'a@b.co' } }), res);
+    expect(res.statusCode).toBe(200);
+    // no testimonial: question 12 is not needed, and a blank email is fine
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school999-xyz', answers: { ...SCHOOL_ANSWERS, q15: '' } }), res);
+    expect(res.statusCode).toBe(200);
+    // but a malformed email is rejected
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school888-xyz', answers: { ...SCHOOL_ANSWERS, q15: 'not-an-email' } }), res);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('counts a repeated submission once', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopSchoolFeedback.create.mockRejectedValue(Object.assign(new Error('dup'), { code: 'P2002' }));
+    const res = createMockRes();
+    await handler(post(SCHOOL), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('stays open for 60 days after the workshop, then closes, and a switch-off closes it at once', async () => {
+    db.workshopSchoolFeedback.create.mockResolvedValue({});
+    const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000);
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: daysAgo(30) });
+    let res = createMockRes();
+    await handler(post(SCHOOL), res);
+    expect(res.statusCode).toBe(200);
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: daysAgo(61) });
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school777-xyz' }), res);
+    expect(res.statusCode).toBe(410);
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, active: false });
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school666-xyz' }), res);
+    expect(res.statusCode).toBe(410);
+  });
+
+  it('GET with for=school is still open after the student code has expired', async () => {
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: new Date(Date.now() - 10 * 86_400_000) });
+    let res = createMockRes();
+    await handler(get('code=K7Q4MX'), res);
+    expect(res.statusCode).toBe(410);
+    res = createMockRes();
+    await handler(get('code=K7Q4MX&for=school'), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.workshop.schoolName).toBe('Test School');
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, active: false });
+    res = createMockRes();
+    await handler(get('code=K7Q4MX&for=school'), res);
     expect(res.statusCode).toBe(410);
   });
 });
@@ -466,12 +582,14 @@ describe('admin/workshops handler', () => {
     db.workshopFeedback.findMany.mockResolvedValue([{ id: 'f1', teamNumber: 1, scoreReuse: 5 }]);
     db.workshopTeacherFeedback.findMany.mockResolvedValue([{ id: 't1', engagement: 'very' }]);
     db.workshopFacilitatorFeedback.findMany.mockResolvedValue([{ id: 'x1', answers: {} }]);
+    db.workshopSchoolFeedback.findMany.mockResolvedValue([{ id: 's1', answers: { q1: 'excellent' } }]);
     let res = createMockRes();
     await adminHandler({ method: 'GET', url: '/api/admin/workshops?feedback=w1', headers: { cookie: cookie() } } as any, res);
     expect(res.statusCode).toBe(200);
     expect(res.body.feedback).toHaveLength(1);
     expect(res.body.teacherFeedback).toHaveLength(1);
     expect(res.body.facilitatorFeedback).toHaveLength(1);
+    expect(res.body.schoolFeedback).toHaveLength(1);
 
     const FID = '11111111-1111-4111-8111-111111111111';
     db.workshopFeedback.findUnique.mockResolvedValue({ id: FID });
@@ -488,5 +606,13 @@ describe('admin/workshops handler', () => {
     await adminHandler({ method: 'PATCH', url: '/api/admin/workshops', headers: { cookie: cookie() }, body: { feedbackId: TID, hidden: true, kind: 'teacher' } } as any, res);
     expect(res.statusCode).toBe(200);
     expect(db.workshopTeacherFeedback.update).toHaveBeenCalledWith(expect.objectContaining({ data: { hidden: true } }));
+
+    const SID = '33333333-3333-4333-8333-333333333333';
+    db.workshopSchoolFeedback.findUnique.mockResolvedValue({ id: SID });
+    db.workshopSchoolFeedback.update.mockResolvedValue({ id: SID, hidden: true });
+    res = createMockRes();
+    await adminHandler({ method: 'PATCH', url: '/api/admin/workshops', headers: { cookie: cookie() }, body: { feedbackId: SID, hidden: true, kind: 'school' } } as any, res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopSchoolFeedback.update).toHaveBeenCalledWith(expect.objectContaining({ data: { hidden: true } }));
   });
 });

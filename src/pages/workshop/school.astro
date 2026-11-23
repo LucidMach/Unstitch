@@ -1,0 +1,527 @@
+---
+// School evaluation form for the teacher liaison and other school staff. Opened from a link the
+// Unstitch team sends (/workshop/school?c=<code>, "Copy school link" in Admin). Unlisted, noindex
+// and disallowed in robots.txt (the /workshop prefix covers it). Questions live in
+// lib/constants/workshopFeedback.ts (schoolForm); answers go to POST /api/workshop, kind "school".
+// Long form, so it has collapsible sections and a floating table of contents (a sticky sidebar on
+// wide screens, a "Sections" button and sheet on phones).
+import Layout from "../../layouts/Layout.astro";
+import { schoolForm } from "../../lib/constants/workshopFeedback";
+
+const f = schoolForm;
+const required = f.sections.flatMap((s) => s.questions).filter((q) => !q.optional).length;
+---
+
+<Layout
+  title="School feedback | Unstitch"
+  description="Unstitch school workshop evaluation and feedback."
+  noindex={true}
+  showNavbar={false}
+  showTicker={false}
+  showFooter={false}
+  useCustomCursor={false}
+>
+  <main class="sf" data-sf data-required={required}>
+    <header class="sf-top">
+      <a class="sf-brand" href="/" aria-label="Unstitch home">Unstitch</a>
+      <span class="sf-school" data-sf-school hidden></span>
+    </header>
+
+    <!-- ===== Code gate (only when the link has no valid code) ===== -->
+    <section class="sf-gate" data-sf-gate hidden>
+      <div class="sf-card sf-card--narrow">
+        <p class="sf-eyebrow">School feedback</p>
+        <h1 class="sf-title sf-title--small">Enter your workshop code</h1>
+        <p class="sf-muted" data-sf-gate-msg>Use the link Unstitch sent you, or type the workshop code from your booking.</p>
+        <form class="sf-gate__form" data-sf-gate-form autocomplete="off">
+          <label class="sf-visually-hidden" for="sf-code">Workshop code</label>
+          <input id="sf-code" class="sf-code" type="text" autocapitalize="characters" spellcheck="false" maxlength="16" placeholder="K7Q4MX" data-sf-code />
+          <button class="btn btn-filled" type="submit">Open the form</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== Form ===== -->
+    <div class="sf-wrap" data-sf-main hidden>
+      <div class="sf-head">
+        <p class="sf-eyebrow">Workshop evaluation</p>
+        <h1 class="sf-title">{f.title}</h1>
+        <p class="sf-thanksline" data-sf-thanksline>{f.thanksLine.replace("{school}", "your school")}</p>
+        <p class="sf-lead">{f.intro}</p>
+        <p class="sf-time">{f.time}</p>
+      </div>
+
+      <div class="sf-cols">
+        <!-- Floating table of contents (sticky sidebar on wide screens) -->
+        <aside class="sf-toc" data-sf-toc aria-label="Sections">
+          <p class="sf-toc__title">Sections</p>
+          <ol class="sf-toc__list">
+            {f.sections.map((s, i) => (
+              <li>
+                <a href={`#sf-sec-${s.id}`} data-sf-link={s.id}>
+                  <span class="sf-toc__n">{i + 1}</span>
+                  <span class="sf-toc__t">{s.title}</span>
+                  <span class="sf-toc__c" data-sf-count={s.id}></span>
+                </a>
+              </li>
+            ))}
+          </ol>
+          <p class="sf-toc__progress" data-sf-progress></p>
+          <div class="sf-toc__tools">
+            <button type="button" class="sf-link" data-sf-expand>Expand all</button>
+            <button type="button" class="sf-link" data-sf-collapse>Collapse all</button>
+          </div>
+        </aside>
+
+        <form class="sf-form" data-sf-form novalidate aria-label={f.title}>
+          {f.sections.map((s, i) => (
+            <details class="sf-sec" id={`sf-sec-${s.id}`} data-sf-sec={s.id} open>
+              <summary>
+                <span class="sf-sec__n">{i + 1}</span>
+                <span class="sf-sec__t">{s.title}</span>
+                <span class="sf-sec__c" data-sf-seccount={s.id}></span>
+                <span class="sf-sec__chev" aria-hidden="true"></span>
+              </summary>
+              <div class="sf-sec__body">
+                {s.intro && <p class="sf-sec__intro">{s.intro}</p>}
+                {s.questions.map((q) => (
+                  <div class="sf-q" id={`sf-q${q.n}`} data-q={q.key} data-kind={q.kind} data-optional={q.optional ? "1" : "0"}>
+                    {(q.kind === "single" || q.kind === "multi") && (
+                      <>
+                        <p class="sf-qlabel" id={`sf-l${q.n}`}>
+                          {q.n}. {q.label}
+                          {q.kind === "multi" && <span class="sf-hint">{q.hint}</span>}
+                        </p>
+                        <div class="sf-choices" role="group" aria-labelledby={`sf-l${q.n}`}>
+                          {q.choices.map((c) => (
+                            <label class={`sf-choice${q.kind === "multi" ? " sf-choice--check" : ""}`}>
+                              <input type={q.kind === "multi" ? "checkbox" : "radio"} name={q.key} value={c.v} />
+                              <span>{c.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {q.kind === "multi" && (
+                          <div class="sf-other">
+                            <label for={`sf-${q.key}-other`}>{q.otherLabel}</label>
+                            <input id={`sf-${q.key}-other`} name={`${q.key}_other`} type="text" maxlength="300" placeholder="Please specify" />
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {q.kind === "text" && (
+                      <>
+                        <label class="sf-qlabel" for={`sf-t${q.n}`}>{q.n}. {q.label}{q.optional && !/optional/i.test(s.title) && <span class="sf-opt"> (optional)</span>}</label>
+                        {q.prompts && (
+                          <div class="sf-prompts">
+                            <p>{q.promptsLabel}</p>
+                            <ul>{q.prompts.map((p) => <li>{p}</li>)}</ul>
+                          </div>
+                        )}
+                        <textarea id={`sf-t${q.n}`} name={q.key} rows={q.prompts ? 5 : 4} maxlength="3000" placeholder={q.placeholder ?? ""}></textarea>
+                      </>
+                    )}
+                    {q.kind === "short" && (
+                      <>
+                        <label class="sf-qlabel" for={`sf-s${q.n}`}>{q.n}. {q.label}</label>
+                        <input id={`sf-s${q.n}`} name={q.key} type={q.type} maxlength="200" autocomplete={q.autocomplete} />
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+          ))}
+
+          <p class="sf-error" role="alert" data-sf-error hidden></p>
+          <button class="btn btn-filled sf-send" type="submit" data-sf-submit>Send feedback</button>
+        </form>
+      </div>
+
+      <div class="sf-thanks" data-sf-thanks hidden>
+        <h2 tabindex="-1">Thank you!</h2>
+        <p>{f.sent}</p>
+        <button type="button" class="sf-again" data-sf-again>Send another response from this device</button>
+      </div>
+    </div>
+
+    <!-- Floating "Sections" button + sheet (phones and tablets) -->
+    <button type="button" class="sf-fab" data-sf-fab aria-haspopup="dialog" aria-expanded="false" aria-controls="sf-sheet" hidden>
+      <span class="sf-fab__icon" aria-hidden="true"></span> Sections
+    </button>
+    <div class="sf-sheet" id="sf-sheet" data-sf-sheet role="dialog" aria-modal="true" aria-label="Sections" hidden>
+      <div class="sf-sheet__backdrop" data-sf-sheet-close></div>
+      <div class="sf-sheet__panel">
+        <div class="sf-sheet__head">
+          <p class="sf-toc__title">Jump to a section</p>
+          <button type="button" class="sf-link" data-sf-sheet-close>Close</button>
+        </div>
+        <ol class="sf-toc__list">
+          {f.sections.map((s, i) => (
+            <li>
+              <a href={`#sf-sec-${s.id}`} data-sf-link={s.id}>
+                <span class="sf-toc__n">{i + 1}</span>
+                <span class="sf-toc__t">{s.title}</span>
+                <span class="sf-toc__c" data-sf-count={s.id}></span>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <p class="sf-toc__progress" data-sf-progress></p>
+        <div class="sf-toc__tools">
+          <button type="button" class="sf-link" data-sf-expand>Expand all</button>
+          <button type="button" class="sf-link" data-sf-collapse>Collapse all</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style is:global>
+  .sf { --ink: #382F3D; --paper: #FAF7F2; min-height: 100vh;
+    background-color: var(--paper);
+    background-image: linear-gradient(rgba(56, 47, 61, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 47, 61, 0.07) 1px, transparent 1px);
+    background-size: 28px 28px; color: var(--ink); font-family: var(--font-body); }
+  .sf-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px var(--gutter); border-bottom: 1.5px solid var(--ink); background: var(--paper); }
+  .sf-brand { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+  .sf-school { font-size: 0.85rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .sf-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sf-eyebrow { font-family: var(--font-display); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .sf-title { font-family: var(--font-display); font-size: clamp(1.8rem, 5.5vw, 2.6rem); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .sf-title--small { font-size: clamp(1.5rem, 5vw, 1.9rem); }
+  .sf-thanksline { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; margin: 0 0 12px; }
+  .sf-lead { font-size: 1.05rem; line-height: 1.5; margin: 0 0 12px; max-width: 62ch; }
+  .sf-time { display: inline-block; margin: 0 0 6px; padding: 4px 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: #F7D55C; font-size: 0.85rem; font-weight: 600; }
+  .sf-muted { color: #555; font-size: 0.95rem; line-height: 1.5; margin: 0 0 14px; }
+
+  .sf-wrap { width: min(1040px, 100% - 2 * var(--gutter)); margin: 0 auto; padding: 32px 0 96px; }
+  .sf-head { max-width: 720px; margin-bottom: 22px; }
+  .sf-cols { display: block; }
+  .sf-toc { display: none; }
+  @media (min-width: 960px) {
+    .sf-cols { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; align-items: start; }
+    .sf-toc { display: block; position: sticky; top: 20px; border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 16px 14px; }
+    .sf-fab, .sf-sheet { display: none !important; }
+  }
+  .sf-toc__title { font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 10px; }
+  .sf-toc__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .sf-toc__list a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 0.95rem; line-height: 1.25; border: 1.5px solid transparent; }
+  .sf-toc__list a:hover { background: rgba(183, 132, 167, 0.15); }
+  .sf-toc__list a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .sf-toc__list a.is-active { background: #F7D55C; border-color: var(--ink); }
+  .sf-toc__n, .sf-sec__n { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--ink); font-size: 0.78rem; font-weight: 700; background: #fff; }
+  .sf-toc__t { flex: 1; min-width: 0; }
+  .sf-toc__c, .sf-sec__c { flex: none; font-size: 0.78rem; font-weight: 600; color: #555; white-space: nowrap; }
+  .sf-toc__c.is-done, .sf-sec__c.is-done { color: #1f6b3a; }
+  .sf-toc__progress { margin: 12px 4px 0; font-size: 0.85rem; color: #555; }
+  .sf-toc__tools { display: flex; gap: 14px; margin: 10px 4px 0; }
+  .sf-link { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 0.85rem; font-weight: 600; text-decoration: underline; cursor: pointer; color: var(--ink); }
+
+  .sf-form { display: grid; gap: 16px; min-width: 0; max-width: 720px; }
+  .sf-sec { border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; scroll-margin-top: 16px; }
+  .sf-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 14px 18px; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
+  .sf-sec > summary::-webkit-details-marker { display: none; }
+  .sf-sec > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+  .sf-sec__t { flex: 1; min-width: 0; }
+  .sf-sec__chev { flex: none; width: 10px; height: 10px; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); transition: transform 0.15s; margin: -4px 4px 0 0; }
+  .sf-sec[open] > summary { border-bottom: 1.5px solid var(--ink); }
+  .sf-sec[open] .sf-sec__chev { transform: rotate(-135deg); margin-top: 4px; }
+  .sf-sec__body { padding: 18px; display: grid; gap: 22px; }
+  .sf-sec__intro { margin: 0; line-height: 1.5; color: #444; }
+  @media (prefers-reduced-motion: reduce) { .sf-sec__chev { transition: none; } }
+
+  .sf-q { display: grid; gap: 10px; min-width: 0; padding: 0; border-radius: var(--radius); scroll-margin-top: 20px; }
+  .sf-q.is-missing { outline: 2.5px solid #9b1c1c; outline-offset: 8px; }
+  .sf-qlabel { margin: 0; font-weight: 700; font-size: 1.02rem; line-height: 1.35; padding: 0; }
+  .sf-hint { display: block; font-weight: 400; font-size: 0.9rem; color: #555; margin-top: 2px; }
+  .sf-opt { font-weight: 400; color: #555; }
+  .sf-choices { display: grid; gap: 8px; }
+  .sf-choice { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 14px; border: 1.5px solid var(--ink); border-radius: var(--radius); cursor: pointer; background: #fff; font-size: 1rem; }
+  .sf-choice input { width: 20px; height: 20px; flex: none; accent-color: var(--ink); margin: 0; }
+  .sf-choice:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 2px var(--ink); }
+  .sf-choice:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .sf-other { display: grid; gap: 6px; }
+  .sf-other label { font-size: 0.95rem; font-weight: 600; }
+  .sf-q textarea, .sf-q input[type="text"], .sf-q input[type="email"] { font: inherit; font-size: 1rem; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; box-sizing: border-box; background: #fff; }
+  .sf-q textarea { resize: vertical; }
+  .sf-q textarea:focus-visible, .sf-q input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .sf-prompts { background: var(--paper); border: 1.5px dashed var(--ink); border-radius: var(--radius); padding: 10px 14px; font-size: 0.92rem; }
+  .sf-prompts p { margin: 0 0 4px; font-weight: 700; }
+  .sf-prompts ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; list-style: disc; }
+
+  .sf-error { margin: 0; color: #9b1c1c; font-weight: 600; }
+  .sf-send { justify-self: start; min-width: 220px; min-height: 48px; cursor: pointer; font-size: 1rem; }
+  .sf-send:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sf-thanks { max-width: 720px; border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 28px 22px; text-align: center; margin: 0 auto; }
+  .sf-thanks h2 { font-family: var(--font-display); font-size: 1.8rem; margin: 0 0 6px; }
+  .sf-thanks p { margin: 0 0 12px; }
+  .sf-again { background: none; border: 0; padding: 8px; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; color: var(--ink); }
+
+  .sf-gate { display: grid; place-items: center; min-height: calc(100vh - 62px); padding: 24px var(--gutter); }
+  .sf-card { border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 28px 24px; background: #fff; }
+  .sf-card--narrow { width: min(440px, 100%); }
+  .sf-gate__form { display: grid; gap: 12px; margin-top: 8px; }
+  .sf-code { font: inherit; font-size: 1.4rem; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; box-sizing: border-box; }
+  .sf-code:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* Floating "Sections" button + bottom sheet */
+  .sf-fab { position: fixed; right: 16px; bottom: 16px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px; border: 1.5px solid var(--ink); border-radius: 999px; background: #F7D55C; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
+  .sf-fab:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .sf-fab__icon { width: 16px; height: 12px; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); position: relative; }
+  .sf-fab__icon::after { content: ""; position: absolute; left: 0; right: 0; top: 3px; border-top: 2px solid var(--ink); }
+  .sf-sheet { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; }
+  .sf-sheet__backdrop { position: absolute; inset: 0; background: rgba(56, 47, 61, 0.45); }
+  .sf-sheet__panel { position: relative; width: 100%; max-height: 75vh; overflow: auto; background: #fff; border-top: 1.5px solid var(--ink); border-radius: 18px 18px 0 0; padding: 16px var(--gutter) 24px; }
+  .sf-sheet__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sf-sheet__head .sf-toc__title { margin: 0; }
+
+  .sf .btn { cursor: pointer; }
+  .sf [hidden] { display: none !important; }
+</style>
+
+<script>
+  const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  const $$ = <T extends HTMLElement = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)];
+  type Workshop = { code: string; schoolName: string; workshopDate: string | null; teams: number };
+
+  const root = $("[data-sf]");
+  const gate = $("[data-sf-gate]");
+  const main = $("[data-sf-main]");
+  const form = $<HTMLFormElement>("[data-sf-form]");
+  const thanks = $("[data-sf-thanks]");
+  const errorEl = $("[data-sf-error]");
+  const submitBtn = $<HTMLButtonElement>("[data-sf-submit]");
+  const fab = $<HTMLButtonElement>("[data-sf-fab]");
+  const sheet = $("[data-sf-sheet]");
+  const cols = $(".sf-cols");
+  const head = $(".sf-head");
+  const requiredTotal = Number(root.dataset.required || 0);
+  let workshop: Workshop | null = null;
+
+  const sentKey = () => `wk-sf-${workshop?.code ?? ""}`;
+  const message = (text: string) => { errorEl.textContent = text; errorEl.hidden = !text; };
+  const gateMsg = (text: string, bad = true) => { const el = $("[data-sf-gate-msg]"); el.textContent = text; el.style.color = bad ? "#9b1c1c" : ""; };
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function newId(): string {
+    try { if (crypto.randomUUID) return crypto.randomUUID(); } catch { /* fall through */ }
+    return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  }
+  // One id per attempt, reused on a retry, so a double tap cannot count twice.
+  let submissionId = newId();
+
+  // ---------- reading answers
+  const qEls = () => $$("[data-q]");
+  function readAnswer(q: HTMLElement): string | string[] {
+    const key = q.dataset.q as string;
+    const kind = q.dataset.kind;
+    if (kind === "single") return (q.querySelector<HTMLInputElement>(`input[name="${key}"]:checked`))?.value ?? "";
+    if (kind === "multi") return [...q.querySelectorAll<HTMLInputElement>(`input[name="${key}"]:checked`)].map((i) => i.value);
+    const el = q.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${key}"]`);
+    return el ? el.value.trim() : "";
+  }
+  function otherText(q: HTMLElement): string {
+    return (q.querySelector<HTMLInputElement>(`input[name="${q.dataset.q}_other"]`)?.value ?? "").trim();
+  }
+  function isAnswered(q: HTMLElement): boolean {
+    const a = readAnswer(q);
+    if (Array.isArray(a)) return a.length > 0 || otherText(q) !== "";
+    return a !== "";
+  }
+  // Required: not optional. Q12 (how we may use the testimonial) is required once Q11 has text.
+  function isRequired(q: HTMLElement): boolean {
+    if (q.dataset.optional !== "1") return true;
+    if (q.dataset.q === "q12") { const t = qEls().find((x) => x.dataset.q === "q11"); return !!t && isAnswered(t); }
+    return false;
+  }
+
+  // ---------- progress, counts
+  function updateCounts() {
+    let done = 0;
+    $$("[data-sf-sec]").forEach((sec) => {
+      const id = sec.dataset.sfSec as string;
+      const qs = [...sec.querySelectorAll<HTMLElement>("[data-q]")];
+      const req = qs.filter(isRequired);
+      const reqDone = req.filter(isAnswered).length;
+      done += reqDone;
+      const answered = qs.filter(isAnswered).length;
+      const text = req.length ? `${reqDone}/${req.length}` : (answered ? "done" : "optional");
+      const complete = req.length ? reqDone === req.length : answered > 0;
+      $$(`[data-sf-count="${id}"]`).forEach((el) => { el.textContent = text; el.classList.toggle("is-done", complete); });
+      const sc = $(`[data-sf-seccount="${id}"]`);
+      sc.textContent = text; sc.classList.toggle("is-done", complete);
+    });
+    const total = qEls().filter(isRequired).length || requiredTotal;
+    $$("[data-sf-progress]").forEach((el) => { el.textContent = `${Math.min(done, total)} of ${total} required questions answered`; });
+  }
+  form.addEventListener("input", () => { message(""); updateCounts(); });
+  form.addEventListener("change", () => { message(""); updateCounts(); });
+  form.addEventListener("input", (e) => (e.target as HTMLElement).closest(".sf-q")?.classList.remove("is-missing"));
+  form.addEventListener("change", (e) => (e.target as HTMLElement).closest(".sf-q")?.classList.remove("is-missing"));
+
+  // ---------- table of contents + collapsible sections
+  const sections = () => $$<HTMLDetailsElement>("[data-sf-sec]") as HTMLDetailsElement[];
+  function goTo(id: string) {
+    const sec = sections().find((s) => s.dataset.sfSec === id);
+    if (!sec) return;
+    sec.open = true;
+    sec.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
+    setActive(id);
+  }
+  function setActive(id: string) {
+    $$("[data-sf-link]").forEach((a) => a.classList.toggle("is-active", a.dataset.sfLink === id));
+  }
+  $$("[data-sf-link]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeSheet();
+    goTo(a.dataset.sfLink as string);
+  }));
+  $$("[data-sf-expand]").forEach((b) => b.addEventListener("click", () => sections().forEach((s) => { s.open = true; })));
+  $$("[data-sf-collapse]").forEach((b) => b.addEventListener("click", () => sections().forEach((s) => { s.open = false; })));
+
+  // Highlight the section being read: the last one whose top has passed the upper part of the screen.
+  let ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      if (main.hidden || form.hidden) return;
+      let current = sections()[0]?.dataset.sfSec ?? "";
+      for (const s of sections()) { if (s.getBoundingClientRect().top <= window.innerHeight * 0.3) current = s.dataset.sfSec as string; }
+      setActive(current);
+    });
+  }
+  addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("resize", onScroll);
+
+  // ---------- floating sheet (phones and tablets)
+  function openSheet() { sheet.hidden = false; fab.setAttribute("aria-expanded", "true"); sheet.querySelector<HTMLElement>("[data-sf-link]")?.focus(); }
+  function closeSheet() { if (sheet.hidden) return; sheet.hidden = true; fab.setAttribute("aria-expanded", "false"); fab.focus(); }
+  fab.addEventListener("click", () => (sheet.hidden ? openSheet() : closeSheet()));
+  $$("[data-sf-sheet-close]").forEach((el) => el.addEventListener("click", closeSheet));
+  addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+
+  // ---------- opening / gate
+  function showForm(show: boolean) {
+    form.hidden = !show;
+    cols.hidden = !show;
+    head.hidden = false;
+    thanks.hidden = show;
+    fab.hidden = !show;
+    if (!show) { sheet.hidden = true; }
+  }
+
+  function open(w: Workshop) {
+    workshop = w;
+    gate.hidden = true;
+    main.hidden = false;
+    const school = $("[data-sf-school]");
+    school.textContent = w.schoolName;
+    school.hidden = false;
+    $("[data-sf-thanksline]").textContent = `Thank you for having Unstitch at ${w.schoolName}!`;
+    const q14 = form.querySelector<HTMLInputElement>('input[name="q14"]');
+    if (q14) q14.placeholder = w.schoolName;
+    let sent = false;
+    try { sent = localStorage.getItem(sentKey()) === "sent"; } catch { /* fine */ }
+    showForm(!sent);
+    updateCounts();
+    onScroll();
+  }
+
+  async function lookup(raw: string) {
+    const code = raw.trim().toUpperCase();
+    if (!code) { gate.hidden = false; return; }
+    try {
+      const res = await fetch(`/api/workshop?code=${encodeURIComponent(code)}&for=school`, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data = (await res.json()) as { workshop: Workshop };
+        const url = new URL(location.href);
+        url.searchParams.set("c", data.workshop.code);
+        history.replaceState(null, "", url.toString());
+        open(data.workshop);
+        return;
+      }
+      gate.hidden = false;
+      if (res.status === 404) gateMsg("We can't find that code. Check it and try again.");
+      else if (res.status === 410) gateMsg("This feedback form has now closed. Please get in touch with the Unstitch team if you'd still like to share your thoughts.");
+      else if (res.status === 429) gateMsg("Too many tries. Wait a minute and try again.");
+      else gateMsg("We couldn't check the code just now. Check your connection and try again.");
+    } catch {
+      gate.hidden = false;
+      gateMsg("We couldn't check the code just now. Check your connection and try again.");
+    }
+  }
+
+  $<HTMLFormElement>("[data-sf-gate-form]").addEventListener("submit", (e) => {
+    e.preventDefault();
+    gateMsg("Checking your code…", false);
+    lookup($<HTMLInputElement>("[data-sf-code]").value);
+  });
+  const initial = new URLSearchParams(location.search).get("c");
+  if (initial) lookup(initial); else gate.hidden = false;
+
+  // ---------- submit
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    message("");
+    if (!workshop) return;
+    qEls().forEach((q) => q.classList.remove("is-missing"));
+    const missing = qEls().find((q) => isRequired(q) && !isAnswered(q));
+    if (missing) {
+      const sec = missing.closest<HTMLDetailsElement>("details");
+      if (sec) sec.open = true;
+      missing.classList.add("is-missing");
+      missing.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "center" });
+      message(`Please answer question ${missing.id.replace("sf-q", "")}.`);
+      return;
+    }
+    const answers: Record<string, string | string[]> = {};
+    qEls().forEach((q) => {
+      const key = q.dataset.q as string;
+      const a = readAnswer(q);
+      if (Array.isArray(a) ? a.length : a) answers[key] = a;
+      const other = otherText(q);
+      if (other) answers[`${key}_other`] = other;
+    });
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ kind: "school", code: workshop.code, submissionId, answers }),
+      });
+      if (res.ok) {
+        try { localStorage.setItem(sentKey(), "sent"); } catch { /* fine without it */ }
+        showForm(false);
+        thanks.querySelector<HTMLElement>("h2")?.focus();
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      if (res.status === 410) message("This feedback form has now closed.");
+      else if (res.status === 429) message("Lots of people are sending at once. Wait a moment and try again.");
+      else if (res.status === 400) {
+        let detail = "";
+        try { const j = await res.json(); if (j && typeof j.error === "string") detail = j.error; } catch { /* not JSON */ }
+        message(detail || "Something is missing. Check the required questions and try again.");
+      } else {
+        let detail: string | null = null;
+        try { const j = await res.json(); if (j && j.dev && typeof j.error === "string") detail = j.error; } catch { /* not JSON */ }
+        message(detail || "We couldn't send that. Check your connection and try again.");
+      }
+    } catch {
+      message("We couldn't send that. Check your connection and try again.");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send feedback";
+    }
+  });
+
+  $("[data-sf-again]").addEventListener("click", () => {
+    try { localStorage.removeItem(sentKey()); } catch { /* ignore */ }
+    form.reset();
+    submissionId = newId();
+    showForm(true);
+    updateCounts();
+  });
+</script>
