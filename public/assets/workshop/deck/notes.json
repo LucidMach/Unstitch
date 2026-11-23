@@ -1,130 +1,178 @@
 {
- "slides": [
-  {
-   "n": 1,
-   "section": "Welcome",
-   "title": "Find your spot and sit.",
-   "notes": "Students arrive and choose where to sit. Say: \"Find a spot and sit. Where you sit decides how you'll help save the world today.\""
-  },
-  {
-   "n": 2,
-   "section": "Overview",
-   "title": "Today looks like this:",
-   "notes": "Quick roadmap, about 20 seconds. Four things: why we should care, what we do, who we are, and how today works."
-  },
-  {
-   "n": 3,
-   "section": "Why Should You Care",
-   "title": "How many new clothes does the average Australian buy in a year?",
-   "notes": "Ask the question. Students vote with a hand held up: closed fist = fewer than 10, one finger = about 10, two fingers = about 20, and so on; five fingers = 50 or more. Count to three and everyone shows at once. Look around the room, then click for the reveal."
-  },
-  {
-   "n": 4,
-   "section": "Why Should You Care",
-   "title": "56",
-   "notes": "Reveal 56. Pause. \"Who guessed close?\" Give a cheer for the nearest. That is more than one new item a week.\n\nANIMATION (optional): zoom or fade in the 56 on click."
-  },
-  {
-   "n": 5,
-   "section": "Why Should You Care",
-   "title": "So where does it all end up?",
-   "notes": "\"56 new things a year has to go somewhere.\" Over 200,000 tonnes of clothing go to landfill each year in Australia (Australian Fashion Council; Seamless reports 222,000 t for 2023). About 23 kg per person discarded (University of Queensland). Many items are worn around 7 times (Baptist World Aid Ethical Fashion Report).\n\nHand-over: \"So what could we do instead? That is what we do.\""
-  },
-  {
-   "n": 6,
-   "section": "Why Should You Care",
-   "title": "Circular fashion: keep clothes in use",
-   "notes": "Bridge from the problem to what we do. A circular approach keeps clothes in use for as long as possible, in this order: reduce, repair, reuse, remake, and recycle last. Mixed materials are hard to recycle because they are joined together and hard to separate. Unstitch sits on reuse and remake: the tiles come apart so they can be used again. Today you practise that part of the ladder.\n\nTiming: about 30 seconds. If the introduction runs long, shorten Who we are."
-  },
-  {
-   "n": 7,
-   "section": "What We Do",
-   "title": "Unstitch: fabric tiles you can build, take apart and remake",
-   "notes": "Lead on from landfill and the ladder. Introduce the tiles: hold up a real tile or the kit, and connect and disconnect it (no sewing, no stitching). Name four ideas: modularity (tiles combine into larger structures), reversibility (connections can be undone without adhesives or damage), adaptability (the same tiles can be rearranged into different outcomes) and material efficiency (existing components are reused and reconfigured). The fifth idea, thinking by making, comes on the challenge slide."
-  },
-  {
-   "n": 8,
-   "section": "Who We Are",
-   "title": "Who we are",
-   "notes": "Keep it short and personal: how you started, why fabric, what you hope they feel today."
-  },
-  {
-   "n": 9,
-   "section": "How Today Works",
-   "title": "The challenge",
-   "notes": "Read the challenge aloud, then introduce the three words: Rethink. Reuse. Recreate. Introduce the fifth idea, thinking by making: we rethink, reuse and recreate by building, not only discussing. Next: who is on the team."
-  },
-  {
-   "n": 10,
-   "section": "How Today Works",
-   "title": "Meet your design team",
-   "notes": "Designer: leads the idea exploration so the team builds something with a clear user and purpose."
-  },
-  {
-   "n": 11,
-   "section": "How Today Works",
-   "title": "Meet your design team",
-   "notes": "Material Keeper: looks after the tiles, making sure they are in good condition and can be reused as much as possible."
-  },
-  {
-   "n": 12,
-   "section": "How Today Works",
-   "title": "Meet your design team",
-   "notes": "Builder: builds the design and makes sure it holds together and is stable."
-  },
-  {
-   "n": 13,
-   "section": "How Today Works",
-   "title": "Meet your design team",
-   "notes": "Tech Wizard: tries configurations in the playground and brings the best ideas to the team."
-  },
-  {
-   "n": 14,
-   "section": "How Today Works",
-   "title": "Meet your design team",
-   "notes": "Storyteller: keeps track of decisions, includes everyone and prepares the show and tell.\n\nWrap up: roles are responsibilities, not exclusive permissions: everyone can build. The role colours (pink, green, coral, blue, yellow) are used only for roles, so students can spot their role on the cards and the hub."
-  },
-  {
-   "n": 15,
-   "section": "How Today Works",
-   "title": "What is in your kit",
-   "notes": "Go through the kit: tiles, the virtual playground, role cards, the digital brief (on their device, like a sheet of paper), and the starter guide (another sheet of paper).\n\nANIMATION (optional): make each card appear one by one on click, in this order. Replace the image areas with photos or screenshots."
-  },
-  {
-   "n": 16,
-   "section": "How Today Works",
-   "title": "Your three constraints",
-   "notes": "These are the three things your design must do. Read them out. Point out the timer in the corner of the projector (part of the hub view).\n\nThe three constraints: max 24 tiles; clear purpose and user; adaptable into another configuration."
-  },
-  {
-   "n": 17,
-   "section": "How Today Works",
-   "title": "The design loop and the clock",
-   "notes": "Read left to right. 15 minutes to explore and build: Design, Make, Construct. A ding (the bell). 10 minutes to test and refine: Iterate, Review. A ding. Last 10 minutes: show and tell (one minute each, bid card), then dismantle and wrap the kit, then reflect. The big dashed loop shows it all returning to Design: circular design, nothing is thrown away.\n\nSuggested dings: after 15: \"Time to test. Does it do what you said? Try the virtual playground.\" After 25: \"Wrap up. Show and tell time.\"\n\nHand out the kit now. The timer is in the corner of the projector view."
-  },
-  {
-   "n": 18,
-   "section": "Build",
-   "title": "Begin the challenge",
-   "notes": "Hand out the kits. Read the challenge and the three constraints once. The QR code opens the workshop hub (Participants tab).\n\nThe countdown is in the top-right corner of the projector view. Press Start on the hub as you say \"Go!\"."
-  },
-  {
-   "n": 19,
-   "section": "Show And Tell",
-   "title": "Want to share? Show your bid card",
-   "notes": "\"If your team wants to present, hold up your bid card.\" Choose 2 to 3 teams. One minute each, covering: our idea, our innovation, our discovery. Keep it moving; applaud each team."
-  },
-  {
-   "n": 20,
-   "section": "Close The Loop",
-   "title": "Close the loop",
-   "notes": "Show the circular loop again, now highlighting the end: share, unbuild, reflect. Close the loop: unbuild the design, wrap the tiles, place the kit on the table. Then reflect and give feedback, in teams or as a class:\n- What would you rethink?\n- What could you reuse?\n- What would you recreate next time?\n\nNext slide: thank you."
-  },
-  {
-   "n": 21,
-   "section": "Thank You",
-   "title": "Thank you!",
-   "notes": "Thank the students and the school. Then three things they can do this week: wear it more (swap, borrow, buy second-hand), fix or change it (repair, restyle, remake), and ask before you buy (can it come apart, who could use it next?). Link back to the closing question: what would you rethink, reuse or recreate next? Hand back to the teacher."
-  }
- ]
+  "slides": [
+    {
+      "n": 1,
+      "section": "Welcome",
+      "title": "Find your spot and take a seat.",
+      "notes": "Students arrive and choose where to sit. Say: \"Find your spot and take a seat. Where you sit decides how you'll help save the world today.\""
+    },
+    {
+      "n": 2,
+      "section": "Overview",
+      "title": "Today looks like this:",
+      "notes": "Quick roadmap, about 20 seconds. Three folders: 01 an introduction to circular fashion, 02 the challenge, 03 reflection and moving forward."
+    },
+    {
+      "n": 3,
+      "section": "Overview",
+      "title": "Today looks like this:",
+      "notes": "Quick roadmap, about 20 seconds. Three folders: 01 an introduction to circular fashion, 02 the challenge, 03 reflection and moving forward."
+    },
+    {
+      "n": 4,
+      "section": "Overview",
+      "title": "Today looks like this:",
+      "notes": "Quick roadmap, about 20 seconds. Three folders: 01 an introduction to circular fashion, 02 the challenge, 03 reflection and moving forward."
+    },
+    {
+      "n": 5,
+      "section": "Introduction To Circular Fashion",
+      "title": "How many new clothes does the average Australian buy in a year?",
+      "notes": "Ask the question. Students vote with a hand held up: closed fist = fewer than 10, one finger = about 10, two fingers = about 20, and so on; five fingers = 50 or more. Count to three and everyone shows at once. Look around the room, then click for the reveal."
+    },
+    {
+      "n": 6,
+      "section": "Sources: Seamless (2024), The Australia Institute, Australian Fashion Council.",
+      "title": "55 new items of clothing",
+      "notes": "Reveal 55. Pause. \"Who guessed close?\" Give a cheer for the nearest. That is more than one new item a week. 1.51 billion new items are sold or imported into Australia every year."
+    },
+    {
+      "n": 7,
+      "section": "Introduction To Circular Fashion",
+      "title": "What goes into one T-shirt?",
+      "notes": "Hold up a T-shirt if you have one. \"Before you wear it, look at where its carbon comes from.\" Fibre production 15%, yarn preparation 28%, fabric preparation about 12%, dyeing and finishing 36%, everything else about 9% (sewing, transport, end of life). Then the tag: many items are worn only about 7 times (Baptist World Aid Ethical Fashion Report).\n\nClick for where it all ends up."
+    },
+    {
+      "n": 8,
+      "section": "Introduction To Circular Fashion",
+      "title": "What goes into one T-shirt?",
+      "notes": "Hold up a T-shirt if you have one. \"Before you wear it, look at where its carbon comes from.\" Fibre production 15%, yarn preparation 28%, fabric preparation about 12%, dyeing and finishing 36%, everything else about 9% (sewing, transport, end of life). Then the tag: many items are worn only about 7 times (Baptist World Aid Ethical Fashion Report).\n\nClick for where it all ends up."
+    },
+    {
+      "n": 9,
+      "section": "Introduction To Circular Fashion",
+      "title": "So where does it all end up?",
+      "notes": "\"So where does it all end up?\" Same T-shirt, smaller. Landfill: about 220,000 tonnes of clothing a year, roughly 800 million items (about 270 g each: 15 kg for 56 items). Click for recycling."
+    },
+    {
+      "n": 10,
+      "section": "Introduction To Circular Fashion",
+      "title": "So where does it all end up?",
+      "notes": "\"So where does it all end up?\" Same T-shirt, smaller. Landfill: about 220,000 tonnes of clothing a year, roughly 800 million items (about 270 g each: 15 kg for 56 items). Click for recycling."
+    },
+    {
+      "n": 11,
+      "section": "Introduction To Circular Fashion",
+      "title": "Circular fashion: keep clothes in use",
+      "notes": "Bridge from the problem to what we do. Australia sells 1.51 billion new clothing items every year, 55 new items per person, and about 220,000 tonnes of clothing end up in landfill. The problem is not that we lack materials. It is that we have not designed systems capable of keeping materials in productive use.\n\nThe circular order, left to right:\n- Redesign: create products and systems that make circularity economically and practically viable.\n- Reduce: buy fewer new materials and products.\n- Repair: restore their usefulness.\n- Reuse: extend the life of existing products.\n- Repurpose: find new applications for existing materials.\n- Recycle, then landfill last.\n\nMixed materials are hard to recycle because they are joined together and hard to separate. Unstitch sits on reuse and repurpose: the tiles come apart so they can be used again, and the system is a redesign of how fabric products are made.\n\nTiming: about 30 seconds."
+    },
+    {
+      "n": 12,
+      "section": "Introduction To Circular Fashion",
+      "title": "Circular fashion: keep clothes in use",
+      "notes": "Bridge from the problem to what we do. Australia sells 1.51 billion new clothing items every year, 55 new items per person, and about 220,000 tonnes of clothing end up in landfill. The problem is not that we lack materials. It is that we have not designed systems capable of keeping materials in productive use.\n\nThe circular order, left to right:\n- Redesign: create products and systems that make circularity economically and practically viable.\n- Reduce: buy fewer new materials and products.\n- Repair: restore their usefulness.\n- Reuse: extend the life of existing products.\n- Repurpose: find new applications for existing materials.\n- Recycle, then landfill last.\n\nMixed materials are hard to recycle because they are joined together and hard to separate. Unstitch sits on reuse and repurpose: the tiles come apart so they can be used again, and the system is a redesign of how fabric products are made.\n\nTiming: about 30 seconds."
+    },
+    {
+      "n": 13,
+      "section": "Introduction To Circular Fashion",
+      "title": "Unstitch: tex-tiles without sewing or stitching",
+      "notes": "Lead on from landfill and the ladder. Introduce the tiles: hold up a real tile or the kit, and connect and disconnect it (no sewing, no stitching). The collage shows what people have made with the same tiles. Name four ideas: modularity (tiles combine into larger structures), reversibility (connections can be undone without adhesives or damage), adaptability (the same tiles can be rearranged into different outcomes) and material efficiency (existing components are reused and reconfigured). The fifth idea, thinking by making, comes on the challenge slide."
+    },
+    {
+      "n": 14,
+      "section": "Introduction To Circular Fashion",
+      "title": "Unstitch: tex-tiles without sewing or stitching",
+      "notes": "Lead on from landfill and the ladder. Introduce the tiles: hold up a real tile or the kit, and connect and disconnect it (no sewing, no stitching). The collage shows what people have made with the same tiles. Name four ideas: modularity (tiles combine into larger structures), reversibility (connections can be undone without adhesives or damage), adaptability (the same tiles can be rearranged into different outcomes) and material efficiency (existing components are reused and reconfigured). The fifth idea, thinking by making, comes on the challenge slide."
+    },
+    {
+      "n": 15,
+      "section": "Introduction To Circular Fashion",
+      "title": "Who we are",
+      "notes": "Keep it short and personal: how you started, why fabric, what you hope they feel today. Swap in your photography. The speech bubble reads \"I am [name]\": replace [name] with your own, or duplicate the mascot and bubble for each team member."
+    },
+    {
+      "n": 16,
+      "section": "The Challenge",
+      "title": "The challenge",
+      "notes": "Read the challenge aloud, then introduce thinking by making: we rethink, reuse and recreate by building, not only discussing. Rethink. Reuse. Recreate. Next: who is on the team."
+    },
+    {
+      "n": 17,
+      "section": "The Challenge",
+      "title": "Meet your design team: Designer",
+      "notes": "Designer: leads the idea exploration so the team builds something with a clear user and purpose."
+    },
+    {
+      "n": 18,
+      "section": "The Challenge",
+      "title": "Meet your design team: Material Keeper",
+      "notes": "Material Keeper: looks after the tiles, making sure they are in good condition and can be reused as much as possible."
+    },
+    {
+      "n": 19,
+      "section": "The Challenge",
+      "title": "Meet your design team: Builder",
+      "notes": "Builder: builds the design and makes sure it holds together and is stable."
+    },
+    {
+      "n": 20,
+      "section": "The Challenge",
+      "title": "Meet your design team: Tech Wizard",
+      "notes": "Tech Wizard: tries configurations in the playground and brings the best ideas to the team."
+    },
+    {
+      "n": 21,
+      "section": "The Challenge",
+      "title": "Meet your design team: Storyteller",
+      "notes": "Storyteller: keeps track of decisions, includes everyone and prepares the show and tell."
+    },
+    {
+      "n": 22,
+      "section": "The Challenge",
+      "title": "What is in your kit",
+      "notes": "Go through the kit: 24 tiles, the virtual playground, five role cards (one each) and the digital brief on their device. The QR code on the Begin the challenge slide opens the brief."
+    },
+    {
+      "n": 23,
+      "section": "The Challenge",
+      "title": "Your four constraints",
+      "notes": "These are the four things your design must do. Read them out. The fourth is time: 20 minutes to build and test. Point out the timer in the corner of the projector (it is part of the hub view)."
+    },
+    {
+      "n": 24,
+      "section": "The Challenge",
+      "title": "The design loop and the clock",
+      "notes": "Read left to right. 5 minutes for the brief. 15 minutes to explore and build. A ding (the bell). 5 minutes to test and refine. A ding. 5 minutes to share: show and tell. Last 10 minutes: unbuild and reflect. That is 40 minutes after the 5-minute welcome. The loop shows it all returning to the start: circular design, nothing is thrown away.\n\nSuggested dings: after 5: \"Brief done: start exploring.\" After 20: \"Time to test. Does it do what you said? Try the virtual playground.\" After 25: \"Wrap up. Show and tell time.\"\n\nHand out the kit now. The timer is in the corner of the projector view."
+    },
+    {
+      "n": 25,
+      "section": "The Challenge",
+      "title": "Begin the challenge",
+      "notes": "Hand out the kits. Read the challenge and the four constraints once (the fourth is time). Remind teams of the five roles.\n\nThe QR code opens the workshop page for students (the Participants page). If a phone can't scan it, they can type the code shown under it.\n\nThe countdown is in the top-right corner and moves on to Explore & build on this slide. Press Start if it is not already running, and say \"Go!\"."
+    },
+    {
+      "n": 26,
+      "section": "Show And Tell",
+      "title": "Want to share? Show your bid card",
+      "notes": "\"If your team wants to present, the Storyteller holds up the bid card.\" Choose 2 to 3 teams. One minute each, covering: our idea, our innovation, our discovery. Keep it moving; applaud each team.\n\nConfirm the show and tell duration for your session (5 minutes in total)."
+    },
+    {
+      "n": 27,
+      "section": "Close The Loop",
+      "title": "Close the loop",
+      "notes": "Close the loop. Click for the UNBUILD and REFLECT steps.\n\nUNBUILD (the Material Keeper leads): 1 dismantle your design, 2 pack and wrap up the tiles, 3 return the kit."
+    },
+    {
+      "n": 28,
+      "section": "Close The Loop",
+      "title": "Unbuild and reflect",
+      "notes": "Two parts.\n\nUNBUILD (the Material Keeper leads): 1 dismantle your design, 2 pack and wrap up the tiles, 3 return the kit.\n\nREFLECT: students scan the upper QR code to give feedback on the website (the screenshot shows the form). Teachers scan the lower QR code for the teacher feedback form. If a phone can't scan, open the workshop page and scroll to \"How was today?\". Your own feedback form is at the bottom of the Facilitator tab here.\n\nReflection prompts if time allows: What would you rethink? What could you reuse? What would you recreate next time?"
+    },
+    {
+      "n": 29,
+      "section": "Reflection And Move Forward",
+      "title": "Thank you!",
+      "notes": "Thank the students and the school. The key message to leave them with is one word: rethink. \"What will you rethink next?\" Hand back to the teacher."
+    }
+  ]
 }

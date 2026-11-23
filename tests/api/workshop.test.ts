@@ -6,6 +6,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const db = vi.hoisted(() => ({
   workshop: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   workshopFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  workshopTeacherFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  workshopFacilitatorFeedback: { create: vi.fn(), findMany: vi.fn() },
+  workshopSlideNote: { upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
 }));
 vi.mock('../../src/lib/prisma.js', () => ({ default: db }));
 
@@ -35,7 +38,25 @@ const FUTURE = new Date(Date.now() + 86_400_000);
 const PAST = new Date(Date.now() - 86_400_000);
 const LIVE = { id: 'w1', code: 'K7Q4MX', schoolName: 'Test School', workshopDate: new Date('2026-11-30'), teams: 9, active: true, expiresAt: FUTURE };
 
-const FEEDBACK = { code: 'k7q4mx', submissionId: 'abc12345-def', teamNumber: 3, rating: 4, oneWord: 'Fun', wouldChange: 'More time', whatWeMade: 'A bag', teamName: 'Tiles' };
+const SCORES = { reuse: 5, connect: 4, spatial: 3, discover: 5, team: 2 };
+const FEEDBACK = {
+  code: 'k7q4mx', submissionId: 'abc12345-def', scores: SCORES,
+  interesting: 'Tiles fold', wouldChange: 'More time', whatWeMade: 'A bag', teamName: 'Tiles',
+};
+const TEACHER = {
+  kind: 'teacher', code: 'k7q4mx', submissionId: 'teach1234-abc', engagement: 'very',
+  observed: ['modular', 'spatial', 'modular'], appropriate: 'appropriate', valuable: 'Hands-on', improve: '', recommend: 'yes',
+};
+const FACILITATOR = {
+  kind: 'facilitator', key: 'CGGSF', submissionId: 'fac123456-abc',
+  answers: {
+    outcomes: { reuse: '3', teamwork: 'no', bogus: '1' },
+    delivery: { engaging: '  Building  ' },
+    checks: { time: { choice: 'partly', note: 'A bit short' } },
+    open: { change: 'More tiles' },
+    obs: { beyond: 'yes', difficulty: 'Tabs bend' },
+  },
+};
 
 describe('GET /api/workshop', () => {
   beforeEach(() => vi.resetAllMocks());
@@ -115,7 +136,11 @@ describe('POST /api/workshop (feedback)', () => {
     await handler(post(FEEDBACK), res);
     expect(res.statusCode).toBe(200);
     expect(db.workshopFeedback.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ workshopId: 'w1', teamNumber: 3, rating: 4, oneWord: 'Fun', submissionId: 'abc12345-def' }),
+      data: expect.objectContaining({
+        workshopId: 'w1', submissionId: 'abc12345-def',
+        scoreReuse: 5, scoreConnect: 4, scoreSpatial: 3, scoreDiscover: 5, scoreTeam: 2,
+        interesting: 'Tiles fold', wouldChange: 'More time', whatWeMade: 'A bag',
+      }),
     });
   });
 
@@ -127,8 +152,15 @@ describe('POST /api/workshop (feedback)', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('rejects a rating outside 1-5, a missing rating and a bad submission id', async () => {
-    for (const bad of [{ rating: 0 }, { rating: 6 }, { rating: undefined }, { submissionId: 'x' }]) {
+  it('rejects a score outside 1-5, a missing statement and a bad submission id', async () => {
+    const without = (k: string) => Object.fromEntries(Object.entries(SCORES).filter(([key]) => key !== k));
+    for (const bad of [
+      { scores: { ...SCORES, reuse: 0 } },
+      { scores: { ...SCORES, team: 6 } },
+      { scores: without('spatial') },
+      { scores: undefined },
+      { submissionId: 'x' },
+    ]) {
       const res = createMockRes();
       await handler(post({ ...FEEDBACK, ...bad }), res);
       expect(res.statusCode).toBe(400);
@@ -136,12 +168,13 @@ describe('POST /api/workshop (feedback)', () => {
     expect(db.workshopFeedback.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a team number higher than the workshop team count', async () => {
-    db.workshop.findUnique.mockResolvedValue({ ...LIVE, teams: 4 });
+  it('does not need or store a team number', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopFeedback.create.mockResolvedValue({});
     const res = createMockRes();
-    await handler(post({ ...FEEDBACK, teamNumber: 5 }), res);
-    expect(res.statusCode).toBe(400);
-    expect(db.workshopFeedback.create).not.toHaveBeenCalled();
+    await handler(post({ ...FEEDBACK, teamNumber: 3 }), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopFeedback.create.mock.calls[0][0].data).not.toHaveProperty('teamNumber');
   });
 
   it('rejects feedback for an unknown or expired workshop', async () => {
@@ -159,10 +192,10 @@ describe('POST /api/workshop (feedback)', () => {
     db.workshop.findUnique.mockResolvedValue(LIVE);
     db.workshopFeedback.create.mockResolvedValue({});
     const res = createMockRes();
-    await handler(post({ ...FEEDBACK, oneWord: '  ', wouldChange: '', whatWeMade: undefined, teamName: '  Tiles  ' }), res);
+    await handler(post({ ...FEEDBACK, interesting: '  ', wouldChange: '', whatWeMade: undefined, teamName: '  Tiles  ' }), res);
     expect(res.statusCode).toBe(200);
     expect(db.workshopFeedback.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ oneWord: null, wouldChange: null, whatWeMade: null, teamName: 'Tiles' }),
+      data: expect.objectContaining({ interesting: null, wouldChange: null, whatWeMade: null, teamName: 'Tiles' }),
     });
   });
 
@@ -170,6 +203,191 @@ describe('POST /api/workshop (feedback)', () => {
     const res = createMockRes();
     await handler(post({ ...FEEDBACK, wouldChange: 'x'.repeat(501) }), res);
     expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects an unknown feedback type', async () => {
+    const res = createMockRes();
+    await handler(post({ ...FEEDBACK, kind: 'parent' }), res);
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('POST /api/workshop (teacher feedback)', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('saves a teacher submission and removes repeated choices', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopTeacherFeedback.create.mockResolvedValue({});
+    const res = createMockRes();
+    await handler(post(TEACHER), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopTeacherFeedback.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workshopId: 'w1', engagement: 'very', observed: ['modular', 'spatial'], appropriate: 'appropriate',
+        valuable: 'Hands-on', improve: null, recommend: 'yes',
+      }),
+    });
+    expect(db.workshopFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('needs the three multiple-choice answers and only accepts the listed choices', async () => {
+    for (const bad of [{ engagement: undefined }, { appropriate: 'great' }, { recommend: undefined }, { observed: ['nonsense'] }]) {
+      const res = createMockRes();
+      await handler(post({ ...TEACHER, ...bad }), res);
+      expect(res.statusCode).toBe(400);
+    }
+    expect(db.workshopTeacherFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('counts a repeated teacher submission once and refuses an expired workshop', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopTeacherFeedback.create.mockRejectedValue(Object.assign(new Error('dup'), { code: 'P2002' }));
+    let res = createMockRes();
+    await handler(post(TEACHER), res);
+    expect(res.statusCode).toBe(200);
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: PAST });
+    res = createMockRes();
+    await handler(post(TEACHER), res);
+    expect(res.statusCode).toBe(410);
+  });
+});
+
+describe('POST /api/workshop (facilitator feedback)', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('saves the answers under the facilitator key, keeping only known questions', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    db.workshopFacilitatorFeedback.create.mockResolvedValue({});
+    const res = createMockRes();
+    await handler(post(FACILITATOR), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopFacilitatorFeedback.create).toHaveBeenCalledWith({
+      data: {
+        workshopId: 'w1',
+        submissionId: 'fac123456-abc',
+        answers: {
+          outcomes: { reuse: '3', teamwork: 'no' },
+          delivery: { engaging: 'Building' },
+          checks: { time: { choice: 'partly', note: 'A bit short' } },
+          open: { change: 'More tiles' },
+          obs: { beyond: 'yes', difficulty: 'Tabs bend' },
+        },
+      },
+    });
+  });
+
+  it('is sent with the facilitator key, so a student code does not work', async () => {
+    db.workshop.findFirst.mockResolvedValue(null);
+    const res = createMockRes();
+    await handler(post({ ...FACILITATOR, key: undefined, code: 'K7Q4MX' }), res);
+    expect(res.statusCode).toBe(400);
+    const res2 = createMockRes();
+    await handler(post(FACILITATOR), res2);
+    expect(res2.statusCode).toBe(404);
+    expect(db.workshopFacilitatorFeedback.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses an empty form and an answer that is not one of the choices', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    let res = createMockRes();
+    await handler(post({ ...FACILITATOR, answers: { outcomes: {}, open: { change: '   ' } } }), res);
+    expect(res.statusCode).toBe(400);
+    res = createMockRes();
+    await handler(post({ ...FACILITATOR, answers: { outcomes: { reuse: '9' } } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(db.workshopFacilitatorFeedback.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('speaker notes edited on the page', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('lists only the edited slides, for a facilitator key', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    db.workshopSlideNote.findMany.mockResolvedValue([{ slide: 3, notes: 'My words' }, { slide: 25, notes: 'Go!' }]);
+    const res = createMockRes();
+    await handler(get('key=CGGSF&notes=1'), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.notes).toEqual({ '3': 'My words', '25': 'Go!' });
+  });
+
+  it('does not hand the notes to a student code or an unknown or expired key', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    let res = createMockRes();
+    await handler(get('code=K7Q4MX&notes=1'), res);
+    expect(res.body.role).toBe('student');
+    expect(res.body.notes).toBeUndefined();
+    db.workshop.findFirst.mockResolvedValue(null);
+    res = createMockRes();
+    await handler(get('key=NOPE12&notes=1'), res);
+    expect(res.statusCode).toBe(404);
+    db.workshop.findFirst.mockResolvedValue({ ...LIVE, expiresAt: PAST });
+    res = createMockRes();
+    await handler(get('key=CGGSF&notes=1'), res);
+    expect(res.statusCode).toBe(410);
+    expect(db.workshopSlideNote.findMany).not.toHaveBeenCalled();
+  });
+
+  it('saves a slide\'s notes under the facilitator key', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    const res = createMockRes();
+    await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: '  New words  ' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopSlideNote.upsert).toHaveBeenCalledWith({
+      where: { slide: 3 }, create: { slide: 3, notes: 'New words' }, update: { notes: 'New words' },
+    });
+  });
+
+  it('puts the deck notes back when the text is empty', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    for (const notes of [null, '   ']) {
+      const res = createMockRes();
+      await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes }), res);
+      expect(res.statusCode).toBe(200);
+    }
+    expect(db.workshopSlideNote.deleteMany).toHaveBeenCalledWith({ where: { slide: 3 } });
+    expect(db.workshopSlideNote.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a student code, a bad slide number and a missing key', async () => {
+    db.workshop.findFirst.mockResolvedValue(null);
+    let res = createMockRes();
+    await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: 'x' }), res);
+    expect(res.statusCode).toBe(404);
+    for (const bad of [{ slide: 0 }, { slide: 'x' }, { key: undefined, code: 'K7Q4MX' }, { notes: 'x'.repeat(4001) }]) {
+      res = createMockRes();
+      await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: 'x', ...bad }), res);
+      expect(res.statusCode).toBe(400);
+    }
+    expect(db.workshopSlideNote.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/workshop when the save fails', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('says what is wrong outside production and stays generic in production', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    db.workshopFeedback.create.mockRejectedValue(Object.assign(new Error('The column `score_reuse` does not exist'), { code: 'P2022' }));
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const prev = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'development';
+      let res = createMockRes();
+      await handler(post(FEEDBACK), res);
+      expect(res.statusCode).toBe(500);
+      expect(res.body.dev).toBe(true);
+      expect(res.body.error).toMatch(/pnpm db:push/);
+      process.env.NODE_ENV = 'production';
+      res = createMockRes();
+      await handler(post(FEEDBACK), res);
+      expect(res.statusCode).toBe(500);
+      expect(res.body.dev).toBeUndefined();
+      expect(res.body.error).not.toMatch(/db:push/);
+    } finally {
+      process.env.NODE_ENV = prev;
+      quiet.mockRestore();
+    }
   });
 });
 
@@ -245,11 +463,15 @@ describe('admin/workshops handler', () => {
   });
 
   it('lists a workshop\'s feedback and hides an entry', async () => {
-    db.workshopFeedback.findMany.mockResolvedValue([{ id: 'f1', teamNumber: 1, rating: 5 }]);
+    db.workshopFeedback.findMany.mockResolvedValue([{ id: 'f1', teamNumber: 1, scoreReuse: 5 }]);
+    db.workshopTeacherFeedback.findMany.mockResolvedValue([{ id: 't1', engagement: 'very' }]);
+    db.workshopFacilitatorFeedback.findMany.mockResolvedValue([{ id: 'x1', answers: {} }]);
     let res = createMockRes();
     await adminHandler({ method: 'GET', url: '/api/admin/workshops?feedback=w1', headers: { cookie: cookie() } } as any, res);
     expect(res.statusCode).toBe(200);
     expect(res.body.feedback).toHaveLength(1);
+    expect(res.body.teacherFeedback).toHaveLength(1);
+    expect(res.body.facilitatorFeedback).toHaveLength(1);
 
     const FID = '11111111-1111-4111-8111-111111111111';
     db.workshopFeedback.findUnique.mockResolvedValue({ id: FID });
@@ -258,5 +480,13 @@ describe('admin/workshops handler', () => {
     await adminHandler({ method: 'PATCH', url: '/api/admin/workshops', headers: { cookie: cookie() }, body: { feedbackId: FID, hidden: true } } as any, res);
     expect(res.statusCode).toBe(200);
     expect(db.workshopFeedback.update).toHaveBeenCalledWith(expect.objectContaining({ data: { hidden: true } }));
+
+    const TID = '22222222-2222-4222-8222-222222222222';
+    db.workshopTeacherFeedback.findUnique.mockResolvedValue({ id: TID });
+    db.workshopTeacherFeedback.update.mockResolvedValue({ id: TID, hidden: true });
+    res = createMockRes();
+    await adminHandler({ method: 'PATCH', url: '/api/admin/workshops', headers: { cookie: cookie() }, body: { feedbackId: TID, hidden: true, kind: 'teacher' } } as any, res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopTeacherFeedback.update).toHaveBeenCalledWith(expect.objectContaining({ data: { hidden: true } }));
   });
 });

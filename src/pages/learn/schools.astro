@@ -47,6 +47,23 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
       </div>
     </section>
 
+    <!-- ============ PARTNERS ============
+         Same logos and treatment as the (hidden) /learn page's partner strip. -->
+    <section class="wrap section partners-section" aria-label="Partners">
+      <p class="section__eyebrow partners-section__eyebrow">Supported by &amp; collaborating with</p>
+      <div class="partners-grid">
+        <div class="partner-logo partner-logo--monash">
+          <img src="/assets/partners/monash-university-logo.svg" alt="Monash University" />
+        </div>
+        <div class="partner-logo partner-logo--zwv">
+          <img src="/assets/partners/zero-waste-festival-logo-trimmed.png" alt="Zero Waste Victoria Festival" />
+        </div>
+        <div class="partner-logo partner-logo--datta">
+          <img src="/assets/partners/datta-vic-logo-trimmed.png" alt="DATTA Victoria" />
+        </div>
+      </div>
+    </section>
+
     <div class="stitch" aria-hidden="true"></div>
 
     <!-- ============ HERO ============ -->
@@ -442,9 +459,27 @@ import { subjectTracks } from "../../lib/constants/schoolWorkshop";
   .schools-cta .btn-filled { background: #fff; border-color: #fff; color: var(--ink); }
   .schools-cta .btn-filled:hover { background: #eee; border-color: #eee; }
 
+  /* ---------- Partners strip ---------- */
+  .partners-section { padding-top: 12px; padding-bottom: 24px; }
+  .partners-section__eyebrow { text-align: center; margin-bottom: 4px; }
+  .partners-grid { display: flex; justify-content: center; align-items: center; gap: 64px; flex-wrap: wrap; padding: 12px 0 0; }
+  .partner-logo { display: flex; align-items: center; justify-content: center; }
+  /* The three logos have very different shapes (wide crest, tall badge, wide
+     wordmark), so each gets its own height -- the logo files are cropped to
+     their artwork, which makes these heights what you actually see. */
+  .partner-logo img { width: auto; object-fit: contain; filter: grayscale(100%); opacity: 0.8; transition: filter 0.2s ease, opacity 0.2s ease; }
+  .partner-logo--monash img { height: 44px; }
+  .partner-logo--zwv img { height: 76px; }
+  .partner-logo--datta img { height: 52px; }
+  .partner-logo img:hover { filter: none; opacity: 1; }
+
   @media (max-width: 768px) {
     .schools-hero__grid { grid-template-columns: 1fr; gap: 24px; }
     .two-col { gap: 24px; }
+    .partners-grid { gap: 32px 36px; }
+    .partner-logo--monash img { height: 34px; }
+    .partner-logo--zwv img { height: 60px; }
+    .partner-logo--datta img { height: 42px; }
   }
 </style>
 

@@ -7,6 +7,11 @@
 import Layout from "../layouts/Layout.astro";
 import { workshopMeta, phases, constraints, roles, readableTextOn, countWord } from "../lib/constants/workshop";
 import { deck } from "../lib/constants/workshopDeck";
+import {
+  studentScale, studentStatements, studentReflection,
+  facilitatorScale, facilitatorOutcomes, facilitatorDeliveryOpen, facilitatorYesPartlyNo, facilitatorDeliveryChecks,
+  facilitatorOpen, facilitatorObservations, facilitatorSections,
+} from "../lib/constants/workshopFeedback";
 
 const phaseData = JSON.stringify(phases);
 const constraintData = JSON.stringify(constraints);
@@ -122,7 +127,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
             <div class="wk-col wk-col--right">
               <section class="wk-block" aria-labelledby="wk-roles-h">
                 <h2 id="wk-roles-h" class="wk-h2">Team roles</h2>
-                <p class="wk-muted">Each person takes one role card. Roles are responsibilities, not rules: everyone can build and everyone can have ideas.</p>
+                <p class="wk-muted">Each person takes one role card. Each card has different prompt questions to help your team solve the challenge. We encourage everyone to build regardless of your roles.</p>
                 <div class="wk-roles">
                   {roles.map((r) => (
                     <article class="wk-role" style={roleStyle(r.color)}>
@@ -136,7 +141,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
 
               <section class="wk-block wk-play" aria-labelledby="wk-play-h">
                 <h2 id="wk-play-h" class="wk-h2">Explore in the playground</h2>
-                <p class="wk-muted">Try shapes on screen while your team builds with real tiles. The real build is what you share; the playground is for ideas.</p>
+                <p class="wk-muted">Try out different shapes and patterns digitally while your team builds physically. What else do you notice?</p>
                 <a class="wk-play__shot" href={workshopMeta.playgroundHref} target="_blank" rel="noopener" aria-label="Open the playground in a new tab">
                   <img src="/assets/workshop/playground-screenshot.webp" alt="A screenshot of the Unstitch playground: a 3D view of a textile shape built from tiles, with the tools around it for changing the shape." width="1280" height="720" loading="lazy" />
                 </a>
@@ -150,7 +155,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         <div class="wk-wrap wk-wrap--wide">
           <section class="wk-share" aria-labelledby="wk-share-h" style={roleStyle(storytellerColor)}>
             <h2 id="wk-share-h" class="wk-h2">Sharing your design</h2>
-            <p class="wk-share__lead">Every share has three parts.</p>
+            <p class="wk-share__lead">Tell us about your design</p>
             <ol class="wk-pitch wk-pitch--row">
               {workshopMeta.pitch.map((p) => (
                 <li><strong>{p.label}</strong><span>{p.prompt}</span></li>
@@ -171,60 +176,50 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         </div>
 
         <!-- ===== Student feedback (full-width charcoal band) ===== -->
-        <div class="wk-feedback" data-wk-feedback>
-          <div class="wk-wrap wk-wrap--wide wk-feedback__inner">
+        <div class="wk-feedback" id="wk-feedback" data-wk-feedback>
+          <div class="wk-wrap wk-feedback__inner">
             <h2 id="wk-fb-h" class="wk-h2">How was today?</h2>
-            <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
+            <p class="wk-feedback__lead">Anonymous feedback: tell us the goods and bads of today.</p>
             <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
-              <div class="wk-fb__col">
-                <p class="wk-fb__group">Your team</p>
-                <div class="wk-field">
-                  <label for="wk-fb-team">Which team are you?</label>
-                  <select id="wk-fb-team" class="wk-control" data-wk-fb-team required>
-                    <option value="">Choose your team</option>
-                  </select>
+              <div class="wk-fb__block">
+                <p class="wk-fb__step"><span>1</span> How true is each one for you?</p>
+                <div class="wk-matrix__key" aria-hidden="true">
+                  {studentScale.map((o) => <span>{o.label}</span>)}
                 </div>
-                <div class="wk-field">
-                  <label for="wk-fb-name">Team name <span class="wk-optional">(optional)</span></label>
-                  <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
-                </div>
-                <div class="wk-field">
-                  <label for="wk-fb-made">What did your team make? <span class="wk-optional">(optional)</span></label>
-                  <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
-                </div>
+                {studentStatements.map((st) => (
+                  <div class="wk-row" role="group" aria-labelledby={`wk-q-${st.key}`}>
+                    <p class="wk-row__q" id={`wk-q-${st.key}`}>{st.text}</p>
+                    <div class="wk-row__dots" role="radiogroup" aria-label={st.text}>
+                      {studentScale.map((o) => (
+                        <label class="wk-dot">
+                          <input type="radio" name={`score-${st.key}`} value={o.v} aria-label={o.label} data-wk-fb-score={st.key} />
+                          <span class="wk-dot__mark" aria-hidden="true"></span>
+                        </label>
+                      ))}
+                    </div>
+                    <p class="wk-row__ends" aria-hidden="true"><span>{studentScale[0].label}</span><span>{studentScale[4].label}</span></p>
+                  </div>
+                ))}
               </div>
 
-              <div class="wk-fb__col">
-                <p class="wk-fb__group">Your thoughts</p>
-                <fieldset class="wk-field wk-rating">
-                  <legend>"I learned that the same tiles can become different things."</legend>
-                  <div class="wk-rating__faces" role="radiogroup" aria-label="How much do you agree, from 1 to 5">
-                  {[
-                    { v: 1, label: "Not at all", mouth: "M9 22 Q16 14 23 22" },
-                    { v: 2, label: "A little", mouth: "M10 21 Q16 17 22 21" },
-                    { v: 3, label: "Maybe", mouth: "M10 20 L22 20" },
-                    { v: 4, label: "Yes", mouth: "M10 18 Q16 24 22 18" },
-                    { v: 5, label: "Yes, a lot", mouth: "M8 17 Q16 28 24 17" },
-                  ].map((f) => (
-                    <label class="wk-face">
-                      <input type="radio" name="rating" value={f.v} data-wk-fb-rating />
-                      <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true">
-                        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2" />
-                        <circle cx="11.5" cy="13" r="1.6" fill="currentColor" />
-                        <circle cx="20.5" cy="13" r="1.6" fill="currentColor" />
-                        <path d={f.mouth} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                      </svg>
-                      <span class="wk-face__label">{f.label}</span>
-                    </label>
-                  ))}
+              <div class="wk-fb__block">
+                <p class="wk-fb__step"><span>2</span> Tell us more</p>
+                <div class="wk-fb__pair">
+                  <div class="wk-field">
+                    <label for="wk-fb-name">{studentReflection.teamName}</label>
+                    <input id="wk-fb-name" class="wk-control" type="text" maxlength="80" autocomplete="off" data-wk-fb-name />
                   </div>
-                </fieldset>
-                <div class="wk-field">
-                  <label for="wk-fb-word">One word for today</label>
-                  <input id="wk-fb-word" class="wk-control" type="text" maxlength="40" autocomplete="off" data-wk-fb-word />
+                  <div class="wk-field">
+                    <label for="wk-fb-made">{studentReflection.whatMade}</label>
+                    <input id="wk-fb-made" class="wk-control" type="text" maxlength="240" autocomplete="off" data-wk-fb-made />
+                  </div>
                 </div>
                 <div class="wk-field">
-                  <label for="wk-fb-change">What would you change? <span class="wk-optional">(optional)</span></label>
+                  <label for="wk-fb-interesting">{studentReflection.interesting}</label>
+                  <textarea id="wk-fb-interesting" class="wk-control" rows="2" maxlength="500" data-wk-fb-interesting></textarea>
+                </div>
+                <div class="wk-field">
+                  <label for="wk-fb-change">{studentReflection.difficult}</label>
                   <textarea id="wk-fb-change" class="wk-control" rows="2" maxlength="500" data-wk-fb-change></textarea>
                 </div>
               </div>
@@ -274,11 +269,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
               <h2 id="wk-pres-h" class="wk-h2">Slides</h2>
               <div class="wk-stage" data-wk-stage>
                 <img data-wk-stage-img alt="" />
-                <div class="wk-qr" data-wk-qr hidden>
-                  <img data-wk-qr-img alt="QR code that opens today's workshop page" hidden />
-                  <p class="wk-qr__fallback" data-wk-qr-fallback hidden></p>
-                </div>
-                <p class="wk-qr__line" data-wk-qr-line hidden></p>
               </div>
               <div class="wk-pres__nav">
                 <button class="btn btn-outline" data-wk-slide-prev aria-label="Previous slide">&#8592;</button>
@@ -286,6 +276,21 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                 <button class="btn btn-outline" data-wk-slide-next aria-label="Next slide">&#8594;</button>
               </div>
               <div class="wk-pres__notes" data-wk-notes tabindex="0" aria-label="Facilitator notes for this slide"></div>
+              <div class="wk-pres__tools">
+                <span class="wk-pres__edited" data-wk-notes-edited hidden>Edited</span>
+                <button type="button" class="wk-link" data-wk-notes-edit>Edit notes</button>
+                <button type="button" class="wk-link" data-wk-notes-reset hidden>Put the deck's notes back</button>
+              </div>
+              <div class="wk-pres__editor" data-wk-notes-editor hidden>
+                <label class="wk-pres__editlabel" for="wk-notes-text">Notes for this slide</label>
+                <textarea id="wk-notes-text" class="wk-control" rows="9" maxlength="4000" data-wk-notes-text></textarea>
+                <div class="wk-pres__editactions">
+                  <button type="button" class="btn btn-filled" data-wk-notes-save>Save notes</button>
+                  <button type="button" class="btn btn-outline" data-wk-notes-cancel>Cancel</button>
+                  <span class="wk-muted" role="status" data-wk-notes-msg></span>
+                </div>
+                <p class="wk-muted">Saved for every workshop and every device. Arrow keys and Space work as normal text keys while you type here.</p>
+              </div>
               <p class="wk-muted wk-pres__next" data-wk-slide-next-title></p>
               <p class="wk-muted wk-pres__keys">Open the projector window and drag it onto the projector screen, then press F there for full screen. Left and right arrows (or your clicker) change slides in either window. T shows the big clock.</p>
             </section>
@@ -299,21 +304,100 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                       <span class="wk-plan__num">{i + 1}</span>
                       <span class="wk-run__body">
                         <span class="wk-plan__title">{p.title} <span class="wk-plan__min">{p.minutes} min</span></span>
-                        <span class="wk-plan__text">{p.summary}</span>
-                        <span class="wk-run__say">Say: &ldquo;{p.say}&rdquo;</span>
                       </span>
                     </button>
                   </li>
                 ))}
               </ol>
             </section>
-
-            <section class="wk-block" aria-labelledby="wk-kit-h" style="grid-area: kit;">
-              <h2 id="wk-kit-h" class="wk-h2">Kit check</h2>
-              <p class="wk-muted" data-wk-kit>Tiles, role cards and bid cards for your teams.</p>
-              <p class="wk-muted">Timings are for a group of this size. Full notes, room layout and the backup plan are in the facilitator guide.</p>
-            </section>
           </div>
+
+          <!-- ===== Facilitator feedback (sent with the facilitator link, so students can't send it) ===== -->
+          <details class="wk-ffb" id="wk-ffb" data-wk-ffb>
+            <summary class="wk-ffb__summary">After the workshop: your feedback <span>about 5 minutes</span></summary>
+            <p class="wk-muted">Only you see this tab. Your answers go to Unstitch with the school's other feedback and are not shown to students. What you type is kept on this device until you send it.</p>
+            <form class="wk-ffb__form" data-wk-ffb-form novalidate>
+              <fieldset class="wk-ffb__sec">
+                <legend class="wk-h2">{facilitatorSections.a}</legend>
+                <p class="wk-muted">Rate what you saw.</p>
+                {facilitatorOutcomes.map((o, i) => (
+                  <div class="wk-ffb__q">
+                    <p class="wk-ffb__qtext">{i + 1}. {o.q} <span class="wk-ffb__checks">{o.checks}</span></p>
+                    <div class="wk-ffb__row" role="radiogroup" aria-label={o.q}>
+                      {facilitatorScale.map((c) => (
+                        <label class="wk-fopt"><input type="radio" name={`a-${o.key}`} value={c.v} /><span>{c.label}</span></label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </fieldset>
+
+              <fieldset class="wk-ffb__sec">
+                <legend class="wk-h2">{facilitatorSections.b}</legend>
+                <p class="wk-muted">{facilitatorSections.bHint}</p>
+                {facilitatorDeliveryOpen.map((q, i) => (
+                  <div class="wk-ffb__q">
+                    <label class="wk-ffb__qtext" for={`ffb-b-${q.key}`}>{i + 7}. {q.q}</label>
+                    <textarea id={`ffb-b-${q.key}`} class="wk-ffb__text" name={`b-${q.key}`} rows="2" maxlength="1000"></textarea>
+                  </div>
+                ))}
+                {facilitatorDeliveryChecks.map((q, i) => (
+                  <div class="wk-ffb__q">
+                    <p class="wk-ffb__qtext">{i + 9}. {q.q}</p>
+                    <div class="wk-ffb__row wk-ffb__row--ypn" role="radiogroup" aria-label={q.q}>
+                      {facilitatorYesPartlyNo.map((c) => (
+                        <label class="wk-fopt"><input type="radio" name={`k-${q.key}`} value={c.v} /><span>{c.label}</span></label>
+                      ))}
+                    </div>
+                    <input class="wk-ffb__text wk-ffb__note" type="text" name={`k-${q.key}-note`} maxlength="1000" placeholder="Note (optional)" aria-label={`Note for: ${q.q}`} />
+                  </div>
+                ))}
+              </fieldset>
+
+              <fieldset class="wk-ffb__sec">
+                <legend class="wk-h2">{facilitatorSections.c}</legend>
+                {facilitatorOpen.map((q, i) => (
+                  <div class="wk-ffb__q">
+                    <label class="wk-ffb__qtext" for={`ffb-o-${q.key}`}>{i + 13}. {q.q}</label>
+                    <textarea id={`ffb-o-${q.key}`} class="wk-ffb__text" name={`o-${q.key}`} rows="2" maxlength="1500"></textarea>
+                  </div>
+                ))}
+              </fieldset>
+
+              <fieldset class="wk-ffb__sec">
+                <legend class="wk-h2">{facilitatorSections.obs}</legend>
+                {facilitatorObservations.map((o) => (
+                  <div class="wk-ffb__q">
+                    {o.kind === "text" ? (
+                      <>
+                        <label class="wk-ffb__qtext" for={`ffb-x-${o.key}`}>{o.label}</label>
+                        <input id={`ffb-x-${o.key}`} class="wk-ffb__text" type="text" name={`x-${o.key}`} maxlength="300" />
+                      </>
+                    ) : (
+                      <>
+                        <p class="wk-ffb__qtext">{o.label}{"note" in o && o.note ? <span class="wk-ffb__checks">{o.note}</span> : null}</p>
+                        <div class="wk-ffb__row wk-ffb__row--ypn" role="radiogroup" aria-label={o.label}>
+                          {facilitatorYesPartlyNo.map((c) => (
+                            <label class="wk-fopt"><input type="radio" name={`x-${o.key}`} value={c.v} /><span>{c.label}</span></label>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </fieldset>
+
+              <div class="wk-ffb__foot">
+                <p class="wk-fb__error" role="alert" data-wk-ffb-error hidden></p>
+                <button class="btn btn-filled" type="submit" data-wk-ffb-submit>Send my feedback</button>
+              </div>
+            </form>
+            <div class="wk-ffb__thanks" data-wk-ffb-thanks hidden>
+              <h3 tabindex="-1">Thank you!</h3>
+              <p>Your notes have been sent.</p>
+              <button type="button" class="wk-link" data-wk-ffb-again>Send another set of notes</button>
+            </div>
+          </details>
         </div>
       </section>
     </div>
@@ -322,11 +406,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     <div class="wk-proj" data-wk-proj hidden role="dialog" aria-modal="true" aria-label="Projector view">
       <div class="wk-stage wk-stage--full" data-wk-stage data-wk-proj-slides>
         <img data-wk-stage-img alt="" />
-        <div class="wk-qr" data-wk-qr hidden>
-          <img data-wk-qr-img alt="QR code that opens today's workshop page" hidden />
-          <p class="wk-qr__fallback" data-wk-qr-fallback hidden></p>
-        </div>
-        <p class="wk-qr__line" data-wk-qr-line hidden></p>
         <div class="wk-pill" data-wk-pill aria-label="Countdown">
           <span class="wk-pill__phase" data-wk-pill-phase></span>
           <span class="wk-pill__clock" data-wk-pill-clock>00:00</span>
@@ -483,24 +562,39 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-feedback__inner { padding-top: 32px; padding-bottom: 40px; }
   .wk-feedback .wk-h2 { font-size: 1.5rem; margin: 0 0 4px; color: #FAF7F2; }
   .wk-feedback__lead { margin: 0 0 20px; font-size: 0.95rem; color: #d9d2dd; }
-  .wk-fb { display: grid; gap: 22px 40px; }
-  .wk-fb__col { display: grid; gap: 14px; align-content: start; }
-  .wk-fb__group { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: #F7D55C; }
+  .wk-fb { display: grid; gap: 28px; max-width: 720px; margin: 0 auto; }
+  .wk-feedback__inner > .wk-h2, .wk-feedback__lead { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .wk-fb__block { display: grid; gap: 14px; align-content: start; }
+  .wk-fb__step { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: #FAF7F2; }
+  .wk-fb__step span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #F7D55C; color: var(--ink); font-size: 0.85rem; }
+  .wk-fb__step em { font-style: normal; font-weight: 400; font-size: 0.9rem; color: #bdb4c2; }
+  .wk-fb__pair { display: grid; gap: 14px; }
+  @media (min-width: 640px) { .wk-fb__pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
   .wk-fb__foot { display: grid; justify-items: center; gap: 10px; }
-  @media (min-width: 860px) { .wk-fb { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wk-fb__foot { grid-column: 1 / -1; } }
+  /* The five answers as a row of dots per statement, with the labels once at the top. */
+  .wk-matrix__key { display: none; }
+  @media (min-width: 640px) {
+    .wk-matrix__key { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 360px; margin-left: auto; text-align: center; font-size: 0.72rem; line-height: 1.15; color: #d9d2dd; gap: 4px; }
+  }
+  .wk-row { border: 0; margin: 0; padding: 12px 0 10px; min-width: 0; border-top: 1px solid rgba(250, 247, 242, 0.16); display: grid; gap: 8px; }
+  .wk-row__q { margin: 0; font-size: 1rem; line-height: 1.35; font-weight: 600; }
+  @media (min-width: 640px) {
+    .wk-row { grid-template-columns: minmax(0, 1fr) 360px; align-items: center; gap: 16px; }
+    .wk-row .wk-row__ends { display: none; }
+  }
+  .wk-row__ends { display: flex; justify-content: space-between; margin: 0; font-size: 0.75rem; color: #bdb4c2; }
+  .wk-row__dots { display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; }
+  .wk-dot { position: relative; display: grid; place-items: center; width: 100%; height: 44px; cursor: pointer; }
+  .wk-dot input { position: absolute; opacity: 0; pointer-events: none; }
+  .wk-dot__mark { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #FAF7F2; background: transparent; transition: background 0.12s ease, transform 0.12s ease; }
+  .wk-dot:hover .wk-dot__mark { background: rgba(250, 247, 242, 0.25); }
+  .wk-dot:has(input:checked) .wk-dot__mark { background: #F7D55C; border-color: #F7D55C; box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #F7D55C; transform: scale(0.9); }
+  .wk-dot:has(input:focus-visible) .wk-dot__mark { outline: 3px solid #F7D55C; outline-offset: 4px; }
   .wk-field { display: grid; gap: 5px; align-content: start; border: 0; padding: 0; margin: 0; min-width: 0; }
   .wk-field label, .wk-field legend { font-weight: 600; font-size: 0.92rem; padding: 0; }
-  .wk-optional { font-weight: 400; color: #bdb4c2; }
   .wk-control { font: inherit; font-size: 1rem; padding: 9px 11px; border: 1.5px solid #FAF7F2; border-radius: var(--radius); background: #fff; color: var(--ink); width: 100%; }
   .wk-control:focus-visible { outline: 3px solid #F7D55C; outline-offset: 2px; }
   textarea.wk-control { resize: vertical; min-height: 0; }
-  .wk-rating__faces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-  .wk-face { position: relative; display: grid; justify-items: center; gap: 3px; width: 72px; padding: 8px 2px 6px; border: 1.5px solid transparent; border-radius: var(--radius); cursor: pointer; color: var(--ink); text-align: center; background: #fff; }
-  .wk-face svg { width: 34px; height: 34px; }
-  .wk-face input { position: absolute; opacity: 0; pointer-events: none; }
-  .wk-face__label { font-size: 0.72rem; line-height: 1.15; }
-  .wk-face:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 3px #FAF7F2; }
-  .wk-face:has(input:focus-visible) { outline: 3px solid #F7D55C; outline-offset: 3px; }
   .wk-fb__error { margin: 0; color: #ffb4a6; font-weight: 600; }
   .wk-fb__thanks { text-align: center; padding: 14px 0 4px; }
   .wk-fb__thanks .wk-link { color: #F7D55C; }
@@ -508,6 +602,34 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-feedback .btn-filled { background: #F7D55C; color: var(--ink); border-color: #F7D55C; }
   .wk-fb__thanks h3 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 4px; }
   .wk-fb__thanks p { margin: 0 0 10px; }
+
+
+  /* facilitator feedback */
+  .wk-ffb { margin-top: 36px; border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 0 20px; }
+  .wk-ffb[open] { padding-bottom: 22px; }
+  .wk-ffb__summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; padding: 16px 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .wk-ffb__summary::-webkit-details-marker { display: none; }
+  .wk-ffb__summary::before { content: "+"; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 1rem; line-height: 1; }
+  .wk-ffb[open] .wk-ffb__summary::before { content: "\2212"; }
+  .wk-ffb__summary span { font-family: var(--font-body); font-weight: 400; font-size: 0.9rem; color: #555; }
+  .wk-ffb__form { display: grid; gap: 22px; }
+  .wk-ffb__sec { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 14px; }
+  .wk-ffb__sec legend { padding: 0; margin: 0 0 4px; }
+  .wk-ffb__q { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #e4e0da; }
+  .wk-ffb__qtext { margin: 0; font-weight: 600; line-height: 1.4; }
+  .wk-ffb__checks { display: block; margin-top: 2px; font-weight: 400; font-size: 0.85rem; color: var(--accent-text-on-pale, #6b3f5c); }
+  .wk-ffb__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  @media (min-width: 700px) { .wk-ffb__row { grid-template-columns: repeat(4, minmax(0, 1fr)); } .wk-ffb__row--ypn { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 460px; } }
+  .wk-fopt { position: relative; display: grid; place-items: center; min-height: 44px; padding: 6px 8px; border: 1.5px solid var(--ink); border-radius: var(--radius); cursor: pointer; background: #fff; text-align: center; font-size: 0.85rem; line-height: 1.2; font-weight: 600; }
+  .wk-fopt input { position: absolute; opacity: 0; pointer-events: none; }
+  .wk-fopt:has(input:checked) { background: #F7D55C; box-shadow: 0 0 0 2px var(--ink); }
+  .wk-fopt:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-ffb__text { font: inherit; font-size: 1rem; padding: 9px 11px; border: 1.5px solid var(--ink); border-radius: var(--radius); width: 100%; box-sizing: border-box; background: #fff; color: var(--ink); resize: vertical; }
+  .wk-ffb__text:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wk-ffb__foot { display: grid; gap: 10px; justify-items: start; }
+  .wk-ffb .wk-fb__error { color: #9b1c1c; }
+  .wk-ffb__thanks { text-align: center; padding: 12px 0 4px; }
+  .wk-ffb__thanks h3 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 4px; }
 
   /* facilitator */
   .wk-timer { margin-top: 24px; border: 2px solid var(--ink); border-radius: var(--radius); padding: 22px 20px; text-align: center; background: #fff; }
@@ -529,13 +651,12 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-run__item.is-done .wk-plan__num { background: #9a9a9a; }
   .wk-run__item:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wk-run__body { display: grid; gap: 2px; }
-  .wk-run__say { font-size: 0.9rem; font-style: italic; color: var(--accent-text-on-pale); margin-top: 4px; }
 
   /* projector */
   /* facilitator: timer, slides and notes side by side on a wide screen */
-  .wk-fgrid { display: grid; gap: 0 36px; grid-template-areas: "timer" "pres" "run" "kit"; }
+  .wk-fgrid { display: grid; gap: 0 36px; grid-template-areas: "timer" "pres" "run"; }
   @media (min-width: 1000px) {
-    .wk-fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-areas: "timer pres" "run pres" "kit pres"; grid-template-rows: auto auto 1fr; align-items: start; }
+    .wk-fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-areas: "timer pres" "run pres"; grid-template-rows: auto 1fr; align-items: start; }
     .wk-pres { position: sticky; top: 64px; }
   }
   .wk-timer__present { display: grid; justify-items: center; gap: 4px; margin-top: 14px; }
@@ -546,6 +667,12 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-pres__nav .btn { min-height: 44px; min-width: 56px; }
   .wk-pres__where { margin: 0; text-align: center; font-weight: 600; font-size: 0.95rem; }
   .wk-pres__notes { background: #fff; border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 14px 16px; line-height: 1.55; white-space: pre-wrap; min-height: 6.5em; font-size: 1rem; }
+  .wk-pres__tools { display: flex; align-items: center; gap: 14px; margin: 6px 0 0; flex-wrap: wrap; }
+  .wk-pres__edited { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+  .wk-pres__editor { display: grid; gap: 8px; margin-top: 8px; }
+  .wk-pres__editlabel { font-weight: 600; font-size: 0.92rem; }
+  .wk-pres__editor .wk-control { border-color: var(--ink); line-height: 1.5; }
+  .wk-pres__editactions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .wk-pres__notes:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wk-pres__next { margin: 10px 0 0; font-size: 0.88rem; }
   .wk-pres__keys { margin: 4px 0 0; font-size: 0.85rem; }
@@ -558,11 +685,15 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-qr__fallback strong { display: block; font-family: var(--font-display); font-size: 3.4cqw; letter-spacing: 0.08em; margin-top: 0.6cqw; }
   .wk-qr__line { position: absolute; margin: 0; text-align: center; color: #FAF7F2; font-size: 1.45cqw; line-height: 1.3; }
   .wk-qr__line strong { color: #F7D55C; letter-spacing: 0.08em; }
+  .wk-qr--small { padding: 0.6cqw; border-radius: 0.8cqw; }
+  .wk-qr--small .wk-qr__fallback { font-size: 0.85cqw; line-height: 1.25; overflow-wrap: anywhere; }
+  .wk-qr--small .wk-qr__fallback strong { font-size: 1.5cqw; margin-top: 0.3cqw; letter-spacing: 0.04em; }
 
   /* projector overlay: the slide fills the screen, the countdown sits in the slide's reserved top-right corner */
   .wk-proj { position: fixed; inset: 0; z-index: 100; background: #1a151d; color: #FAF7F2; display: grid; place-items: center; }
   .wk-proj[hidden] { display: none; }
   .wk-stage--full { width: min(100vw, 177.7778vh); height: auto; border: 0; border-radius: 0; background: #382F3D; }
+  .wk-pill[hidden] { display: none; }
   .wk-pill { position: absolute; top: 1.2cqw; right: 1.6cqw; width: 19cqw; box-sizing: border-box; padding: 0.9cqw 1.4cqw 1cqw; border-radius: 1.6cqw; background: #382F3D; border: 0.25cqw solid #B784A7; color: #FAF7F2; display: grid; gap: 0.3cqw; text-align: center; box-shadow: 0 0.4cqw 1.2cqw rgba(0, 0, 0, 0.25); }
   .wk-pill__phase { font-family: var(--font-display); font-weight: 600; font-size: 1.35cqw; letter-spacing: 0.06em; text-transform: uppercase; color: #B784A7; line-height: 1.2; }
   .wk-pill__clock { font-family: var(--font-display); font-weight: 700; font-size: 4.3cqw; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -636,6 +767,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
 
   let isFacilitator = false;
   let currentWorkshop: Workshop | null = null;
+  let facilitatorKey = "";
 
   function openHub(w: Workshop, role: "student" | "facilitator") {
     isFacilitator = role === "facilitator";
@@ -646,17 +778,15 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     const date = formatDate(w.workshopDate);
     $("[data-wk-school]").textContent = date ? `${w.schoolName} · ${date}` : w.schoolName;
     $("[data-wk-code]").textContent = w.code;
-    const kit = $("[data-wk-kit]");
-    if (kit) {
-      kit.textContent = `${w.teams} teams: ${w.teams} kits of 24 tiles (plus a few spare), ${w.teams} sets of 5 role cards and ${w.teams} bid cards.`;
-    }
     const wantProjector = location.hash === "#projector";
+    const wantFeedback = location.hash === "#feedback";
     // Only a facilitator link shows the tab bar and the facilitator view. Students see the participant page alone.
     $("[data-wk-tabs]").hidden = !isFacilitator;
     selectTab(isFacilitator && location.hash === "#facilitator" ? "facilitator" : "participants", false);
-    buildTeamOptions(w.teams);
     showFeedbackFormIfNeeded();
-    if (isFacilitator) onFacilitatorReady(wantProjector);
+    if (isFacilitator) { onFacilitatorReady(wantProjector); ffbShow(); }
+    // The QR code on the last slide opens /workshop?c=CODE#feedback: land on the form.
+    if (wantFeedback && !isFacilitator) requestAnimationFrame(() => document.getElementById("wk-feedback")?.scrollIntoView({ block: "start" }));
   }
 
   async function lookup(kind: "code" | "key", raw: string, keepUrl = false) {
@@ -677,6 +807,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
           else { url.searchParams.set("c", data.workshop.code); url.searchParams.delete("f"); }
           history.replaceState(null, "", url.toString());
         }
+        if (kind === "key" && data.role === "facilitator") facilitatorKey = sent;
         openHub(data.workshop, data.role === "facilitator" ? "facilitator" : "student");
         return;
       }
@@ -727,17 +858,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   const fbThanks = $("[data-wk-fb-thanks]");
   const fbError = $("[data-wk-fb-error]");
   const fbSubmit = $<HTMLButtonElement>("[data-wk-fb-submit]");
-  const fbTeam = $<HTMLSelectElement>("[data-wk-fb-team]");
   const fbKey = () => `wk-fb-${currentWorkshop?.code ?? ""}`;
-
-  function buildTeamOptions(n: number) {
-    fbTeam.querySelectorAll("option:not([value=''])").forEach((o) => o.remove());
-    for (let i = 1; i <= n; i++) {
-      const o = document.createElement("option");
-      o.value = String(i); o.textContent = `Team ${i}`;
-      fbTeam.appendChild(o);
-    }
-  }
 
   function remembered(): boolean {
     try { return localStorage.getItem(fbKey()) === "sent"; } catch { return false; }
@@ -755,16 +876,24 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   // One id per attempt, reused on retry, so a double tap or a repeat after a bad connection can't count twice.
   let submissionId = newSubmissionId();
 
+  // On a developer's machine the server says what is wrong (see src/server/workshop.ts); otherwise this is null.
+  async function devDetail(res: Response): Promise<string | null> {
+    try { const j = await res.json(); return j && j.dev && typeof j.error === "string" ? j.error : null; } catch { return null; }
+  }
+
   function fbMessage(text: string) { fbError.textContent = text; fbError.hidden = !text; }
 
+  fbForm.addEventListener("change", () => fbMessage(""));
   fbForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     fbMessage("");
     if (!currentWorkshop) return;
-    const team = fbTeam.value;
-    const rating = (fbForm.querySelector("[data-wk-fb-rating]:checked") as HTMLInputElement | null)?.value;
-    if (!team) { fbMessage("Choose your team."); fbTeam.focus(); return; }
-    if (!rating) { fbMessage("Choose a face to show how much you agree."); return; }
+    const scores: Record<string, number> = {};
+    for (const key of ["reuse", "connect", "spatial", "discover", "team"]) {
+      const picked = fbForm.querySelector(`[data-wk-fb-score="${key}"]:checked`) as HTMLInputElement | null;
+      if (picked) scores[key] = Number(picked.value);
+    }
+    if (Object.keys(scores).length < 5) { fbMessage("Please answer all five statements."); return; }
     const val = (sel: string) => ($(sel) as HTMLInputElement).value.trim();
     fbSubmit.disabled = true;
     fbSubmit.textContent = "Sending…";
@@ -775,11 +904,11 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         body: JSON.stringify({
           code: currentWorkshop.code,
           submissionId,
-          teamNumber: Number(team),
-          rating: Number(rating),
-          oneWord: val("[data-wk-fb-word]"),
-          whatWeMade: val("[data-wk-fb-made]"),
+          kind: "student",
+          scores,
           teamName: val("[data-wk-fb-name]"),
+          whatWeMade: val("[data-wk-fb-made]"),
+          interesting: val("[data-wk-fb-interesting]"),
           wouldChange: val("[data-wk-fb-change]"),
         }),
       });
@@ -793,8 +922,8 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       }
       if (res.status === 410) fbMessage("This workshop has finished, so feedback is closed.");
       else if (res.status === 429) fbMessage("Lots of people are sending at once. Wait a moment and try again.");
-      else if (res.status === 400) fbMessage("Something is missing. Check your team and your face, then try again.");
-      else fbMessage("We couldn't send that. Check your connection and try again.");
+      else if (res.status === 400) fbMessage("Something is missing. Check that all five statements have an answer, then try again.");
+      else fbMessage((await devDetail(res)) || "We couldn't send that. Check your connection and try again.");
     } catch {
       fbMessage("We couldn't send that. Check your connection and try again.");
     } finally {
@@ -811,15 +940,106 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     showFeedbackFormIfNeeded();
   });
 
+  // ------------------------------------------------------- facilitator feedback
+  // Sent with the facilitator key (so a student's link can't send it). What is typed is kept on this
+  // device as a draft, because the form is long and a refresh would otherwise lose it.
+  const ffbForm = document.querySelector<HTMLFormElement>("[data-wk-ffb-form]")!;
+  const ffbThanks = $("[data-wk-ffb-thanks]");
+  const ffbError = $("[data-wk-ffb-error]");
+  const ffbSubmit = $<HTMLButtonElement>("[data-wk-ffb-submit]");
+  const ffbDraftKey = () => `wk-ffb-draft-${currentWorkshop?.code ?? ""}`;
+  const ffbSentKey = () => `wk-ffb-sent-${currentWorkshop?.code ?? ""}`;
+  let ffbSubmissionId = newSubmissionId();
+  const ffbMessage = (t: string) => { ffbError.textContent = t; ffbError.hidden = !t; };
+
+  function ffbValues(): Record<string, string> {
+    const out: Record<string, string> = {};
+    ffbForm.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea").forEach((el) => {
+      if (el.type === "radio") { if ((el as HTMLInputElement).checked) out[el.name] = el.value; }
+      else if (el.value.trim()) out[el.name] = el.value.trim();
+    });
+    return out;
+  }
+  function ffbRestore() {
+    let saved: Record<string, string> = {};
+    try { saved = JSON.parse(localStorage.getItem(ffbDraftKey()) || "{}"); } catch { /* ignore */ }
+    ffbForm.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea").forEach((el) => {
+      const v = saved[el.name];
+      if (v === undefined) return;
+      if (el.type === "radio") (el as HTMLInputElement).checked = el.value === v;
+      else el.value = v;
+    });
+  }
+  function ffbShow() {
+    let sent = false;
+    try { sent = localStorage.getItem(ffbSentKey()) === "sent"; } catch { /* fine */ }
+    ffbForm.hidden = sent;
+    ffbThanks.hidden = !sent;
+    if (!sent) ffbRestore();
+  }
+  const ffbSave = () => { try { localStorage.setItem(ffbDraftKey(), JSON.stringify(ffbValues())); } catch { /* ignore */ } };
+  ffbForm.addEventListener("input", ffbSave);
+  ffbForm.addEventListener("change", ffbSave);
+
+  ffbForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    ffbMessage("");
+    if (!currentWorkshop || !isFacilitator || !facilitatorKey) return;
+    const v = ffbValues();
+    if (!Object.keys(v).length) { ffbMessage("Answer at least one question before sending."); return; }
+    const pick = (prefix: string, keys: string[]) => Object.fromEntries(keys.filter((k) => v[`${prefix}-${k}`]).map((k) => [k, v[`${prefix}-${k}`]]));
+    const answers = {
+      outcomes: pick("a", ["reuse", "connections", "spatial", "exploration", "reversibility", "teamwork"]),
+      delivery: pick("b", ["engaging", "assistance"]),
+      checks: Object.fromEntries(["instructions", "tiles", "balance", "time"]
+        .filter((k) => v[`k-${k}`] || v[`k-${k}-note`])
+        .map((k) => [k, { choice: v[`k-${k}`], note: v[`k-${k}-note`] }])),
+      open: pick("o", ["created", "challenges", "change", "unexpected"]),
+      obs: pick("x", ["independent", "beyond", "reused", "difficulty", "successful"]),
+    };
+    ffbSubmit.disabled = true;
+    ffbSubmit.textContent = "Sending…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ kind: "facilitator", key: facilitatorKey, submissionId: ffbSubmissionId, answers }),
+      });
+      if (res.ok) {
+        try { localStorage.setItem(ffbSentKey(), "sent"); localStorage.removeItem(ffbDraftKey()); } catch { /* fine */ }
+        ffbForm.hidden = true;
+        ffbThanks.hidden = false;
+        ($("[data-wk-ffb-thanks] h3") as HTMLElement).focus();
+        return;
+      }
+      if (res.status === 410) ffbMessage("This workshop has finished, so feedback is closed.");
+      else if (res.status === 429) ffbMessage("Too many tries. Wait a moment and try again.");
+      else ffbMessage((await devDetail(res)) || "We couldn't send that. Your answers are still here: check your connection and try again.");
+    } catch {
+      ffbMessage("We couldn't send that. Your answers are still here: check your connection and try again.");
+    } finally {
+      ffbSubmit.disabled = false;
+      ffbSubmit.textContent = "Send my feedback";
+    }
+  });
+  $("[data-wk-ffb-again]").addEventListener("click", () => {
+    try { localStorage.removeItem(ffbSentKey()); localStorage.removeItem(ffbDraftKey()); } catch { /* ignore */ }
+    ffbForm.reset();
+    ffbSubmissionId = newSubmissionId();
+    ffbShow();
+  });
+
   // --------------------------------------------------------------- deck + timer
   // One controller window owns the countdown and the slide number. A projector window (opened from
   // the controller, same browser) only shows them and sends key presses back, so there is never
   // more than one clock. If the projector window can't find a controller it runs on its own.
   type DeckCfg = {
-    count: number; base: string; notesUrl: string; anchors: Record<string, number>; qrSlide: number;
-    qrBox: { x: number; y: number; w: number; h: number }; qrLine: { x: number; y: number; w: number; h: number };
+    count: number; base: string; notesUrl: string; anchors: Record<string, number>; clockFromSlide: number; qr: QrCfg[];
   };
-  type SlideNote = { n: number; section: string; title: string; notes: string };
+  type Box = { x: number; y: number; w: number; h: number };
+  type QrKind = "student" | "feedback" | "teacher";
+  type QrCfg = { slide: number; kind: QrKind; box: Box; line?: Box; small?: boolean };
+  type SlideNote = { n: number; section: string; title: string; notes: string; base?: string; edited?: boolean };
   type Snapshot = { idx: number; running: boolean; endAt: number; remaining: number; finished: boolean; slide: number };
 
   const deckCfg: DeckCfg = JSON.parse($("#wk-deck").textContent || "{}");
@@ -978,36 +1198,68 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     render();
   }
 
-  // ----- the QR code that goes into slide 18
-  let qrUrl: string | null = null;
+  // ----- the QR codes drawn onto the slides (see `qr` in workshopDeck.ts)
+  // Each kind opens a different page: the participant page, the feedback form on it, and the teacher form.
+  const qrUrls: Partial<Record<QrKind, string>> = {};
   let qrFailed = false;
-  const studentLink = () => `${location.origin}/workshop?c=${encodeURIComponent(currentWorkshop?.code ?? "")}`;
+  const linkFor = (kind: QrKind): string => {
+    const code = encodeURIComponent(currentWorkshop?.code ?? "");
+    if (kind === "teacher") return `${location.origin}/workshop/teacher?c=${code}`;
+    return `${location.origin}/workshop?c=${code}${kind === "feedback" ? "#feedback" : ""}`;
+  };
   async function buildQr() {
-    if (!currentWorkshop || qrUrl) return;
-    const link = studentLink();
-    const cacheKey = `wk-qr:${link}`;
+    if (!currentWorkshop) return;
+    const kinds = [...new Set(deckCfg.qr.map((q) => q.kind))].filter((k) => !qrUrls[k]);
+    if (!kinds.length) return;
     // A copy saved on an earlier visit still works if the school network blocks the QR library.
-    try { const c = localStorage.getItem(cacheKey); if (c) { qrUrl = c; render(); } } catch { /* ignore */ }
+    for (const k of kinds) {
+      try { const c = localStorage.getItem(`wk-qr:${linkFor(k)}`); if (c) qrUrls[k] = c; } catch { /* ignore */ }
+    }
+    render();
     try {
       const mod = await loadQrCodeModule();
       const toDataURL: (t: string, o: any) => Promise<string> = mod.toDataURL || mod.default?.toDataURL;
-      const url = await toDataURL(link, { width: 720, margin: 1, errorCorrectionLevel: "M" });
-      qrUrl = url;
-      try { localStorage.setItem(cacheKey, url); } catch { /* ignore */ }
+      for (const k of kinds) {
+        const url = await toDataURL(linkFor(k), { width: 720, margin: 1, errorCorrectionLevel: "M" });
+        qrUrls[k] = url;
+        try { localStorage.setItem(`wk-qr:${linkFor(k)}`, url); } catch { /* ignore */ }
+      }
     } catch {
       resetQrCodeModule();
-      if (!qrUrl) qrFailed = true;
+      if (kinds.some((k) => !qrUrls[k])) qrFailed = true;
     }
     render();
   }
 
-  function placeBox(el: HTMLElement, b: { x: number; y: number; w: number; h: number }) {
+  function placeBox(el: HTMLElement, b: Box) {
     el.style.left = `${b.x * 100}%`; el.style.top = `${b.y * 100}%`;
     el.style.width = `${b.w * 100}%`; el.style.height = `${b.h * 100}%`;
   }
+  // One box (and, where the slide has room, one typed line) per QR, placed in each stage.
   stages.forEach((st) => {
-    placeBox(st.querySelector<HTMLElement>("[data-wk-qr]")!, deckCfg.qrBox);
-    placeBox(st.querySelector<HTMLElement>("[data-wk-qr-line]")!, deckCfg.qrLine);
+    deckCfg.qr.forEach((q, i) => {
+      const box = document.createElement("div");
+      box.className = `wk-qr${q.small ? " wk-qr--small" : ""}`;
+      box.dataset.wkQr = String(i);
+      box.hidden = true;
+      const img = document.createElement("img");
+      img.alt = q.kind === "teacher" ? "QR code that opens the teacher feedback form" : q.kind === "feedback" ? "QR code that opens the student feedback form" : "QR code that opens today's workshop page";
+      img.hidden = true;
+      const fb = document.createElement("p");
+      fb.className = "wk-qr__fallback";
+      fb.hidden = true;
+      box.append(img, fb);
+      placeBox(box, q.box);
+      st.append(box);
+      if (q.line) {
+        const line = document.createElement("p");
+        line.className = "wk-qr__line";
+        line.dataset.wkQrLine = String(i);
+        line.hidden = true;
+        placeBox(line, q.line);
+        st.append(line);
+      }
+    });
   });
 
   let deckBroken = false;
@@ -1015,22 +1267,32 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     const img = st.querySelector<HTMLImageElement>("[data-wk-stage-img]")!;
     const src = slideSrc(slide);
     if (img.getAttribute("src") !== src) img.setAttribute("src", src);
-    const onQr = slide === deckCfg.qrSlide;
-    const box = st.querySelector<HTMLElement>("[data-wk-qr]")!;
-    const qrImg = box.querySelector<HTMLImageElement>("[data-wk-qr-img]")!;
-    const fb = box.querySelector<HTMLElement>("[data-wk-qr-fallback]")!;
-    const line = st.querySelector<HTMLElement>("[data-wk-qr-line]")!;
     const code = currentWorkshop?.code ?? "";
     const host = location.host;
-    box.hidden = !onQr;
-    line.hidden = !onQr;
-    if (!onQr) return;
-    if (qrUrl) { qrImg.src = qrUrl; qrImg.hidden = false; fb.hidden = true; }
-    else if (qrFailed) { qrImg.hidden = true; fb.hidden = false; fb.innerHTML = ""; fb.append(`Go to ${host}/workshop and type`); const st2 = document.createElement("strong"); st2.textContent = code; fb.append(st2); }
-    else { qrImg.hidden = true; fb.hidden = true; }
-    line.innerHTML = "";
-    line.append(`Or go to ${host}/workshop and type `);
-    const strong = document.createElement("strong"); strong.textContent = code; line.append(strong);
+    deckCfg.qr.forEach((q, i) => {
+      const on = slide === q.slide;
+      const box = st.querySelector<HTMLElement>(`[data-wk-qr="${i}"]`)!;
+      const line = st.querySelector<HTMLElement>(`[data-wk-qr-line="${i}"]`);
+      box.hidden = !on;
+      if (line) line.hidden = !on;
+      if (!on) return;
+      const qrImg = box.querySelector("img")!;
+      const fb = box.querySelector<HTMLElement>(".wk-qr__fallback")!;
+      const url = qrUrls[q.kind];
+      if (url) { qrImg.src = url; qrImg.hidden = false; fb.hidden = true; }
+      else if (qrFailed) {
+        qrImg.hidden = true; fb.hidden = false; fb.innerHTML = "";
+        const path = q.kind === "teacher" ? "/workshop/teacher" : "/workshop";
+        // The small boxes on the feedback slide have little room, so they get the bare address.
+        fb.append(q.small ? `${host}${path}` : `Go to ${host}${path} and type`);
+        const strong = document.createElement("strong"); strong.textContent = code; fb.append(strong);
+      } else { qrImg.hidden = true; fb.hidden = true; }
+      if (line) {
+        line.innerHTML = "";
+        line.append(`Or go to ${host}/workshop and type `);
+        const strong = document.createElement("strong"); strong.textContent = code; line.append(strong);
+      }
+    });
   }
 
   async function loadNotes() {
@@ -1039,8 +1301,86 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       const res = await fetch(deckCfg.notesUrl);
       if (res.ok) slideNotes = ((await res.json()) as { slides: SlideNote[] }).slides;
     } catch { /* notes are a nice-to-have */ }
+    slideNotes.forEach((n) => { n.base = n.notes; });
     render();
+    // Notes the facilitators have edited replace the deck's notes for those slides.
+    if (facilitatorKey) {
+      try {
+        const res = await fetch(`/api/workshop?key=${encodeURIComponent(facilitatorKey)}&notes=1`, { headers: { Accept: "application/json" } });
+        if (res.ok) {
+          const { notes } = (await res.json()) as { notes: Record<string, string> };
+          for (const [slideNo, text] of Object.entries(notes || {})) {
+            const n = slideNotes[Number(slideNo) - 1];
+            if (n) { n.notes = text; n.edited = true; }
+          }
+          render();
+        }
+      } catch { /* the deck's own notes are still shown */ }
+    }
   }
+
+  // ----- editing the speaker notes on the page
+  const notesBox = $("[data-wk-notes]");
+  const notesEditor = $("[data-wk-notes-editor]");
+  const notesText = $<HTMLTextAreaElement>("[data-wk-notes-text]");
+  const notesMsg = $("[data-wk-notes-msg]");
+  const notesEditBtn = $<HTMLButtonElement>("[data-wk-notes-edit]");
+  const notesResetBtn = $<HTMLButtonElement>("[data-wk-notes-reset]");
+  const notesSaveBtn = $<HTMLButtonElement>("[data-wk-notes-save]");
+  let editingSlide = 0;
+
+  function closeNotesEditor() {
+    editingSlide = 0;
+    notesEditor.hidden = true;
+    notesBox.hidden = false;
+    notesEditBtn.hidden = false;
+    notesMsg.textContent = "";
+  }
+  async function saveNotes(slideNo: number, text: string | null): Promise<boolean> {
+    notesMsg.textContent = "Saving…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ kind: "notes", key: facilitatorKey, slide: slideNo, notes: text }),
+      });
+      if (!res.ok) { notesMsg.textContent = res.status === 410 ? "This workshop has finished, so notes can't be changed." : (await devDetail(res)) || "Couldn't save. Check your connection and try again."; return false; }
+      const n = slideNotes[slideNo - 1];
+      if (n) {
+        if (text && text.trim() && text.trim() !== (n.base ?? "")) { n.notes = text.trim(); n.edited = true; }
+        else { n.notes = n.base ?? ""; n.edited = false; }
+      }
+      notesMsg.textContent = "";
+      return true;
+    } catch {
+      notesMsg.textContent = "Couldn't save. Check your connection and try again.";
+      return false;
+    }
+  }
+  notesEditBtn.addEventListener("click", () => {
+    if (!slideNotes[slide - 1] || !facilitatorKey) return;
+    editingSlide = slide;
+    notesText.value = slideNotes[slide - 1].notes;
+    notesBox.hidden = true;
+    notesEditor.hidden = false;
+    notesEditBtn.hidden = true;
+    notesText.focus();
+  });
+  $("[data-wk-notes-cancel]").addEventListener("click", () => { closeNotesEditor(); render(); });
+  notesSaveBtn.addEventListener("click", async () => {
+    const target = editingSlide;
+    if (!target) return;
+    notesSaveBtn.disabled = true;
+    const ok = await saveNotes(target, notesText.value);
+    notesSaveBtn.disabled = false;
+    if (ok) { closeNotesEditor(); render(); }
+  });
+  notesResetBtn.addEventListener("click", async () => {
+    const n = slideNotes[slide - 1];
+    if (!n || !n.edited) return;
+    if (!window.confirm("Put the deck's original notes back for this slide? This changes it for every workshop.")) return;
+    if (await saveNotes(slide, null)) render();
+  });
   function preloadSlides() {
     // Fetch every slide once, quietly, so a slow school connection can't stall a slide mid-lesson.
     let n = 1;
@@ -1096,6 +1436,8 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     $("[data-wk-pill-phase]").textContent = finished ? "Time's up" : p.short || p.title;
     $("[data-wk-pill-clock]").textContent = fmt(remaining);
     ($("[data-wk-pill-bar]") as HTMLElement).style.width = `${phasePct}%`;
+    // The countdown stays off the slides until the challenge starts, so the introduction is not rushed.
+    pill.hidden = slide < deckCfg.clockFromSlide;
     pill.classList.toggle("is-low", low);
     pill.classList.toggle("is-done", finished);
 
@@ -1113,7 +1455,11 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     if (deckReady) stages.forEach(paintStage); // students never fetch a slide
     const meta = slideNotes[slide - 1];
     $("[data-wk-slide-where]").textContent = `Slide ${slide} of ${deckCfg.count}${meta?.title ? ` · ${meta.title}` : ""}`;
-    $("[data-wk-notes]").textContent = meta ? meta.notes || "No notes for this slide." : slideNotes.length ? "" : "Loading notes…";
+    if (editingSlide && editingSlide !== slide) closeNotesEditor(); // moved on to another slide
+    notesBox.textContent = meta ? meta.notes || "No notes for this slide." : slideNotes.length ? "" : "Loading notes…";
+    $("[data-wk-notes-edited]").hidden = !meta?.edited;
+    notesResetBtn.hidden = !meta?.edited;
+    notesEditBtn.disabled = !meta || !facilitatorKey;
     const following = slideNotes[slide];
     $("[data-wk-slide-next-title]").textContent = following ? `Next: slide ${slide + 1}, ${following.title}` : slide >= deckCfg.count ? "Last slide" : "";
     ($("[data-wk-slide-prev]") as HTMLButtonElement).disabled = slide <= 1;

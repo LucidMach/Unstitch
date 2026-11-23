@@ -1,21 +1,33 @@
 // src/server/workshop.ts -- public. Wired in at /api/workshop via
 // api/[...route].ts (and the dev middleware in astro.config.ts).
 //
-// GET  /api/workshop?code=ABC234   (the student QR link)
+// GET  /api/workshop?code=ABC234   (the student and teacher QR link)
 // GET  /api/workshop?key=<key>     (the facilitator's own link)
 //   200 -> { role: 'student' | 'facilitator',
 //            workshop: { code, schoolName, workshopDate, teams } }
 //   404 -> unknown code or key
 //   410 -> exists but is switched off or has expired
 //
-// POST /api/workshop               (a student's feedback)
-//   body: { code, submissionId, teamNumber, rating, oneWord?, wouldChange?,
-//           whatWeMade?, teamName? }
+// GET  /api/workshop?key=<key>&notes=1   (facilitator only)
+//   200 -> { notes: { "<slide>": "<edited notes>" } }   only the slides that were edited
+//
+// POST /api/workshop               (feedback and notes; `kind` says which)
+//   kind "student" (the default; sent with `code`):
+//     { code, submissionId, scores: { reuse, connect, spatial, discover, team },
+//       teamName?, whatWeMade?, interesting?, wouldChange? }
+//   kind "teacher" (sent with `code`):
+//     { code, submissionId, engagement, observed[], appropriate, valuable?, improve?, recommend }
+//   kind "facilitator" (sent with the facilitator `key`, so students cannot send it):
+//     { key, submissionId, answers: { outcomes, delivery, checks, open, obs } }
+//   kind "notes" (sent with the facilitator `key`): { key, slide, notes }
+//     saves the edited speaker notes for a slide, for every workshop; empty or null notes put the deck's version back
 //   200 -> { ok: true }   (also when the same submissionId arrives twice)
+//
+// The questions and choices are listed in src/lib/constants/workshopFeedback.ts.
 //
 // The hub's content is not secret. The code ties a session to a booking
 // (school name, team count) and lets us switch a workshop off afterwards.
-// The facilitator key is a separate, longer random value, so a student's link
+// The facilitator key is a separate, longer value, so a student's link
 // never shows the Facilitator tab.
 //
 // Rate limits are per IP and generous on purpose: a whole class sits behind
@@ -25,6 +37,17 @@ import { z } from 'zod';
 import { sendJson, parseRequestBody, formatZodError } from '../lib/apiHelper.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
 import prisma from '../lib/prisma.js';
+import {
+  studentStatements,
+  teacherForm,
+  facilitatorScale,
+  facilitatorOutcomes,
+  facilitatorDeliveryOpen,
+  facilitatorDeliveryChecks,
+  facilitatorYesPartlyNo,
+  facilitatorOpen,
+  facilitatorObservations,
+} from '../lib/constants/workshopFeedback.js';
 
 const clean = (max: number) =>
   z
@@ -35,16 +58,88 @@ const clean = (max: number) =>
     .nullable()
     .transform((v) => (v ? v : null));
 
-const FeedbackSchema = z.object({
-  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,16}$/, 'Missing workshop code'),
-  submissionId: z.string().trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'Invalid submission id'),
-  teamNumber: z.coerce.number().int().min(1).max(40),
-  rating: z.coerce.number().int().min(1, 'Choose a rating').max(5),
-  oneWord: clean(40),
-  wouldChange: clean(500),
-  whatWeMade: clean(240),
+const codeField = z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,16}$/, 'Missing workshop code');
+const keyField = z.string().trim().regex(/^[A-Za-z0-9]{5,24}$/, 'Missing facilitator link');
+const submissionField = z.string().trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'Invalid submission id');
+
+const score = z.coerce.number().int().min(1, 'Answer every statement').max(5, 'Answer every statement');
+
+const StudentSchema = z.object({
+  code: codeField,
+  submissionId: submissionField,
+  scores: z.object({
+    reuse: score,
+    connect: score,
+    spatial: score,
+    discover: score,
+    team: score,
+  }),
   teamName: clean(80),
+  whatWeMade: clean(240),
+  interesting: clean(500),
+  wouldChange: clean(500),
 });
+
+const values = (choices: readonly { v: string }[]) => choices.map((c) => c.v) as [string, ...string[]];
+
+const TeacherSchema = z.object({
+  code: codeField,
+  submissionId: submissionField,
+  engagement: z.enum(values(teacherForm.engagement.choices), { message: 'Choose one for the first question' }),
+  observed: z.array(z.enum(values(teacherForm.observed.choices))).max(10).default([]),
+  appropriate: z.enum(values(teacherForm.appropriate.choices), { message: 'Choose one for the third question' }),
+  valuable: clean(1500),
+  improve: clean(1500),
+  recommend: z.enum(values(teacherForm.recommend.choices), { message: 'Choose one for the last question' }),
+});
+
+// The facilitator's answers are stored as one JSON object. Every known key is optional (a section can be
+// skipped); unknown keys are dropped, and text is trimmed and length-limited.
+const text = (max: number) => z.string().trim().max(max).optional();
+const oneOf = (choices: readonly { v: string }[]) => z.enum(values(choices)).optional();
+const shape = <T extends readonly { key: string }[]>(items: T, make: (item: T[number]) => z.ZodTypeAny) =>
+  z.object(Object.fromEntries(items.map((i) => [i.key, make(i).optional()])) as Record<string, z.ZodTypeAny>).default({});
+
+const FacilitatorAnswers = z.object({
+  outcomes: shape(facilitatorOutcomes, () => oneOf(facilitatorScale)),
+  delivery: shape(facilitatorDeliveryOpen, () => text(1000)),
+  checks: shape(facilitatorDeliveryChecks, () => z.object({ choice: oneOf(facilitatorYesPartlyNo), note: text(1000) })),
+  open: shape(facilitatorOpen, () => text(1500)),
+  obs: shape(facilitatorObservations, (o) => (o.kind === 'text' ? text(300) : oneOf(facilitatorYesPartlyNo))),
+});
+
+const NotesSchema = z.object({
+  key: keyField,
+  slide: z.coerce.number().int().min(1).max(100),
+  notes: z.string().max(4000).nullable(),
+});
+
+const FacilitatorSchema = z.object({
+  key: keyField,
+  submissionId: submissionField,
+  answers: FacilitatorAnswers,
+});
+
+/** True when the object holds at least one non-empty answer anywhere inside it. */
+function hasAnyAnswer(v: unknown): boolean {
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (v && typeof v === 'object') return Object.values(v as object).some(hasAnyAnswer);
+  return false;
+}
+
+/** Drops empty strings and empty groups so the stored JSON only holds what was answered. */
+function prune(v: any): any {
+  if (typeof v === 'string') return v.trim() || undefined;
+  if (v && typeof v === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, x] of Object.entries(v)) {
+      const p = prune(x);
+      if (p !== undefined) out[k] = p;
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+  return v ?? undefined;
+}
 
 function isLive(row: { active: boolean; expiresAt: Date | null }): boolean {
   return row.active && !(row.expiresAt && row.expiresAt.getTime() < Date.now());
@@ -65,29 +160,87 @@ export default async function handler(req: any, res: any): Promise<any> {
   });
   if (!rate.success) return sendJson(res, 429, { error: 'Too many attempts. Wait a minute and try again.' });
 
-  if (!prisma) return sendJson(res, 503, { error: 'Not configured' });
+  if (!prisma) {
+    return sendJson(res, 503, process.env.NODE_ENV !== 'production'
+      ? { error: 'Dev: no database is configured. Set DATABASE_URL in .env and restart the dev server.', dev: true }
+      : { error: 'Not configured' });
+  }
 
   if (req.method === 'POST') {
-    const parsed = FeedbackSchema.safeParse(parseRequestBody(req));
+    const body = parseRequestBody(req) as any;
+    const kind = body && typeof body === 'object' && typeof body.kind === 'string' ? body.kind : 'student';
+    if (kind !== 'student' && kind !== 'teacher' && kind !== 'facilitator' && kind !== 'notes') {
+      return sendJson(res, 400, { error: 'Unknown feedback type' });
+    }
+    const schema = kind === 'teacher' ? TeacherSchema : kind === 'facilitator' ? FacilitatorSchema : kind === 'notes' ? NotesSchema : StudentSchema;
+    const parsed = (schema as z.ZodTypeAny).safeParse(body);
     if (!parsed.success) {
       const formatted = formatZodError(parsed.error);
       return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
     }
-    const { code, submissionId, teamNumber, rating, oneWord, wouldChange, whatWeMade, teamName } = parsed.data;
+    const data = parsed.data as any;
     try {
-      const workshop = await prisma.workshop.findUnique({
-        where: { code },
-        select: { id: true, teams: true, active: true, expiresAt: true },
-      });
-      if (!workshop) return sendJson(res, 404, { error: 'Code not found' });
+      const select = { id: true, teams: true, active: true, expiresAt: true } as const;
+      const workshop =
+        kind === 'facilitator' || kind === 'notes'
+          ? await prisma.workshop.findFirst({ where: { facilitatorKey: { equals: data.key, mode: 'insensitive' } }, select })
+          : await prisma.workshop.findUnique({ where: { code: data.code }, select });
+      if (!workshop) return sendJson(res, 404, { error: kind === 'facilitator' || kind === 'notes' ? 'Facilitator link not found' : 'Code not found' });
       if (!isLive(workshop)) return sendJson(res, 410, { error: 'This workshop code has expired' });
-      if (teamNumber > workshop.teams) {
-        return sendJson(res, 400, { error: 'Choose your team from the list.', fieldErrors: { teamNumber: ['Choose your team from the list.'] } });
+
+      if (kind === 'notes') {
+        const text = (data.notes ?? '').trim();
+        if (text) {
+          await prisma.workshopSlideNote.upsert({
+            where: { slide: data.slide },
+            create: { slide: data.slide, notes: text },
+            update: { notes: text },
+          });
+        } else {
+          await prisma.workshopSlideNote.deleteMany({ where: { slide: data.slide } });
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        return sendJson(res, 200, { ok: true });
       }
+
       try {
-        await prisma.workshopFeedback.create({
-          data: { workshopId: workshop.id, submissionId, teamNumber, rating, oneWord, wouldChange, whatWeMade, teamName },
-        });
+        if (kind === 'student') {
+          await prisma.workshopFeedback.create({
+            data: {
+              workshopId: workshop.id,
+              submissionId: data.submissionId,
+              scoreReuse: data.scores.reuse,
+              scoreConnect: data.scores.connect,
+              scoreSpatial: data.scores.spatial,
+              scoreDiscover: data.scores.discover,
+              scoreTeam: data.scores.team,
+              whatWeMade: data.whatWeMade,
+              interesting: data.interesting,
+              wouldChange: data.wouldChange,
+              teamName: data.teamName,
+            },
+          });
+        } else if (kind === 'teacher') {
+          await prisma.workshopTeacherFeedback.create({
+            data: {
+              workshopId: workshop.id,
+              submissionId: data.submissionId,
+              engagement: data.engagement,
+              observed: [...new Set<string>(data.observed)],
+              appropriate: data.appropriate,
+              valuable: data.valuable,
+              improve: data.improve,
+              recommend: data.recommend,
+            },
+          });
+        } else {
+          if (!hasAnyAnswer(data.answers)) {
+            return sendJson(res, 400, { error: 'Answer at least one question before sending.' });
+          }
+          await prisma.workshopFacilitatorFeedback.create({
+            data: { workshopId: workshop.id, submissionId: data.submissionId, answers: prune(data.answers) ?? {} },
+          });
+        }
       } catch (err: any) {
         // The same submission arriving twice (a retry or a double tap) is fine.
         if (err?.code !== 'P2002') throw err;
@@ -96,6 +249,17 @@ export default async function handler(req: any, res: any): Promise<any> {
       return sendJson(res, 200, { ok: true });
     } catch (err) {
       console.error('[workshop] Feedback save failed:', err);
+      // On a developer's machine, say what is wrong (usually a database or Prisma client that is behind the
+      // schema). The page shows this only when `dev` is set; in production the message stays generic.
+      if (process.env.NODE_ENV !== 'production') {
+        const code = (err as any)?.code;
+        const msg = String((err as any)?.message || err);
+        const behind = code === 'P2021' || code === 'P2022' || /does not exist|Unknown (argument|field)|Invalid `prisma/i.test(msg);
+        const detail = behind
+          ? 'Dev: the database or the Prisma client is behind the schema. Run pnpm db:generate and pnpm db:push, then restart the dev server.'
+          : `Dev: ${msg.split('\n').filter(Boolean).pop()?.slice(0, 240) || 'save failed'}`;
+        return sendJson(res, 500, { error: detail, dev: true });
+      }
       return sendJson(res, 500, { error: 'We could not save your feedback. Please try again.' });
     }
   }
@@ -107,6 +271,24 @@ export default async function handler(req: any, res: any): Promise<any> {
 
   if (bykey ? !/^[A-Za-z0-9]{5,24}$/.test(key) : !/^[A-Z0-9]{4,16}$/.test(code)) {
     return sendJson(res, 404, { error: 'Code not found' });
+  }
+
+  // The facilitator's edited speaker notes (only the slides that were changed).
+  if (bykey && searchParams.get('notes')) {
+    try {
+      const row = await prisma.workshop.findFirst({
+        where: { facilitatorKey: { equals: key, mode: 'insensitive' } },
+        select: { active: true, expiresAt: true },
+      });
+      if (!row) return sendJson(res, 404, { error: 'Facilitator link not found' });
+      if (!isLive(row)) return sendJson(res, 410, { error: 'This workshop code has expired' });
+      const rows = await prisma.workshopSlideNote.findMany({ select: { slide: true, notes: true } });
+      res.setHeader('Cache-Control', 'no-store');
+      return sendJson(res, 200, { notes: Object.fromEntries(rows.map((r: { slide: number; notes: string }) => [String(r.slide), r.notes])) });
+    } catch (err) {
+      console.error('[workshop] Notes lookup failed:', err);
+      return sendJson(res, 500, { error: 'Unable to load the notes right now.' });
+    }
   }
 
   try {

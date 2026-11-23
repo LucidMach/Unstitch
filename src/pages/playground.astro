@@ -23,7 +23,7 @@ import Layout from "../layouts/Layout.astro";
        event's raffle window. Hidden by default and only revealed once
        /api/events reports an upcoming event with an open raffle — auto-hides
        with zero redeployment once the raffle closing date passes. -->
-  <button id="raffle-open-btn" class="raffle-fab" aria-haspopup="dialog" aria-controls="raffle-dialog" style="background-color: #6D771A; border-color: #6D771A;">
+  <button id="raffle-open-btn" class="raffle-fab" hidden aria-haspopup="dialog" aria-controls="raffle-dialog" style="background-color: #6D771A; border-color: #6D771A;">
     Enter the Raffle Draw
   </button>
 
@@ -85,6 +85,7 @@ import Layout from "../layouts/Layout.astro";
   }
 
   /* ---- raffle entry: persistent button + popup ---- */
+  .raffle-fab[hidden] { display: none; }
   .raffle-fab {
     position: fixed;
     right: 24px;
@@ -202,6 +203,10 @@ import Layout from "../layouts/Layout.astro";
     raffleDrawCopy: string | null;
   };
 
+  // The raffle entry button is switched off. Set this to true to bring it back for an event: it then
+  // appears only while /api/events reports an upcoming event with an open raffle.
+  const RAFFLE_ENABLED = false;
+
   async function loadRaffleEvent(openBtn: HTMLButtonElement, form: HTMLFormElement) {
     try {
       const res = await fetch('/api/events');
@@ -247,6 +252,13 @@ import Layout from "../layouts/Layout.astro";
     const successState = document.getElementById('raffle-success-state');
     const form = document.getElementById('raffle-form') as HTMLFormElement | null;
     if (!openBtn || !closeBtn || !overlay || !dialog || !form) return;
+
+    if (!RAFFLE_ENABLED) {
+      openBtn.remove();
+      overlay.remove();
+      dialog.remove();
+      return;
+    }
 
     loadRaffleEvent(openBtn, form);
 
