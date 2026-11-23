@@ -189,12 +189,12 @@ const required = f.sections.flatMap((s) => s.questions).filter((q) => !q.optiona
   .sf-title { font-family: var(--font-display); font-size: clamp(1.8rem, 5.5vw, 2.6rem); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 10px; }
   .sf-title--small { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   .sf-thanksline { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; margin: 0 0 12px; }
-  .sf-lead { font-size: 1.05rem; line-height: 1.5; margin: 0 0 12px; max-width: 62ch; }
+  .sf-lead { font-size: 1.05rem; line-height: 1.5; margin: 0 0 12px; }
   .sf-time { display: inline-block; margin: 0 0 6px; padding: 4px 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: #F7D55C; font-size: 0.85rem; font-weight: 600; }
   .sf-muted { color: #555; font-size: 0.95rem; line-height: 1.5; margin: 0 0 14px; }
 
   .sf-wrap { width: min(1040px, 100% - 2 * var(--gutter)); margin: 0 auto; padding: 32px 0 96px; }
-  .sf-head { max-width: 720px; margin-bottom: 22px; }
+  .sf-head { margin-bottom: 22px; }
   .sf-cols { display: block; }
   .sf-toc { display: none; }
   @media (min-width: 960px) {
@@ -216,7 +216,7 @@ const required = f.sections.flatMap((s) => s.questions).filter((q) => !q.optiona
   .sf-toc__tools { display: flex; gap: 14px; margin: 10px 4px 0; }
   .sf-link { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 0.85rem; font-weight: 600; text-decoration: underline; cursor: pointer; color: var(--ink); }
 
-  .sf-form { display: grid; gap: 16px; min-width: 0; max-width: 720px; }
+  .sf-form { display: grid; gap: 16px; min-width: 0; }
   .sf-sec { border: 1.5px solid var(--ink); border-radius: var(--radius); background: #fff; scroll-margin-top: 16px; }
   .sf-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 14px 18px; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
   .sf-sec > summary::-webkit-details-marker { display: none; }

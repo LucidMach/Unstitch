@@ -8,7 +8,7 @@
 //   404 -> unknown code or key
 //   410 -> exists but is switched off or has expired
 //
-// GET  /api/workshop?code=ABC234&for=school   (the school feedback page: stays open for 60 days after the workshop expires)
+// GET  /api/workshop?code=ABC234&for=school   (the school feedback page: stays open for 21 days after the workshop date)
 // GET  /api/workshop?key=<key>&notes=1   (facilitator only)
 //   200 -> { notes: { "<slide>": "<edited notes>" } }   only the slides that were edited
 //
@@ -183,11 +183,17 @@ function isLive(row: { active: boolean; expiresAt: Date | null }): boolean {
   return row.active && !(row.expiresAt && row.expiresAt.getTime() < Date.now());
 }
 
-// School staff often answer a few days after the workshop, so their form stays open for 60 days after the
-// code expires. Switching a workshop off (active = false) still closes it.
-const SCHOOL_GRACE_MS = 60 * 86_400_000;
-function isLiveForSchool(row: { active: boolean; expiresAt: Date | null }): boolean {
-  return row.active && !(row.expiresAt && row.expiresAt.getTime() + SCHOOL_GRACE_MS < Date.now());
+// School staff often answer a few days after the workshop, so their form stays open for 21 days after the
+// workshop date (or until the code's own cut-off if that is later, or for 21 days after the cut-off when no date
+// is set). Switching a workshop off (active = false) still closes it.
+const SCHOOL_GRACE_MS = 21 * 86_400_000;
+function isLiveForSchool(row: { active: boolean; expiresAt: Date | null; workshopDate?: Date | null }): boolean {
+  if (!row.active) return false;
+  const closes = Math.max(
+    row.workshopDate ? row.workshopDate.getTime() + SCHOOL_GRACE_MS : 0,
+    row.expiresAt ? row.expiresAt.getTime() + (row.workshopDate ? 0 : SCHOOL_GRACE_MS) : 0,
+  );
+  return closes === 0 || closes >= Date.now();
 }
 
 export default async function handler(req: any, res: any): Promise<any> {
@@ -225,7 +231,7 @@ export default async function handler(req: any, res: any): Promise<any> {
     }
     const data = parsed.data as any;
     try {
-      const select = { id: true, teams: true, active: true, expiresAt: true } as const;
+      const select = { id: true, teams: true, active: true, expiresAt: true, workshopDate: true } as const;
       const workshop =
         kind === 'facilitator' || kind === 'notes'
           ? await prisma.workshop.findFirst({ where: { facilitatorKey: { equals: data.key, mode: 'insensitive' } }, select })

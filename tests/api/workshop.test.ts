@@ -335,17 +335,29 @@ describe('POST /api/workshop (school feedback)', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('stays open for 60 days after the workshop, then closes, and a switch-off closes it at once', async () => {
+  it('stays open for 21 days after the workshop date, then closes, and a switch-off closes it at once', async () => {
     db.workshopSchoolFeedback.create.mockResolvedValue({});
     const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000);
-    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: daysAgo(30) });
+    // default cut-off is the date + 3 days, so both are in the past here
+    const row = (dateDaysAgo: number) => ({ ...LIVE, workshopDate: daysAgo(dateDaysAgo), expiresAt: daysAgo(dateDaysAgo - 3) });
+    db.workshop.findUnique.mockResolvedValue(row(20));
     let res = createMockRes();
     await handler(post(SCHOOL), res);
     expect(res.statusCode).toBe(200);
-    db.workshop.findUnique.mockResolvedValue({ ...LIVE, expiresAt: daysAgo(61) });
+    db.workshop.findUnique.mockResolvedValue(row(22));
     res = createMockRes();
     await handler(post({ ...SCHOOL, submissionId: 'school777-xyz' }), res);
     expect(res.statusCode).toBe(410);
+    // a later manual cut-off on the code still keeps the form open
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, workshopDate: daysAgo(30), expiresAt: FUTURE });
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school555-xyz' }), res);
+    expect(res.statusCode).toBe(200);
+    // no workshop date: 21 days after the cut-off
+    db.workshop.findUnique.mockResolvedValue({ ...LIVE, workshopDate: null, expiresAt: daysAgo(10) });
+    res = createMockRes();
+    await handler(post({ ...SCHOOL, submissionId: 'school444-xyz' }), res);
+    expect(res.statusCode).toBe(200);
     db.workshop.findUnique.mockResolvedValue({ ...LIVE, active: false });
     res = createMockRes();
     await handler(post({ ...SCHOOL, submissionId: 'school666-xyz' }), res);

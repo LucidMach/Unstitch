@@ -3083,7 +3083,7 @@ const builtinForAdmin = builtinObjects.map((o, i) => ({
     // ----- facilitator
     // ----- school staff
     if (!schoolCache.length) {
-      wkEl("wk-school-list").innerHTML = `<p class="admin-muted">No school staff feedback yet. Send the school link ("Copy school link" in the list above, or /workshop/school?c=CODE). It stays open for 60 days after the workshop.</p>`;
+      wkEl("wk-school-list").innerHTML = `<p class="admin-muted">No school staff feedback yet. Send the school link ("Copy school link" in the list above, or /workshop/school?c=CODE). It stays open for 21 days after the workshop date.</p>`;
     } else {
       const live = schoolCache.filter((x) => !x.hidden);
       const answer = (x: AdminSchoolFeedback, key: string) => x.answers[key];
