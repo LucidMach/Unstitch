@@ -1069,3 +1069,13 @@ model WorkshopFacilitatorFeedback {
   @@index([workshopId])
   @@map("workshop_facilitator_feedback")
 }
+
+// Facilitator edits to the deck's speaker notes (one row per slide that was changed). The deck's own notes
+// live in public/assets/workshop/deck/notes.json; a row here replaces that slide's notes for every workshop.
+model WorkshopSlideNote {
+  slide     Int      @id
+  notes     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("workshop_slide_notes")
+}

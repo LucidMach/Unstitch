@@ -276,6 +276,21 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                 <button class="btn btn-outline" data-wk-slide-next aria-label="Next slide">&#8594;</button>
               </div>
               <div class="wk-pres__notes" data-wk-notes tabindex="0" aria-label="Facilitator notes for this slide"></div>
+              <div class="wk-pres__tools">
+                <span class="wk-pres__edited" data-wk-notes-edited hidden>Edited</span>
+                <button type="button" class="wk-link" data-wk-notes-edit>Edit notes</button>
+                <button type="button" class="wk-link" data-wk-notes-reset hidden>Put the deck's notes back</button>
+              </div>
+              <div class="wk-pres__editor" data-wk-notes-editor hidden>
+                <label class="wk-pres__editlabel" for="wk-notes-text">Notes for this slide</label>
+                <textarea id="wk-notes-text" class="wk-control" rows="9" maxlength="4000" data-wk-notes-text></textarea>
+                <div class="wk-pres__editactions">
+                  <button type="button" class="btn btn-filled" data-wk-notes-save>Save notes</button>
+                  <button type="button" class="btn btn-outline" data-wk-notes-cancel>Cancel</button>
+                  <span class="wk-muted" role="status" data-wk-notes-msg></span>
+                </div>
+                <p class="wk-muted">Saved for every workshop and every device. Arrow keys and Space work as normal text keys while you type here.</p>
+              </div>
               <p class="wk-muted wk-pres__next" data-wk-slide-next-title></p>
               <p class="wk-muted wk-pres__keys">Open the projector window and drag it onto the projector screen, then press F there for full screen. Left and right arrows (or your clicker) change slides in either window. T shows the big clock.</p>
             </section>
@@ -661,6 +676,12 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-pres__nav .btn { min-height: 44px; min-width: 56px; }
   .wk-pres__where { margin: 0; text-align: center; font-weight: 600; font-size: 0.95rem; }
   .wk-pres__notes { background: #fff; border: 1.5px solid var(--ink); border-radius: var(--radius); padding: 14px 16px; line-height: 1.55; white-space: pre-wrap; min-height: 6.5em; font-size: 1rem; }
+  .wk-pres__tools { display: flex; align-items: center; gap: 14px; margin: 6px 0 0; flex-wrap: wrap; }
+  .wk-pres__edited { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+  .wk-pres__editor { display: grid; gap: 8px; margin-top: 8px; }
+  .wk-pres__editlabel { font-weight: 600; font-size: 0.92rem; }
+  .wk-pres__editor .wk-control { border-color: var(--ink); line-height: 1.5; }
+  .wk-pres__editactions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .wk-pres__notes:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wk-pres__next { margin: 10px 0 0; font-size: 0.88rem; }
   .wk-pres__keys { margin: 4px 0 0; font-size: 0.85rem; }
@@ -1026,7 +1047,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   type Box = { x: number; y: number; w: number; h: number };
   type QrKind = "student" | "feedback" | "teacher";
   type QrCfg = { slide: number; kind: QrKind; box: Box; line?: Box; small?: boolean };
-  type SlideNote = { n: number; section: string; title: string; notes: string };
+  type SlideNote = { n: number; section: string; title: string; notes: string; base?: string; edited?: boolean };
   type Snapshot = { idx: number; running: boolean; endAt: number; remaining: number; finished: boolean; slide: number };
 
   const deckCfg: DeckCfg = JSON.parse($("#wk-deck").textContent || "{}");
@@ -1288,8 +1309,86 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
       const res = await fetch(deckCfg.notesUrl);
       if (res.ok) slideNotes = ((await res.json()) as { slides: SlideNote[] }).slides;
     } catch { /* notes are a nice-to-have */ }
+    slideNotes.forEach((n) => { n.base = n.notes; });
     render();
+    // Notes the facilitators have edited replace the deck's notes for those slides.
+    if (facilitatorKey) {
+      try {
+        const res = await fetch(`/api/workshop?key=${encodeURIComponent(facilitatorKey)}&notes=1`, { headers: { Accept: "application/json" } });
+        if (res.ok) {
+          const { notes } = (await res.json()) as { notes: Record<string, string> };
+          for (const [slideNo, text] of Object.entries(notes || {})) {
+            const n = slideNotes[Number(slideNo) - 1];
+            if (n) { n.notes = text; n.edited = true; }
+          }
+          render();
+        }
+      } catch { /* the deck's own notes are still shown */ }
+    }
   }
+
+  // ----- editing the speaker notes on the page
+  const notesBox = $("[data-wk-notes]");
+  const notesEditor = $("[data-wk-notes-editor]");
+  const notesText = $<HTMLTextAreaElement>("[data-wk-notes-text]");
+  const notesMsg = $("[data-wk-notes-msg]");
+  const notesEditBtn = $<HTMLButtonElement>("[data-wk-notes-edit]");
+  const notesResetBtn = $<HTMLButtonElement>("[data-wk-notes-reset]");
+  const notesSaveBtn = $<HTMLButtonElement>("[data-wk-notes-save]");
+  let editingSlide = 0;
+
+  function closeNotesEditor() {
+    editingSlide = 0;
+    notesEditor.hidden = true;
+    notesBox.hidden = false;
+    notesEditBtn.hidden = false;
+    notesMsg.textContent = "";
+  }
+  async function saveNotes(slideNo: number, text: string | null): Promise<boolean> {
+    notesMsg.textContent = "Saving…";
+    try {
+      const res = await fetch("/api/workshop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ kind: "notes", key: facilitatorKey, slide: slideNo, notes: text }),
+      });
+      if (!res.ok) { notesMsg.textContent = res.status === 410 ? "This workshop has finished, so notes can't be changed." : "Couldn't save. Check your connection and try again."; return false; }
+      const n = slideNotes[slideNo - 1];
+      if (n) {
+        if (text && text.trim() && text.trim() !== (n.base ?? "")) { n.notes = text.trim(); n.edited = true; }
+        else { n.notes = n.base ?? ""; n.edited = false; }
+      }
+      notesMsg.textContent = "";
+      return true;
+    } catch {
+      notesMsg.textContent = "Couldn't save. Check your connection and try again.";
+      return false;
+    }
+  }
+  notesEditBtn.addEventListener("click", () => {
+    if (!slideNotes[slide - 1] || !facilitatorKey) return;
+    editingSlide = slide;
+    notesText.value = slideNotes[slide - 1].notes;
+    notesBox.hidden = true;
+    notesEditor.hidden = false;
+    notesEditBtn.hidden = true;
+    notesText.focus();
+  });
+  $("[data-wk-notes-cancel]").addEventListener("click", () => { closeNotesEditor(); render(); });
+  notesSaveBtn.addEventListener("click", async () => {
+    const target = editingSlide;
+    if (!target) return;
+    notesSaveBtn.disabled = true;
+    const ok = await saveNotes(target, notesText.value);
+    notesSaveBtn.disabled = false;
+    if (ok) { closeNotesEditor(); render(); }
+  });
+  notesResetBtn.addEventListener("click", async () => {
+    const n = slideNotes[slide - 1];
+    if (!n || !n.edited) return;
+    if (!window.confirm("Put the deck's original notes back for this slide? This changes it for every workshop.")) return;
+    if (await saveNotes(slide, null)) render();
+  });
   function preloadSlides() {
     // Fetch every slide once, quietly, so a slow school connection can't stall a slide mid-lesson.
     let n = 1;
@@ -1364,7 +1463,11 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     if (deckReady) stages.forEach(paintStage); // students never fetch a slide
     const meta = slideNotes[slide - 1];
     $("[data-wk-slide-where]").textContent = `Slide ${slide} of ${deckCfg.count}${meta?.title ? ` · ${meta.title}` : ""}`;
-    $("[data-wk-notes]").textContent = meta ? meta.notes || "No notes for this slide." : slideNotes.length ? "" : "Loading notes…";
+    if (editingSlide && editingSlide !== slide) closeNotesEditor(); // moved on to another slide
+    notesBox.textContent = meta ? meta.notes || "No notes for this slide." : slideNotes.length ? "" : "Loading notes…";
+    $("[data-wk-notes-edited]").hidden = !meta?.edited;
+    notesResetBtn.hidden = !meta?.edited;
+    notesEditBtn.disabled = !meta || !facilitatorKey;
     const following = slideNotes[slide];
     $("[data-wk-slide-next-title]").textContent = following ? `Next: slide ${slide + 1}, ${following.title}` : slide >= deckCfg.count ? "Last slide" : "";
     ($("[data-wk-slide-prev]") as HTMLButtonElement).disabled = slide <= 1;

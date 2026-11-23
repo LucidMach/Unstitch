@@ -8,6 +8,7 @@ const db = vi.hoisted(() => ({
   workshopFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   workshopTeacherFeedback: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   workshopFacilitatorFeedback: { create: vi.fn(), findMany: vi.fn() },
+  workshopSlideNote: { upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
 }));
 vi.mock('../../src/lib/prisma.js', () => ({ default: db }));
 
@@ -295,6 +296,70 @@ describe('POST /api/workshop (facilitator feedback)', () => {
     await handler(post({ ...FACILITATOR, answers: { outcomes: { reuse: '9' } } }), res);
     expect(res.statusCode).toBe(400);
     expect(db.workshopFacilitatorFeedback.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('speaker notes edited on the page', () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it('lists only the edited slides, for a facilitator key', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    db.workshopSlideNote.findMany.mockResolvedValue([{ slide: 3, notes: 'My words' }, { slide: 25, notes: 'Go!' }]);
+    const res = createMockRes();
+    await handler(get('key=CGGSF&notes=1'), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.notes).toEqual({ '3': 'My words', '25': 'Go!' });
+  });
+
+  it('does not hand the notes to a student code or an unknown or expired key', async () => {
+    db.workshop.findUnique.mockResolvedValue(LIVE);
+    let res = createMockRes();
+    await handler(get('code=K7Q4MX&notes=1'), res);
+    expect(res.body.role).toBe('student');
+    expect(res.body.notes).toBeUndefined();
+    db.workshop.findFirst.mockResolvedValue(null);
+    res = createMockRes();
+    await handler(get('key=NOPE12&notes=1'), res);
+    expect(res.statusCode).toBe(404);
+    db.workshop.findFirst.mockResolvedValue({ ...LIVE, expiresAt: PAST });
+    res = createMockRes();
+    await handler(get('key=CGGSF&notes=1'), res);
+    expect(res.statusCode).toBe(410);
+    expect(db.workshopSlideNote.findMany).not.toHaveBeenCalled();
+  });
+
+  it('saves a slide\'s notes under the facilitator key', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    const res = createMockRes();
+    await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: '  New words  ' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(db.workshopSlideNote.upsert).toHaveBeenCalledWith({
+      where: { slide: 3 }, create: { slide: 3, notes: 'New words' }, update: { notes: 'New words' },
+    });
+  });
+
+  it('puts the deck notes back when the text is empty', async () => {
+    db.workshop.findFirst.mockResolvedValue(LIVE);
+    for (const notes of [null, '   ']) {
+      const res = createMockRes();
+      await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes }), res);
+      expect(res.statusCode).toBe(200);
+    }
+    expect(db.workshopSlideNote.deleteMany).toHaveBeenCalledWith({ where: { slide: 3 } });
+    expect(db.workshopSlideNote.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a student code, a bad slide number and a missing key', async () => {
+    db.workshop.findFirst.mockResolvedValue(null);
+    let res = createMockRes();
+    await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: 'x' }), res);
+    expect(res.statusCode).toBe(404);
+    for (const bad of [{ slide: 0 }, { slide: 'x' }, { key: undefined, code: 'K7Q4MX' }, { notes: 'x'.repeat(4001) }]) {
+      res = createMockRes();
+      await handler(post({ kind: 'notes', key: 'CGGSF', slide: 3, notes: 'x', ...bad }), res);
+      expect(res.statusCode).toBe(400);
+    }
+    expect(db.workshopSlideNote.upsert).not.toHaveBeenCalled();
   });
 });
 

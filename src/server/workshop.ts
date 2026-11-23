@@ -8,7 +8,10 @@
 //   404 -> unknown code or key
 //   410 -> exists but is switched off or has expired
 //
-// POST /api/workshop               (feedback; `kind` says whose)
+// GET  /api/workshop?key=<key>&notes=1   (facilitator only)
+//   200 -> { notes: { "<slide>": "<edited notes>" } }   only the slides that were edited
+//
+// POST /api/workshop               (feedback and notes; `kind` says which)
 //   kind "student" (the default; sent with `code`):
 //     { code, submissionId, scores: { reuse, connect, spatial, discover, team },
 //       teamName?, whatWeMade?, interesting?, wouldChange? }
@@ -16,6 +19,8 @@
 //     { code, submissionId, engagement, observed[], appropriate, valuable?, improve?, recommend }
 //   kind "facilitator" (sent with the facilitator `key`, so students cannot send it):
 //     { key, submissionId, answers: { outcomes, delivery, checks, open, obs } }
+//   kind "notes" (sent with the facilitator `key`): { key, slide, notes }
+//     saves the edited speaker notes for a slide, for every workshop; empty or null notes put the deck's version back
 //   200 -> { ok: true }   (also when the same submissionId arrives twice)
 //
 // The questions and choices are listed in src/lib/constants/workshopFeedback.ts.
@@ -103,6 +108,12 @@ const FacilitatorAnswers = z.object({
   obs: shape(facilitatorObservations, (o) => (o.kind === 'text' ? text(300) : oneOf(facilitatorYesPartlyNo))),
 });
 
+const NotesSchema = z.object({
+  key: keyField,
+  slide: z.coerce.number().int().min(1).max(100),
+  notes: z.string().max(4000).nullable(),
+});
+
 const FacilitatorSchema = z.object({
   key: keyField,
   submissionId: submissionField,
@@ -154,10 +165,10 @@ export default async function handler(req: any, res: any): Promise<any> {
   if (req.method === 'POST') {
     const body = parseRequestBody(req) as any;
     const kind = body && typeof body === 'object' && typeof body.kind === 'string' ? body.kind : 'student';
-    if (kind !== 'student' && kind !== 'teacher' && kind !== 'facilitator') {
+    if (kind !== 'student' && kind !== 'teacher' && kind !== 'facilitator' && kind !== 'notes') {
       return sendJson(res, 400, { error: 'Unknown feedback type' });
     }
-    const schema = kind === 'teacher' ? TeacherSchema : kind === 'facilitator' ? FacilitatorSchema : StudentSchema;
+    const schema = kind === 'teacher' ? TeacherSchema : kind === 'facilitator' ? FacilitatorSchema : kind === 'notes' ? NotesSchema : StudentSchema;
     const parsed = (schema as z.ZodTypeAny).safeParse(body);
     if (!parsed.success) {
       const formatted = formatZodError(parsed.error);
@@ -167,11 +178,26 @@ export default async function handler(req: any, res: any): Promise<any> {
     try {
       const select = { id: true, teams: true, active: true, expiresAt: true } as const;
       const workshop =
-        kind === 'facilitator'
+        kind === 'facilitator' || kind === 'notes'
           ? await prisma.workshop.findFirst({ where: { facilitatorKey: { equals: data.key, mode: 'insensitive' } }, select })
           : await prisma.workshop.findUnique({ where: { code: data.code }, select });
-      if (!workshop) return sendJson(res, 404, { error: kind === 'facilitator' ? 'Facilitator link not found' : 'Code not found' });
+      if (!workshop) return sendJson(res, 404, { error: kind === 'facilitator' || kind === 'notes' ? 'Facilitator link not found' : 'Code not found' });
       if (!isLive(workshop)) return sendJson(res, 410, { error: 'This workshop code has expired' });
+
+      if (kind === 'notes') {
+        const text = (data.notes ?? '').trim();
+        if (text) {
+          await prisma.workshopSlideNote.upsert({
+            where: { slide: data.slide },
+            create: { slide: data.slide, notes: text },
+            update: { notes: text },
+          });
+        } else {
+          await prisma.workshopSlideNote.deleteMany({ where: { slide: data.slide } });
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        return sendJson(res, 200, { ok: true });
+      }
 
       try {
         if (kind === 'student') {
@@ -230,6 +256,24 @@ export default async function handler(req: any, res: any): Promise<any> {
 
   if (bykey ? !/^[A-Za-z0-9]{5,24}$/.test(key) : !/^[A-Z0-9]{4,16}$/.test(code)) {
     return sendJson(res, 404, { error: 'Code not found' });
+  }
+
+  // The facilitator's edited speaker notes (only the slides that were changed).
+  if (bykey && searchParams.get('notes')) {
+    try {
+      const row = await prisma.workshop.findFirst({
+        where: { facilitatorKey: { equals: key, mode: 'insensitive' } },
+        select: { active: true, expiresAt: true },
+      });
+      if (!row) return sendJson(res, 404, { error: 'Facilitator link not found' });
+      if (!isLive(row)) return sendJson(res, 410, { error: 'This workshop code has expired' });
+      const rows = await prisma.workshopSlideNote.findMany({ select: { slide: true, notes: true } });
+      res.setHeader('Cache-Control', 'no-store');
+      return sendJson(res, 200, { notes: Object.fromEntries(rows.map((r: { slide: number; notes: string }) => [String(r.slide), r.notes])) });
+    } catch (err) {
+      console.error('[workshop] Notes lookup failed:', err);
+      return sendJson(res, 500, { error: 'Unable to load the notes right now.' });
+    }
   }
 
   try {
