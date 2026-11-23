@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewcube, Html } from "@react-three/drei";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, FolderOpen, Share2, ArrowLeft, Compass, Eye } from "lucide-react";
+import { Save, FolderOpen, Share2, ArrowLeft, Compass, Eye, Camera } from "lucide-react";
 
 import { usePlayCanvas } from "../hooks/use-play-canvas";
 import { ITEM_SCALE } from "../constants/layout";
@@ -74,6 +74,32 @@ function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | n
   }
 }
 
+// Full-resolution PNG of what is on screen, on the soft brand background. Made on demand in the browser and
+// downloaded straight to the device: nothing is stored in the browser, on the server or in the database.
+function canvasToPngBlob(canvasEl: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const { width, height } = canvasEl;
+      if (!width || !height) return resolve(null);
+      // Keep very large retina canvases to a sensible size (longest edge 2400px).
+      const maxDim = 2400;
+      const scale = Math.min(1, maxDim / Math.max(width, height));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(width * scale));
+      out.height = Math.max(1, Math.round(height * scale));
+      const ctx = out.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.fillStyle = '#faf9f6';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvasEl, 0, 0, out.width, out.height);
+      out.toBlob((blob) => resolve(blob), 'image/png');
+    } catch (err) {
+      console.warn('Could not capture image:', err);
+      resolve(null);
+    }
+  });
+}
+
 const PlayCanvas: React.FC = () => {
   const pc = usePlayCanvas();
   const { OFFSET_MAJOR } = getLayoutConstants(pc.overlap);
@@ -94,6 +120,22 @@ const PlayCanvas: React.FC = () => {
       console.warn('Could not capture canvas snapshot:', err);
     }
     pc.setShowShareDialog(true);
+  };
+
+  const handleSaveImage = async () => {
+    const canvasEl = document.querySelector('.playground-root canvas') as HTMLCanvasElement | null;
+    const blob = canvasEl ? await canvasToPngBlob(canvasEl) : null;
+    if (!blob) { pc.showToast("Couldn't save an image. Try again."); return; }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = (pc.projectName || 'unstitch-design').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'unstitch-design';
+    link.href = url;
+    link.download = `${safeName}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    pc.showToast("Image saved (.png)");
   };
 
   const selectedTile = pc.tiles.find(t => t.id === pc.selectedTileId);
@@ -238,6 +280,17 @@ const PlayCanvas: React.FC = () => {
 
           <Button 
             variant="ghost" 
+            title="Save a picture of your design"
+            aria-label="Save as image"
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
+            onClick={handleSaveImage}
+          >
+            <Camera size={15} />
+            <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Image</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
             className="h-9 sm:h-10 px-3 sm:px-4 rounded-none border-r border-neutral-200 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors gap-1.5" 
             onClick={() => pc.setShowLoadDialog(true)}
           >
@@ -322,6 +375,7 @@ const PlayCanvas: React.FC = () => {
         projects={pc.projects}
         onExportJSON={pc.exportJSON}
         onExportGLTF={() => pc.exportGLTF(modelGroupRef.current)}
+        onExportImage={handleSaveImage}
       />
       
       <LoadDialog 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Plus, FolderOpen, Trash2, Box, FileCode, Upload, AlertCircle, Share2, Mail, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Camera, Save, Plus, FolderOpen, Trash2, Box, FileCode, Upload, AlertCircle, Share2, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from './button';
 
 interface DialogProps {
@@ -40,7 +40,8 @@ export const SaveDialog: React.FC<{
   projects: any[];
   onExportJSON?: () => void;
   onExportGLTF?: () => void;
-}> = ({ show, onClose, projectName, setProjectName, onSave, currentProjectId, projects, onExportJSON, onExportGLTF }) => (
+  onExportImage?: () => void;
+}> = ({ show, onClose, projectName, setProjectName, onSave, currentProjectId, projects, onExportJSON, onExportGLTF, onExportImage }) => (
   <Dialog show={show} onClose={onClose}>
     <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[85vh]">
       <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
@@ -140,6 +141,27 @@ export const SaveDialog: React.FC<{
             </div>
             <p className="text-[11px] text-neutral-500 leading-relaxed">
               Export 3D mesh model ready for Blender, 3D printing, CAD, and rendering.
+            </p>
+          </div>
+        )}
+
+        {/* Option 4: Save as Image */}
+        {onExportImage && (
+          <div 
+            onClick={() => { onExportImage(); onClose(); }}
+            className="group p-3.5 bg-neutral-50/80 hover:bg-neutral-100 rounded-xl border border-neutral-200/80 hover:border-neutral-400 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-white border border-neutral-200 flex items-center justify-center text-neutral-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <Camera size={13} />
+                </div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900">4. Save as Image</h4>
+              </div>
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-neutral-200/80 text-neutral-700 font-bold">.PNG</span>
+            </div>
+            <p className="text-[11px] text-neutral-500 leading-relaxed">
+              Download a picture of your design as it looks right now. Great for sharing or showing your team.
             </p>
           </div>
         )}
