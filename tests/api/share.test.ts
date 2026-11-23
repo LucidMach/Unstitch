@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import shareHandler from '../../src/server/share.js';
 import { limiter } from '../../src/lib/rateLimit.js';
 
@@ -204,5 +204,64 @@ describe('Share API Handler (/api/share)', () => {
     );
 
     process.env.RESEND_API_KEY = originalApiKey;
+  });
+
+  describe('"Send a copy to Unstitch" (mode: studio)', () => {
+    const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const studio = (body: any, ip = '192.168.2.99') => ({ method: 'POST', body: { mode: 'studio', ...body }, headers: { 'x-forwarded-for': ip } });
+    let originalApiKey: string | undefined;
+    beforeEach(() => { originalApiKey = process.env.RESEND_API_KEY; process.env.RESEND_API_KEY = 're_test_key_123'; });
+    afterEach(() => { process.env.RESEND_API_KEY = originalApiKey; });
+
+    it('emails the image to the studio inbox with the maker\'s name and no email needed', async () => {
+      const res = createMockRes();
+      await shareHandler(studio({ projectName: 'Hex Bag', from: '@maker', previewImage: PNG }), res);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const sent = mockSend.mock.calls[0][0];
+      expect(sent.to).toBe('hello@unstitchx.com');
+      expect(sent.subject).toContain('@maker');
+      expect(sent.subject).toContain('Hex Bag');
+      expect(sent.attachments[0].filename).toBe('hex-bag.png');
+      expect(Buffer.isBuffer(sent.attachments[0].content)).toBe(true);
+    });
+
+    it('escapes what the maker typed', async () => {
+      const res = createMockRes();
+      await shareHandler(studio({ from: '<img src=x onerror=alert(1)>', previewImage: PNG }), res);
+      expect(res.statusCode).toBe(200);
+      expect(mockSend.mock.calls[0][0].html).not.toContain('<img src=x');
+      expect(mockSend.mock.calls[0][0].html).toContain('&lt;img src=x');
+    });
+
+    it('needs a real image data URL', async () => {
+      for (const [i, bad] of [{}, { previewImage: '' }, { previewImage: 'https://example.com/x.png' }, { previewImage: 'data:text/html;base64,PGI+' }].entries()) {
+        const res = createMockRes();
+        await shareHandler(studio(bad, `192.168.2.${i + 1}`), res);
+        expect(res.statusCode).toBe(400);
+      }
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('does not send anything when the honeypot is filled', async () => {
+      const res = createMockRes();
+      await shareHandler(studio({ previewImage: PNG, _gotcha: 'bot' }, '192.168.2.20'), res);
+      expect(res.statusCode).toBe(200);
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('reports a failed send as a 500', async () => {
+      mockSend.mockResolvedValue({ data: null, error: { message: 'boom', statusCode: 500, name: 'application_error' } });
+      const res = createMockRes();
+      await shareHandler(studio({ previewImage: PNG }, '192.168.2.30'), res);
+      expect(res.statusCode).toBe(500);
+    });
+
+    it('is rate limited like the other share requests', async () => {
+      let last: any;
+      for (let i = 0; i < 6; i++) { last = createMockRes(); await shareHandler(studio({ previewImage: PNG }, '192.168.2.40'), last); }
+      expect(last.statusCode).toBe(429);
+    });
   });
 });

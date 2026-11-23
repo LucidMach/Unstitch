@@ -1,13 +1,22 @@
 // api/share.js
 // Vercel Serverless Function for emailing 3D parametric textile creations
 
-import { ShareSchema } from '../lib/schemas/share.js';
+import { ShareSchema, StudioShareSchema } from '../lib/schemas/share.js';
 import { checkRateLimit } from '../lib/rateLimit.js';
 import { formatZodError, sendJson, parseRequestBody } from '../lib/apiHelper.js';
 import prisma from '../lib/prisma.js';
 import { GENERAL_FROM_EMAIL } from '../lib/emailTemplate.js';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || GENERAL_FROM_EMAIL;
+const STUDIO_INBOX = 'hello@unstitchx.com';
+
+const escapeHtml = (value: unknown) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 interface ShareEmailData {
   projectName?: string;
@@ -136,6 +145,59 @@ export default async function handler(req: any, res: any): Promise<any> {
   if (rawBody._gotcha) {
     console.warn('Bot detected via honeypot trap in share submission');
     return sendJson(res, 200, { ok: true });
+  }
+
+  // "Send a copy to Unstitch" (Snap & Share pop-up): email the picture to the studio inbox. Nothing is stored.
+  if (rawBody.mode === 'studio') {
+    const studio = StudioShareSchema.safeParse(rawBody);
+    if (!studio.success) {
+      const formatted = formatZodError(studio.error);
+      return sendJson(res, 400, { error: formatted.message, fieldErrors: formatted.fieldErrors });
+    }
+    const { projectName, from, previewImage } = studio.data;
+    const mimeType = (previewImage.match(/^data:(image\/[a-z]+);base64,/) || [])[1] || 'image/png';
+    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+    const safeName = (projectName || 'unstitch-design').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'unstitch-design';
+    const imageBuffer = Buffer.from(previewImage.split('base64,')[1] || '', 'base64');
+    if (!imageBuffer.length) return sendJson(res, 400, { error: 'Image is required' });
+
+    const subject = `Playground build shared${from ? ` by ${from}` : ''}: ${projectName}`;
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #1a1a1a; background: #faf9f6; border-radius: 8px; border: 1px solid #e5e5e5;">
+        <p style="margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; color: #A36E93;">Playground · Snap &amp; Share</p>
+        <h2 style="margin: 0 0 12px; font-size: 20px;">${escapeHtml(projectName)}</h2>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #444;">Shared by: <strong>${from ? escapeHtml(from) : 'not given'}</strong></p>
+        <img src="cid:build-image" alt="${escapeHtml(projectName)}" style="width: 100%; height: auto; border-radius: 12px; border: 1px solid #e8e8e8; display: block;" />
+        <p style="margin: 16px 0 0; font-size: 12px; color: #777;">The image is also attached. Sent from the Snap &amp; Share pop-up after saving an image in the playground.</p>
+      </div>`;
+    const text = [`Playground build shared: ${projectName}`, `Shared by: ${from || 'not given'}`, '', 'The image is attached.'].join('\n');
+    const attachments = [{ filename: `${safeName}.${ext}`, content: imageBuffer, content_id: 'build-image' }];
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const { Resend } = await import('resend');
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        let sendResult = await resend.emails.send({ from: FROM_EMAIL, to: STUDIO_INBOX, subject, text, html, attachments });
+        if (
+          sendResult.error &&
+          (sendResult.error.message?.toLowerCase().includes('not verified') ||
+            sendResult.error.statusCode === 403 ||
+            sendResult.error.name === 'validation_error')
+        ) {
+          sendResult = await resend.emails.send({ from: 'Unstitch 3D Studio <onboarding@resend.dev>', to: STUDIO_INBOX, subject, text, html, attachments });
+        }
+        if (sendResult.error) {
+          console.error('Failed to send studio share email via Resend:', sendResult.error);
+          return sendJson(res, 500, { error: 'We could not send that just now. Please try again shortly.' });
+        }
+      } catch (emailErr) {
+        console.error('Failed to send studio share email via Resend (thrown):', emailErr);
+        return sendJson(res, 500, { error: 'We could not send that just now. Please try again shortly.' });
+      }
+    } else {
+      console.log('[Dev/Mock] Studio share image dispatched to:', STUDIO_INBOX, { projectName, from, bytes: imageBuffer.length });
+    }
+    return sendJson(res, 200, { ok: true, message: 'Thanks! Your build is with the Unstitch team.' });
   }
 
   const parseResult = ShareSchema.safeParse(rawBody);

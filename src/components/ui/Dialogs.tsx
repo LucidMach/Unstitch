@@ -535,38 +535,117 @@ export const ExportDialog: React.FC<{
   </Dialog>
 );
 
-export const SnapShareDialog: React.FC<{ show: boolean; onClose: () => void }> = ({ show, onClose }) => (
-  <Dialog show={show} onClose={onClose}>
-    <div className="p-6 sm:p-7 text-center space-y-4">
-      <div className="mx-auto w-11 h-11 rounded-2xl bg-[#eedfe9] text-[#A36E93] flex items-center justify-center">
-        <Camera size={20} />
-      </div>
-      <div className="space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Image saved</p>
-        <h3 className="text-lg font-bold text-neutral-900 leading-tight">Snap &amp; Share</h3>
-        <p className="text-sm text-neutral-700">Share your build!</p>
-      </div>
-      <div className="space-y-1.5 py-3 border-y border-neutral-200">
-        <a
-          href="https://www.instagram.com/unstitchxfactory/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-sm font-bold text-neutral-900 hover:text-[#A36E93] transition-colors"
+export const SnapShareDialog: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  image?: string | null;
+  projectName?: string;
+}> = ({ show, onClose, image, projectName }) => {
+  const [from, setFrom] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!show) { setStatus('idle'); setErrorMsg(null); }
+  }, [show]);
+
+  const sendToUnstitch = async () => {
+    if (!image || status === 'sending' || status === 'sent') return;
+    setStatus('sending');
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'studio',
+          projectName: (projectName || '').trim() || 'Unstitch 3D Creation',
+          from: from.trim(),
+          previewImage: image,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(res.status === 429 ? 'Too many tries. Please wait a minute and try again.' : data?.error || 'We could not send that just now.');
+      setStatus('sent');
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err instanceof Error ? err.message : 'We could not send that just now.');
+    }
+  };
+
+  return (
+    <Dialog show={show} onClose={onClose}>
+      <div className="p-6 sm:p-7 text-center space-y-4 overflow-y-auto">
+        <div className="mx-auto w-11 h-11 rounded-2xl bg-[#eedfe9] text-[#A36E93] flex items-center justify-center">
+          <Camera size={20} />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Image saved</p>
+          <h3 className="text-lg font-bold text-neutral-900 leading-tight">Snap &amp; Share</h3>
+          <p className="text-sm text-neutral-700">Share your build!</p>
+        </div>
+        <div className="space-y-1.5 py-3 border-y border-neutral-200">
+          <a
+            href="https://www.instagram.com/unstitchxfactory/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-sm font-bold text-neutral-900 hover:text-[#A36E93] transition-colors"
+          >
+            @unstitchxfactory
+          </a>
+          <p className="text-sm font-bold text-[#A36E93] break-words">#unstitchxmade</p>
+        </div>
+
+        {image && (
+          <div className="space-y-2 text-left">
+            {status === 'sent' ? (
+              <p className="text-sm text-center font-semibold text-emerald-700 flex items-center justify-center gap-1.5">
+                <CheckCircle2 size={16} /> Thanks! Your build is with the Unstitch team.
+              </p>
+            ) : (
+              <>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500" htmlFor="snap-from">
+                  Your name or handle (optional)
+                </label>
+                <input
+                  id="snap-from"
+                  type="text"
+                  value={from}
+                  maxLength={100}
+                  onChange={(e) => setFrom(e.target.value)}
+                  placeholder="e.g. @yourhandle"
+                  className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#A36E93]/40 focus:border-[#A36E93]"
+                />
+                <Button
+                  variant="secondary"
+                  disabled={status === 'sending'}
+                  className="w-full h-10 rounded-xl text-xs font-semibold uppercase tracking-wider bg-[#A36E93] hover:bg-[#8f5d81] text-white border-none transition-all gap-2"
+                  onClick={sendToUnstitch}
+                >
+                  {status === 'sending' ? (<><Loader2 size={14} className="animate-spin" /> Sending…</>) : (<><Mail size={14} /> Send a copy to Unstitch</>)}
+                </Button>
+                <p className="text-[11px] text-neutral-500 leading-relaxed text-center">
+                  This emails your picture to the Unstitch team. Nothing else is sent.
+                </p>
+                {status === 'error' && errorMsg && (
+                  <p className="text-xs font-semibold text-red-600 text-center" role="alert">{errorMsg}</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <Button
+          variant="secondary"
+          className="w-full h-10 rounded-xl text-xs font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-black text-white border-none transition-all"
+          onClick={onClose}
         >
-          @unstitchxfactory
-        </a>
-        <p className="text-sm font-bold text-[#A36E93] break-words">#unstitchxmade</p>
+          Done
+        </Button>
       </div>
-      <Button
-        variant="secondary"
-        className="w-full h-10 rounded-xl text-xs font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-black text-white border-none transition-all"
-        onClick={onClose}
-      >
-        Done
-      </Button>
-    </div>
-  </Dialog>
-);
+    </Dialog>
+  );
+};
 
 export const ConfirmDialog: React.FC<{
   show: boolean;
