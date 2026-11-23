@@ -304,19 +304,11 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
                       <span class="wk-plan__num">{i + 1}</span>
                       <span class="wk-run__body">
                         <span class="wk-plan__title">{p.title} <span class="wk-plan__min">{p.minutes} min</span></span>
-                        <span class="wk-plan__text">{p.summary}</span>
-                        <span class="wk-run__say">Say: &ldquo;{p.say}&rdquo;</span>
                       </span>
                     </button>
                   </li>
                 ))}
               </ol>
-            </section>
-
-            <section class="wk-block" aria-labelledby="wk-kit-h" style="grid-area: kit;">
-              <h2 id="wk-kit-h" class="wk-h2">Kit check</h2>
-              <p class="wk-muted" data-wk-kit>Tiles, role cards and bid cards for your teams.</p>
-              <p class="wk-muted">Timings are for a group of this size. Full notes, room layout and the backup plan are in the facilitator guide.</p>
             </section>
           </div>
 
@@ -659,13 +651,12 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
   .wk-run__item.is-done .wk-plan__num { background: #9a9a9a; }
   .wk-run__item:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .wk-run__body { display: grid; gap: 2px; }
-  .wk-run__say { font-size: 0.9rem; font-style: italic; color: var(--accent-text-on-pale); margin-top: 4px; }
 
   /* projector */
   /* facilitator: timer, slides and notes side by side on a wide screen */
-  .wk-fgrid { display: grid; gap: 0 36px; grid-template-areas: "timer" "pres" "run" "kit"; }
+  .wk-fgrid { display: grid; gap: 0 36px; grid-template-areas: "timer" "pres" "run"; }
   @media (min-width: 1000px) {
-    .wk-fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-areas: "timer pres" "run pres" "kit pres"; grid-template-rows: auto auto 1fr; align-items: start; }
+    .wk-fgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-areas: "timer pres" "run pres"; grid-template-rows: auto 1fr; align-items: start; }
     .wk-pres { position: sticky; top: 64px; }
   }
   .wk-timer__present { display: grid; justify-items: center; gap: 4px; margin-top: 14px; }
@@ -787,10 +778,6 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
     const date = formatDate(w.workshopDate);
     $("[data-wk-school]").textContent = date ? `${w.schoolName} · ${date}` : w.schoolName;
     $("[data-wk-code]").textContent = w.code;
-    const kit = $("[data-wk-kit]");
-    if (kit) {
-      kit.textContent = `${w.teams} teams: ${w.teams} kits of 24 tiles (plus a few spare), ${w.teams} sets of 5 role cards and ${w.teams} bid cards.`;
-    }
     const wantProjector = location.hash === "#projector";
     const wantFeedback = location.hash === "#feedback";
     // Only a facilitator link shows the tab bar and the facilitator view. Students see the participant page alone.
