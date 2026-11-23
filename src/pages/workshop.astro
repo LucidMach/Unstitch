@@ -127,7 +127,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
             <div class="wk-col wk-col--right">
               <section class="wk-block" aria-labelledby="wk-roles-h">
                 <h2 id="wk-roles-h" class="wk-h2">Team roles</h2>
-                <p class="wk-muted">Each person takes one role card. Roles are responsibilities, not rules: everyone can build and everyone can have ideas.</p>
+                <p class="wk-muted">Each person takes one role card. Each card has different prompt questions to help your team solve the challenge. We encourage everyone to build regardless of your roles.</p>
                 <div class="wk-roles">
                   {roles.map((r) => (
                     <article class="wk-role" style={roleStyle(r.color)}>
@@ -141,7 +141,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
 
               <section class="wk-block wk-play" aria-labelledby="wk-play-h">
                 <h2 id="wk-play-h" class="wk-h2">Explore in the playground</h2>
-                <p class="wk-muted">Try shapes on screen while your team builds with real tiles. The real build is what you share; the playground is for ideas.</p>
+                <p class="wk-muted">Try out different shapes and patterns digitally while your team builds physically. What else do you notice?</p>
                 <a class="wk-play__shot" href={workshopMeta.playgroundHref} target="_blank" rel="noopener" aria-label="Open the playground in a new tab">
                   <img src="/assets/workshop/playground-screenshot.webp" alt="A screenshot of the Unstitch playground: a 3D view of a textile shape built from tiles, with the tools around it for changing the shape." width="1280" height="720" loading="lazy" />
                 </a>
@@ -155,7 +155,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         <div class="wk-wrap wk-wrap--wide">
           <section class="wk-share" aria-labelledby="wk-share-h" style={roleStyle(storytellerColor)}>
             <h2 id="wk-share-h" class="wk-h2">Sharing your design</h2>
-            <p class="wk-share__lead">Every share has three parts.</p>
+            <p class="wk-share__lead">Tell us about your design</p>
             <ol class="wk-pitch wk-pitch--row">
               {workshopMeta.pitch.map((p) => (
                 <li><strong>{p.label}</strong><span>{p.prompt}</span></li>
@@ -179,7 +179,7 @@ const planTotal = phases.reduce((n, p) => n + p.minutes, 0);
         <div class="wk-feedback" id="wk-feedback" data-wk-feedback>
           <div class="wk-wrap wk-feedback__inner">
             <h2 id="wk-fb-h" class="wk-h2">How was today?</h2>
-            <p class="wk-feedback__lead">Quick and anonymous. Please don't write anyone's name.</p>
+            <p class="wk-feedback__lead">Anonymous feedback: tell us the goods and bads of today.</p>
             <form class="wk-fb" data-wk-fb-form novalidate aria-labelledby="wk-fb-h">
               <div class="wk-fb__block">
                 <p class="wk-fb__step"><span>1</span> How true is each one for you?</p>
