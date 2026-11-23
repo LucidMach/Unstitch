@@ -33,13 +33,12 @@ const CanvasLoader: React.FC = () => (
   </Html>
 );
 
-function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | null {
+function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement, maxDim = 800, quality = 0.82): string | null {
   try {
     const { width, height } = canvasEl;
     if (!width || !height) return null;
 
     // Downscale retina/high-DPI canvas to crisp preview dimensions (max 800px)
-    const maxDim = 800;
     let targetWidth = width;
     let targetHeight = height;
 
@@ -58,7 +57,7 @@ function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | n
     offscreen.height = targetHeight;
     const ctx = offscreen.getContext('2d');
     if (!ctx) {
-      return canvasEl.toDataURL('image/jpeg', 0.82);
+      return canvasEl.toDataURL('image/jpeg', quality);
     }
 
     // Fill soft brand background in case WebGL canvas has transparent areas
@@ -67,7 +66,7 @@ function captureOptimizedCanvasSnapshot(canvasEl: HTMLCanvasElement): string | n
     ctx.drawImage(canvasEl, 0, 0, targetWidth, targetHeight);
 
     // JPEG 82% quality yields ~40KB-90KB crisp preview, well within server limits
-    return offscreen.toDataURL('image/jpeg', 0.82);
+    return offscreen.toDataURL('image/jpeg', quality);
   } catch (err) {
     console.warn('Could not capture optimized canvas snapshot:', err);
     return null;
@@ -107,6 +106,7 @@ const PlayCanvas: React.FC = () => {
   const modelGroupRef = useRef<THREE.Group>(null);
   const [previewSnapshot, setPreviewSnapshot] = useState<string | null>(null);
   const [showSnapShare, setShowSnapShare] = useState(false);
+  const [snapImage, setSnapImage] = useState<string | null>(null);
 
   const handleOpenShare = () => {
     try {
@@ -136,6 +136,8 @@ const PlayCanvas: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    // A smaller copy (about 1600px, a few hundred KB) is what "Send a copy to Unstitch" would send.
+    setSnapImage(canvasEl ? captureOptimizedCanvasSnapshot(canvasEl, 1600, 0.9) : null);
     setShowSnapShare(true);
   };
 
@@ -400,7 +402,7 @@ const PlayCanvas: React.FC = () => {
 
       <ConfirmDialog show={!!pc.deleteConfirmId} title="delete tile?" message={pc.deleteConfirmId && Object.keys(pc.tiles.find(t => t.id === pc.deleteConfirmId)?.children || {}).length > 0 ? "This tile has others attached. Deleting it will remove the entire branch." : "Are you sure you want to delete this tile?"} confirmLabel="delete" onConfirm={() => { pc.deleteTile(pc.deleteConfirmId!); pc.setDeleteConfirmId(null); }} onCancel={() => pc.setDeleteConfirmId(null)} />
 
-      <SnapShareDialog show={showSnapShare} onClose={() => setShowSnapShare(false)} />
+      <SnapShareDialog show={showSnapShare} onClose={() => setShowSnapShare(false)} image={snapImage} projectName={pc.projectName} />
 
       <ConfirmDialog show={pc.showResetConfirm} title="Reset Canvas?" message="This will remove all tiles and clear your entire undo/redo history. This action cannot be undone." confirmLabel="Reset" confirmVariant="destructive" onConfirm={pc.handleReset} onCancel={() => pc.setShowResetConfirm(false)} icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>} />
     </div>

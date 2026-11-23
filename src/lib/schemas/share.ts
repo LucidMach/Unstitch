@@ -39,3 +39,25 @@ export const ShareSchema = z.object({
 
 export type ShareInput = z.infer<typeof ShareSchema>;
 
+
+// "Send a copy to Unstitch": the Snap & Share pop-up sends the picture of a build to the studio inbox.
+// Same endpoint as the email-to-yourself share (12-function cap); the body carries mode: 'studio'.
+export const StudioShareSchema = z.object({
+  mode: z.literal('studio'),
+  projectName: z
+    .string()
+    .trim()
+    .max(100, 'Project name cannot exceed 100 characters')
+    .optional()
+    .default('Unstitch 3D Creation'),
+  // Optional name or Instagram handle so the team can say hi / credit the maker.
+  from: z.string().trim().max(100, 'Name or handle cannot exceed 100 characters').optional().default(''),
+  previewImage: z
+    .string()
+    .min(1, 'Image is required')
+    .max(4 * 1024 * 1024, 'Image exceeds maximum allowed size')
+    .regex(/^data:image\/(png|jpeg|webp);base64,/, 'Image must be a PNG, JPEG or WebP data URL'),
+  _gotcha: z.string().optional(),
+});
+
+export type StudioShareInput = z.infer<typeof StudioShareSchema>;
